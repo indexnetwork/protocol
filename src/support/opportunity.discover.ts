@@ -566,7 +566,7 @@ export async function runDiscoverFromQuery(
       const result = await opportunityGraph.invoke({
         userId,
         searchQuery: queryOrEmpty || undefined,
-        indexId: indexScope.length === 1 ? indexScope[0] : undefined,
+        networkId: indexScope.length === 1 ? indexScope[0] : undefined,
         triggerIntentId,
         targetUserId,
         onBehalfOfUserId,

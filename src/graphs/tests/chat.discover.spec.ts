@@ -60,7 +60,7 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
     archiveIntent: async () => ({ success: true }),
     getUserIndexIds: noopArray,
     getIndexMemberships: noopArray,
-    getIndex: async (indexId: string) => ({ id: indexId, title: "Test Index" }),
+    getIndex: async (networkId: string) => ({ id: networkId, title: "Test Index" }),
     getIntentForIndexing: noopNull,
     getIndexMemberContext: noopNull,
     getOpportunitiesForUser: noopArray,
@@ -224,7 +224,7 @@ describe("Chat discovery (Step 11 – Smartest E2E)", () => {
       expect(output.responseText).not.toContain("indexScore");
       expect(output.responseText).not.toContain('"opportunities"');
       expect(output.responseText).not.toContain("intentId");
-      expect(output.responseText).not.toContain("indexId");
+      expect(output.responseText).not.toContain("networkId");
     }, 180000);
   });
 

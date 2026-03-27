@@ -41,7 +41,7 @@ export interface HydeCandidate {
   score: number;
   /** Free-text lens label that produced this match. */
   matchedVia: string;
-  indexId: string;
+  networkId: string;
   /** Set after merge when user matched via multiple lenses. */
   matchedLenses?: string[];
 }

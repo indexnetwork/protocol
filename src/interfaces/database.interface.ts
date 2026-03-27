@@ -229,9 +229,9 @@ export interface SimilarIntentSearchOptions {
  * Represents a user's membership in an index with full details.
  * Used for displaying index memberships in chat (index_query).
  */
-export interface IndexMembership {
+export interface NetworkMembership {
   /** Unique identifier of the index */
-  indexId: string;
+  networkId: string;
   /** Display title of the index */
   indexTitle: string;
   /** Index description/prompt (what the community is about) */
@@ -409,7 +409,7 @@ export interface CreateOpportunityData {
 
 export interface OpportunityQueryOptions {
   status?: OpportunityStatus;
-  indexId?: string;
+  networkId?: string;
   role?: string;
   limit?: number;
   offset?: number;
@@ -638,31 +638,31 @@ export interface Database {
    * @param userId - The unique identifier of the user
    * @returns Array of index memberships with details
    */
-  getIndexMemberships(userId: string): Promise<IndexMembership[]>;
+  getIndexMemberships(userId: string): Promise<NetworkMembership[]>;
 
   /**
    * Get a single index membership by index and user.
    * Used when the preloaded memberships list may not contain this index (e.g. after isIndexMember check).
    *
-   * @param indexId - The index ID
+   * @param networkId - The index ID
    * @param userId - The user ID
    * @returns The membership or null if not found
    */
-  getIndexMembership(indexId: string, userId: string): Promise<IndexMembership | null>;
+  getIndexMembership(networkId: string, userId: string): Promise<NetworkMembership | null>;
 
   /**
    * Get index by ID (id and title only). Used for opportunity presentation.
    */
-  getIndex(indexId: string): Promise<{ id: string; title: string } | null>;
+  getIndex(networkId: string): Promise<{ id: string; title: string } | null>;
 
   /**
    * Get index by ID with permissions (e.g. joinPolicy). Used by chat tools for create_index_membership.
    */
-  getIndexWithPermissions(indexId: string): Promise<{ id: string; title: string; permissions: { joinPolicy: 'anyone' | 'invite_only' } } | null>;
+  getIndexWithPermissions(networkId: string): Promise<{ id: string; title: string; permissions: { joinPolicy: 'anyone' | 'invite_only' } } | null>;
 
   /**
    * Associates an intent with one or more indexes.
-   * Creates entries in the intentIndexes join table.
+   * Creates entries in the intentNetworks join table.
    *
    * @param intentId - The intent to associate
    * @param indexIds - Array of index IDs to associate with
@@ -729,10 +729,10 @@ export interface Database {
    * Returns null if user is not a member or autoAssign is false.
    */
   getIndexMemberContext(
-    indexId: string,
+    networkId: string,
     userId: string
   ): Promise<{
-    indexId: string;
+    networkId: string;
     indexPrompt: string | null;
     memberPrompt: string | null;
   } | null>;
@@ -740,22 +740,22 @@ export interface Database {
   /**
    * Whether the intent is currently assigned to the index.
    */
-  isIntentAssignedToIndex(intentId: string, indexId: string): Promise<boolean>;
+  isIntentAssignedToIndex(intentId: string, networkId: string): Promise<boolean>;
 
   /**
    * Assigns an intent to an index (inserts intent_indexes row).
    */
-  assignIntentToIndex(intentId: string, indexId: string, relevancyScore?: number): Promise<void>;
+  assignIntentToIndex(intentId: string, networkId: string, relevancyScore?: number): Promise<void>;
 
   /**
    * Returns per-index relevancy scores for an intent's index assignments.
    */
-  getIntentIndexScores(intentId: string): Promise<Array<{ indexId: string; relevancyScore: number | null }>>;
+  getIntentIndexScores(intentId: string): Promise<Array<{ networkId: string; relevancyScore: number | null }>>;
 
   /**
    * Removes an intent from an index (deletes intent_indexes row).
    */
-  unassignIntentFromIndex(intentId: string, indexId: string): Promise<void>;
+  unassignIntentFromIndex(intentId: string, networkId: string): Promise<void>;
 
   /**
    * Returns all index IDs that an intent is registered to.
@@ -795,32 +795,32 @@ export interface Database {
   /**
    * Check if user is an owner of a specific index.
    *
-   * @param indexId - The index to check
+   * @param networkId - The index to check
    * @param userId - The user to verify ownership for
    * @returns True if user is an owner
    */
-  isIndexOwner(indexId: string, userId: string): Promise<boolean>;
+  isIndexOwner(networkId: string, userId: string): Promise<boolean>;
 
   /**
    * Check if user is a member of a specific index.
    *
-   * @param indexId - The index to check
+   * @param networkId - The index to check
    * @param userId - The user to verify membership for
    * @returns True if user is a member
    */
-  isIndexMember(indexId: string, userId: string): Promise<boolean>;
+  isIndexMember(networkId: string, userId: string): Promise<boolean>;
 
   /**
    * Get all members of an index with their details.
    * **OWNER ONLY** - throws if user is not an owner.
    *
-   * @param indexId - The index to get members for
+   * @param networkId - The index to get members for
    * @param requestingUserId - The user requesting (must be owner)
    * @returns Array of member details with intent counts
    * @throws Error if requestingUserId is not an owner
    */
   getIndexMembersForOwner(
-    indexId: string,
+    networkId: string,
     requestingUserId: string
   ): Promise<IndexMemberDetails[]>;
 
@@ -829,13 +829,13 @@ export interface Database {
    * **MEMBER ONLY** - any member of the index can list members (not just owners).
    * Returns same shape as getIndexMembersForOwner; email may be omitted for privacy.
    *
-   * @param indexId - The index to get members for
+   * @param networkId - The index to get members for
    * @param requestingUserId - The user requesting (must be a member of the index)
    * @returns Array of member details with intent counts
    * @throws Error if requestingUserId is not a member of the index
    */
   getIndexMembersForMember(
-    indexId: string,
+    networkId: string,
     requestingUserId: string
   ): Promise<IndexMemberDetails[]>;
 
@@ -852,14 +852,14 @@ export interface Database {
    * Get all indexed intents for an index.
    * **OWNER ONLY** - throws if user is not an owner.
    *
-   * @param indexId - The index to get intents for
+   * @param networkId - The index to get intents for
    * @param requestingUserId - The user requesting (must be owner)
    * @param options - Pagination options
    * @returns Array of intent details with owner info
    * @throws Error if requestingUserId is not an owner
    */
   getIndexIntentsForOwner(
-    indexId: string,
+    networkId: string,
     requestingUserId: string,
     options?: { limit?: number; offset?: number }
   ): Promise<IndexedIntentDetails[]>;
@@ -868,14 +868,14 @@ export interface Database {
    * Get all indexed intents for an index.
    * **MEMBER ONLY** - any member of the index can list intents (not just owners).
    *
-   * @param indexId - The index to get intents for
+   * @param networkId - The index to get intents for
    * @param requestingUserId - The user requesting (must be a member of the index)
    * @param options - Pagination options
    * @returns Array of intent details with owner info
    * @throws Error if requestingUserId is not a member of the index
    */
   getIndexIntentsForMember(
-    indexId: string,
+    networkId: string,
     requestingUserId: string,
     options?: { limit?: number; offset?: number }
   ): Promise<IndexedIntentDetails[]>;
@@ -884,14 +884,14 @@ export interface Database {
    * Update index settings.
    * **OWNER ONLY** - throws if user is not an owner.
    *
-   * @param indexId - The index to update
+   * @param networkId - The index to update
    * @param requestingUserId - The user requesting (must be owner)
    * @param data - The settings to update
    * @returns The updated index
    * @throws Error if requestingUserId is not an owner
    */
   updateIndexSettings(
-    indexId: string,
+    networkId: string,
     requestingUserId: string,
     data: UpdateIndexSettingsData
   ): Promise<OwnedIndex>;
@@ -900,9 +900,9 @@ export interface Database {
    * Soft-delete an index (set deletedAt).
    * Caller must ensure index is not personal and has no other members.
    *
-   * @param indexId - The index to soft-delete
+   * @param networkId - The index to soft-delete
    */
-  softDeleteIndex(indexId: string): Promise<void>;
+  softDeleteIndex(networkId: string): Promise<void>;
 
   /**
    * Delete a user's profile (removes profile row).
@@ -942,21 +942,21 @@ export interface Database {
   /**
    * Count members in an index (for delete guard).
    *
-   * @param indexId - The index to count
+   * @param networkId - The index to count
    * @returns Number of members
    */
-  getIndexMemberCount(indexId: string): Promise<number>;
+  getIndexMemberCount(networkId: string): Promise<number>;
 
   /**
    * Add a user as a member of an index (replaces deprecated lib/index-members.ts).
    *
-   * @param indexId - The index to add to
+   * @param networkId - The index to add to
    * @param userId - The user to add
    * @param role - owner | admin | member
    * @returns success and optionally alreadyMember if they were already in the index
    */
   addMemberToIndex(
-    indexId: string,
+    networkId: string,
     userId: string,
     role: 'owner' | 'admin' | 'member'
   ): Promise<{ success: boolean; alreadyMember?: boolean }>;
@@ -965,12 +965,12 @@ export interface Database {
    * Removes a user from an index.
    * Only the index owner can remove members. Cannot remove the owner.
    *
-   * @param indexId - The index to remove from
+   * @param networkId - The index to remove from
    * @param userId - The user to remove
    * @returns success, or wasOwner/notMember if removal failed
    */
   removeMemberFromIndex(
-    indexId: string,
+    networkId: string,
     userId: string
   ): Promise<{ success: boolean; wasOwner?: boolean; notMember?: boolean }>;
 
@@ -1083,12 +1083,12 @@ export interface Database {
   /**
    * Get opportunities in an index (for index admins).
    *
-   * @param indexId - Index ID
+   * @param networkId - Index ID
    * @param options - Optional filters and pagination
    * @returns Array of opportunities
    */
   getOpportunitiesForIndex(
-    indexId: string,
+    networkId: string,
     options?: OpportunityQueryOptions
   ): Promise<Opportunity[]>;
 
@@ -1122,12 +1122,12 @@ export interface Database {
    * Check if an opportunity already exists between the given actors in the index (deduplication).
    *
    * @param actorIds - Array of user IDs that would be actors
-   * @param indexId - Index ID
+   * @param networkId - Index ID
    * @returns True if a non-expired opportunity exists with exactly these actors in this index
    */
   opportunityExistsBetweenActors(
     actorIds: string[],
-    indexId: string
+    networkId: string
   ): Promise<boolean>;
 
   /**
@@ -1135,12 +1135,12 @@ export interface Database {
    * Used to avoid creating a duplicate and to surface existing opportunity id/status.
    *
    * @param actorIds - Array of user IDs that would be actors
-   * @param indexId - Index ID
+   * @param networkId - Index ID
    * @returns The first matching opportunity's id and status, or null
    */
   getOpportunityBetweenActors(
     actorIds: string[],
-    indexId: string
+    networkId: string
   ): Promise<{ id: Id<'opportunities'>; status: OpportunityStatus } | null>;
 
   /**
@@ -1169,12 +1169,12 @@ export interface Database {
   /**
    * Expire opportunities for a user removed from an index.
    *
-   * @param indexId - Index ID
+   * @param networkId - Index ID
    * @param userId - User ID that was removed
    * @returns Number of opportunities updated to expired
    */
   expireOpportunitiesForRemovedMember(
-    indexId: string,
+    networkId: string,
     userId: string
   ): Promise<number>;
 
@@ -1244,7 +1244,7 @@ export interface Database {
    * @param userId - The user whose contact memberships to look up
    * @returns Array of personal index IDs
    */
-  getPersonalIndexesForContact(userId: string): Promise<{ indexId: string }[]>;
+  getPersonalIndexesForContact(userId: string): Promise<{ networkId: string }[]>;
 
   /** Find a user by email. */
   getUserByEmail(email: string): Promise<{ id: string; name: string; email: string; isGhost: boolean } | null>;
@@ -1324,23 +1324,23 @@ export interface UserDatabase {
   associateIntentWithIndexes(intentId: string, indexIds: string[]): Promise<void>;
 
   /** Assign an intent to an index. */
-  assignIntentToIndex(intentId: string, indexId: string, relevancyScore?: number): Promise<void>;
+  assignIntentToIndex(intentId: string, networkId: string, relevancyScore?: number): Promise<void>;
 
   /** Unassign an intent from an index. */
-  unassignIntentFromIndex(intentId: string, indexId: string): Promise<void>;
+  unassignIntentFromIndex(intentId: string, networkId: string): Promise<void>;
 
   /** Get index IDs for an intent. */
   getIndexIdsForIntent(intentId: string): Promise<string[]>;
 
   /** Check if intent is assigned to index. */
-  isIntentAssignedToIndex(intentId: string, indexId: string): Promise<boolean>;
+  isIntentAssignedToIndex(intentId: string, networkId: string): Promise<boolean>;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Index Membership Operations (own memberships only)
   // ─────────────────────────────────────────────────────────────────────────────
 
   /** Get all index memberships for the authenticated user. */
-  getIndexMemberships(): Promise<IndexMembership[]>;
+  getIndexMemberships(): Promise<NetworkMembership[]>;
 
   /** Get index IDs with auto-assign enabled for the authenticated user. */
   getUserIndexIds(): Promise<string[]>;
@@ -1349,11 +1349,11 @@ export interface UserDatabase {
   getOwnedIndexes(): Promise<OwnedIndex[]>;
 
   /** Get a specific index membership for the authenticated user. */
-  getIndexMembership(indexId: string): Promise<IndexMembership | null>;
+  getIndexMembership(networkId: string): Promise<NetworkMembership | null>;
 
   /** Get index + member context for the authenticated user (for auto-assign). */
-  getIndexMemberContext(indexId: string): Promise<{
-    indexId: string;
+  getIndexMemberContext(networkId: string): Promise<{
+    networkId: string;
     indexPrompt: string | null;
     memberPrompt: string | null;
   } | null>;
@@ -1377,10 +1377,10 @@ export interface UserDatabase {
   }>;
 
   /** Update index settings (owner only). */
-  updateIndexSettings(indexId: string, data: UpdateIndexSettingsData): Promise<OwnedIndex>;
+  updateIndexSettings(networkId: string, data: UpdateIndexSettingsData): Promise<OwnedIndex>;
 
   /** Soft-delete an index (owner only). */
-  softDeleteIndex(indexId: string): Promise<void>;
+  softDeleteIndex(networkId: string): Promise<void>;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Public Index Discovery (joinable indexes the user is not a member of)
@@ -1398,7 +1398,7 @@ export interface UserDatabase {
   }>;
 
   /** Join a public index (validates joinPolicy === 'anyone'). */
-  joinPublicIndex(indexId: string): Promise<{ success: boolean; alreadyMember?: boolean }>;
+  joinPublicIndex(networkId: string): Promise<{ success: boolean; alreadyMember?: boolean }>;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Opportunity Operations (where user is actor)
@@ -1471,10 +1471,10 @@ export interface SystemDatabase {
   // ─────────────────────────────────────────────────────────────────────────────
 
   /** Get all intents in an index (cross-user, requires membership). */
-  getIntentsInIndex(indexId: string, options?: { limit?: number; offset?: number }): Promise<IndexedIntentDetails[]>;
+  getIntentsInIndex(networkId: string, options?: { limit?: number; offset?: number }): Promise<IndexedIntentDetails[]>;
 
   /** Get a specific user's intents in an index (requires shared membership). */
-  getUserIntentsInIndex(userId: string, indexId: string): Promise<ActiveIntent[]>;
+  getUserIntentsInIndex(userId: string, networkId: string): Promise<ActiveIntent[]>;
 
   /** Get a single intent by ID (if in scope). */
   getIntent(intentId: string): Promise<IntentRecord | null>;
@@ -1487,35 +1487,35 @@ export interface SystemDatabase {
   // ─────────────────────────────────────────────────────────────────────────────
 
   /** Check if a user is a member of an index. */
-  isIndexMember(indexId: string, userId: string): Promise<boolean>;
+  isIndexMember(networkId: string, userId: string): Promise<boolean>;
 
   /** Check if a user is an owner of an index. */
-  isIndexOwner(indexId: string, userId: string): Promise<boolean>;
+  isIndexOwner(networkId: string, userId: string): Promise<boolean>;
 
   /** Get all members of an index (requires membership). */
-  getIndexMembers(indexId: string): Promise<IndexMemberDetails[]>;
+  getIndexMembers(networkId: string): Promise<IndexMemberDetails[]>;
 
   /** Get all members across all indexes in scope (deduplicated). */
   getMembersFromScope(): Promise<{ userId: Id<'users'>; name: string; avatar: string | null }[]>;
 
   /** Add a user to an index (requires ownership or 'anyone' policy). */
-  addMemberToIndex(indexId: string, userId: string, role: 'owner' | 'admin' | 'member'): Promise<{ success: boolean; alreadyMember?: boolean }>;
+  addMemberToIndex(networkId: string, userId: string, role: 'owner' | 'admin' | 'member'): Promise<{ success: boolean; alreadyMember?: boolean }>;
 
   /** Remove a user from an index (requires ownership). Cannot remove the owner. */
-  removeMemberFromIndex(indexId: string, userId: string): Promise<{ success: boolean; wasOwner?: boolean; notMember?: boolean }>;
+  removeMemberFromIndex(networkId: string, userId: string): Promise<{ success: boolean; wasOwner?: boolean; notMember?: boolean }>;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Index Operations (any index in scope)
   // ─────────────────────────────────────────────────────────────────────────────
 
   /** Get index info by ID (requires scope). */
-  getIndex(indexId: string): Promise<{ id: string; title: string } | null>;
+  getIndex(networkId: string): Promise<{ id: string; title: string } | null>;
 
   /** Get index with permissions (requires scope). */
-  getIndexWithPermissions(indexId: string): Promise<{ id: string; title: string; permissions: { joinPolicy: 'anyone' | 'invite_only' } } | null>;
+  getIndexWithPermissions(networkId: string): Promise<{ id: string; title: string; permissions: { joinPolicy: 'anyone' | 'invite_only' } } | null>;
 
   /** Get member count for an index (requires scope). */
-  getIndexMemberCount(indexId: string): Promise<number>;
+  getIndexMemberCount(networkId: string): Promise<number>;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Opportunity Operations (cross-user within scope)
@@ -1531,16 +1531,16 @@ export interface SystemDatabase {
   getOpportunity(id: string): Promise<Opportunity | null>;
 
   /** Get opportunities for an index (requires membership). */
-  getOpportunitiesForIndex(indexId: string, options?: OpportunityQueryOptions): Promise<Opportunity[]>;
+  getOpportunitiesForIndex(networkId: string, options?: OpportunityQueryOptions): Promise<Opportunity[]>;
 
   /** Update an opportunity's status (system-level). */
   updateOpportunityStatus(id: string, status: OpportunityStatus): Promise<Opportunity | null>;
 
   /** Check if opportunity exists between actors in an index. */
-  opportunityExistsBetweenActors(actorIds: string[], indexId: string): Promise<boolean>;
+  opportunityExistsBetweenActors(actorIds: string[], networkId: string): Promise<boolean>;
 
   /** Return one opportunity between actors in the index (id + status), or null. */
-  getOpportunityBetweenActors(actorIds: string[], indexId: string): Promise<{ id: Id<'opportunities'>; status: OpportunityStatus } | null>;
+  getOpportunityBetweenActors(actorIds: string[], networkId: string): Promise<{ id: Id<'opportunities'>; status: OpportunityStatus } | null>;
 
   /** Find overlapping opportunities by actor set. */
   findOverlappingOpportunities(actorUserIds: Id<'users'>[], options?: { excludeStatuses?: OpportunityStatus[] }): Promise<Opportunity[]>;
@@ -1549,7 +1549,7 @@ export interface SystemDatabase {
   expireOpportunitiesByIntent(intentId: string): Promise<number>;
 
   /** Expire opportunities for a removed member. */
-  expireOpportunitiesForRemovedMember(indexId: string, userId: string): Promise<number>;
+  expireOpportunitiesForRemovedMember(networkId: string, userId: string): Promise<number>;
 
   /** Expire stale opportunities (maintenance). */
   expireStaleOpportunities(): Promise<number>;
@@ -1585,9 +1585,9 @@ export interface SystemDatabase {
 // - ProfileGraphDatabase → maps to UserDatabase (user's own profile operations)
 // - IntentGraphDatabase → maps to UserDatabase (mutations) + SystemDatabase (reads)
 // - OpportunityGraphDatabase → maps to SystemDatabase (cross-user operations)
-// - IndexGraphDatabase → maps to UserDatabase (own indexes)
-// - IntentIndexGraphDatabase → maps to both (own intent ↔ shared index)
-// - IndexMembershipGraphDatabase → maps to SystemDatabase (cross-user)
+// - NetworkGraphDatabase → maps to UserDatabase (own indexes)
+// - IntentNetworkGraphDatabase → maps to both (own intent ↔ shared index)
+// - NetworkMembershipGraphDatabase → maps to SystemDatabase (cross-user)
 // - HydeGraphDatabase → maps to both (own HyDE vs cross-user matching)
 //
 // Graphs continue to use these narrowed types because:
@@ -1610,7 +1610,7 @@ export type ProfileGraphDatabase = Pick<
 /**
  * Composite database interface for Chat Graph.
  * Includes direct ChatGraph operations plus all methods needed by
- * internally composed subgraphs (ProfileGraph, OpportunityGraph, IntentGraph, IndexGraph).
+ * internally composed subgraphs (ProfileGraph, OpportunityGraph, IntentGraph, NetworkGraph).
  *
  * Use this type when ChatGraph orchestrates subgraphs internally.
  *
@@ -1644,7 +1644,7 @@ export type ChatGraphCompositeDatabase = Pick<
   | 'getHydeDocumentsForSource'
   | 'saveHydeDocument'
   | 'getIntent'
-  // IndexGraph subgraph requirements (index created intents in user's indexes)
+  // NetworkGraph subgraph requirements (index created intents in user's indexes)
   | 'getPublicIndexesNotJoined'
   | 'getUserIndexIds'
   | 'getIndexMemberships'
@@ -1822,7 +1822,7 @@ export type IntentGraphDatabase = Pick<
  *
  * Access layer: UserDatabase (CRUD on own indexes and memberships)
  */
-export type IndexGraphDatabase = Pick<
+export type NetworkGraphDatabase = Pick<
   Database,
   | 'getIndexMemberships'
   | 'getOwnedIndexes'
@@ -1840,11 +1840,11 @@ export type IndexGraphDatabase = Pick<
 /**
  * Database interface narrowed for Intent Index Graph operations.
  * Provides intent/index context and assignment for intent–index evaluation.
- * (Migrated from the old IndexGraphDatabase.)
+ * (Migrated from the old NetworkGraphDatabase.)
  *
  * Access layer: UserDatabase (own intent assignment) + SystemDatabase (index context)
  */
-export type IntentIndexGraphDatabase = Pick<
+export type IntentNetworkGraphDatabase = Pick<
   Database,
   | 'getIntentForIndexing'
   | 'getIndexMemberContext'
@@ -1864,7 +1864,7 @@ export type IntentIndexGraphDatabase = Pick<
  *
  * Access layer: SystemDatabase (cross-user membership operations)
  */
-export type IndexMembershipGraphDatabase = Pick<
+export type NetworkMembershipGraphDatabase = Pick<
   Database,
   | 'isIndexMember'
   | 'isIndexOwner'

@@ -110,7 +110,7 @@ function shareIntentIds(
 }
 
 /**
- * Merge actors from new data and existing opportunities: union by (indexId, userId, intent),
+ * Merge actors from new data and existing opportunities: union by (networkId, userId, intent),
  * preserving all unique introducers and preferring newer role on conflict.
  */
 function mergeActors(
@@ -118,7 +118,7 @@ function mergeActors(
   existingList: Opportunity[]
 ): OpportunityActor[] {
   const key = (a: OpportunityActor) =>
-    `${a.indexId}:${a.userId}:${a.intent ?? ''}`;
+    `${a.networkId}:${a.userId}:${a.intent ?? ''}`;
   const map = new Map<string, OpportunityActor>();
 
   // Add all from existing first (older)

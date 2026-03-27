@@ -10,7 +10,7 @@ import {
 } from "../tool.helpers.js";
 
 const userId = "00000000-0000-4000-8000-000000000111";
-const indexId = "00000000-0000-4000-8000-000000000222";
+const networkId = "00000000-0000-4000-8000-000000000222";
 
 function createContextDatabase(overrides?: Partial<ChatGraphCompositeDatabase>) {
   const base = {
@@ -30,7 +30,7 @@ function createContextDatabase(overrides?: Partial<ChatGraphCompositeDatabase>) 
     }),
     getIndexMemberships: async () => ([
       {
-        indexId,
+        networkId,
         indexTitle: "AI Builders",
         indexPrompt: "People building practical AI tools",
         permissions: ["member"],
@@ -42,9 +42,9 @@ function createContextDatabase(overrides?: Partial<ChatGraphCompositeDatabase>) 
     ]),
     getIndex: async (id: string) => ({ id, title: "AI Builders" }),
     getIndexMembership: async (idxId: string, uid: string) =>
-      idxId === indexId && uid === userId
+      idxId === networkId && uid === userId
         ? {
-            indexId,
+            networkId,
             indexTitle: "AI Builders",
             indexPrompt: "People building practical AI tools",
             permissions: ["member"],
@@ -83,7 +83,7 @@ describe("resolveChatContext", () => {
       isIndexMember: async () => true,
     });
 
-    const ctx = await resolveChatContext({ database: db, userId, indexId });
+    const ctx = await resolveChatContext({ database: db, userId, networkId });
     expect(ctx.scopedMembershipRole).toBe("member");
     expect(ctx.isOwner).toBe(false);
     expect(ctx.scopedIndex?.title).toBe("AI Builders");
@@ -95,7 +95,7 @@ describe("resolveChatContext", () => {
       isIndexMember: async () => true,
     });
 
-    const ctx = await resolveChatContext({ database: db, userId, indexId });
+    const ctx = await resolveChatContext({ database: db, userId, networkId });
     expect(ctx.scopedMembershipRole).toBe("owner");
     expect(ctx.isOwner).toBe(true);
   });
@@ -105,7 +105,7 @@ describe("resolveChatContext", () => {
       isIndexMember: async () => false,
     });
 
-    const err = await resolveChatContext({ database: db, userId, indexId }).catch((e: unknown) => e);
+    const err = await resolveChatContext({ database: db, userId, networkId }).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ChatContextAccessError);
     expect((err as ChatContextAccessError).statusCode).toBe(403);
     expect((err as ChatContextAccessError).code).toBe("INDEX_MEMBERSHIP_REQUIRED");
@@ -122,12 +122,12 @@ describe("resolveChatContext", () => {
     expect((err as ChatContextAccessError).code).toBe("USER_NOT_FOUND");
   });
 
-  test("throws ChatContextAccessError with 404 INDEX_NOT_FOUND when indexId provided and getIndex returns null", async () => {
+  test("throws ChatContextAccessError with 404 INDEX_NOT_FOUND when networkId provided and getIndex returns null", async () => {
     const db = createContextDatabase({
       getIndex: async () => null,
     });
 
-    const err = await resolveChatContext({ database: db, userId, indexId }).catch((e: unknown) => e);
+    const err = await resolveChatContext({ database: db, userId, networkId }).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ChatContextAccessError);
     expect((err as ChatContextAccessError).statusCode).toBe(404);
     expect((err as ChatContextAccessError).code).toBe("INDEX_NOT_FOUND");
@@ -138,9 +138,9 @@ describe("resolveChatContext", () => {
     const db = createContextDatabase({
       getIndexMemberships: async () => [], // list empty but user is still member
       getIndexMembership: async (idxId: string, uid: string) =>
-        idxId === indexId && uid === userId
+        idxId === networkId && uid === userId
           ? {
-              indexId,
+              networkId,
               indexTitle: "AI Builders",
               indexPrompt: customPrompt,
               permissions: ["member"],
@@ -152,7 +152,7 @@ describe("resolveChatContext", () => {
           : null,
     });
 
-    const ctx = await resolveChatContext({ database: db, userId, indexId });
+    const ctx = await resolveChatContext({ database: db, userId, networkId });
     expect(ctx.scopedIndex).not.toBeUndefined();
     expect(ctx.scopedIndex?.prompt).toBe(customPrompt);
   });

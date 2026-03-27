@@ -64,7 +64,7 @@ export class ChatStreamer {
       message: string;
       sessionId: string;
       maxContextMessages?: number;
-      indexId?: string;
+      networkId?: string;
       prefillMessages?: Array<{ role: "assistant" | "user"; content: string }>;
     },
     checkpointer?: BaseCheckpointSaver,
@@ -75,7 +75,7 @@ export class ChatStreamer {
       message,
       sessionId,
       maxContextMessages = 20,
-      indexId,
+      networkId,
       prefillMessages,
     } = input;
     logger.verbose("Starting context-aware streaming", {
@@ -83,8 +83,8 @@ export class ChatStreamer {
       sessionId,
       maxContextMessages,
       hasCheckpointer: !!checkpointer,
-      hasIndexId: !!indexId,
-      indexId: indexId ?? undefined,
+      hasIndexId: !!networkId,
+      networkId: networkId ?? undefined,
     });
 
     try {
@@ -110,7 +110,7 @@ export class ChatStreamer {
 
       // Stream with context using the optional checkpointer
       yield* this.streamChatEvents(
-        { userId, messages: allMessages, indexId },
+        { userId, messages: allMessages, networkId },
         sessionId,
         checkpointer,
         signal,
@@ -143,7 +143,7 @@ export class ChatStreamer {
    * @yields ChatStreamEvent objects
    */
   public async *streamChatEvents(
-    input: { userId: string; messages: BaseMessage[]; indexId?: string },
+    input: { userId: string; messages: BaseMessage[]; networkId?: string },
     sessionId: string,
     checkpointer?: BaseCheckpointSaver,
     signal?: AbortSignal,
@@ -154,13 +154,13 @@ export class ChatStreamer {
       const initialState: {
         userId: string;
         messages: BaseMessage[];
-        indexId?: string;
+        networkId?: string;
         sessionId?: string;
       } = {
         userId: input.userId,
         messages: input.messages,
       };
-      if (input.indexId) initialState.indexId = input.indexId;
+      if (input.networkId) initialState.networkId = input.networkId;
       initialState.sessionId = sessionId;
 
       // Use graph.stream() with custom + updates modes.

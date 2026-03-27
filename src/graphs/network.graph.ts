@@ -1,25 +1,33 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
 
+<<<<<<<< HEAD:packages/protocol/src/graphs/index.graph.ts
 import { IndexGraphDatabase } from "../interfaces/database.interface.js";
 import { protocolLogger } from "../support/protocol.logger.js";
 import { timed } from "../support/performance.js";
 
 import { IndexGraphState } from "../states/index.state.js";
+========
+import { NetworkGraphDatabase } from "../interfaces/database.interface";
+import { protocolLogger } from "../support/protocol.logger";
+import { timed } from "../support/performance";
 
-const logger = protocolLogger("IndexGraphFactory");
+import { NetworkGraphState } from "../states/network.state";
+>>>>>>>> 608653918 (refactor: rename community 'index' to 'network' across full stack):packages/protocol/src/graphs/network.graph.ts
+
+const logger = protocolLogger("NetworkGraphFactory");
 
 /**
  * Factory class to build and compile the Index (CRUD) Graph.
  *
  * Handles create, read, update, and delete operations for indexes.
  * Membership and intent-index assignment operations are handled by
- * separate graphs (IndexMembershipGraph and IntentIndexGraph).
+ * separate graphs (NetworkMembershipGraph and IntentNetworkGraph).
  *
  * Flow:
  * START → routerNode → {createNode | readNode | updateNode | deleteNode} → END
  */
-export class IndexGraphFactory {
-  constructor(private database: IndexGraphDatabase) {}
+export class NetworkGraphFactory {
+  constructor(private database: NetworkGraphDatabase) {}
 
   public createGraph() {
     // --- NODE DEFINITIONS ---
@@ -27,9 +35,9 @@ export class IndexGraphFactory {
     /**
      * Read Node: List indexes the user belongs to and owns.
      */
-    const readNode = async (state: typeof IndexGraphState.State) => {
-      return timed("IndexGraph.read", async () => {
-        logger.verbose("Read indexes", { userId: state.userId, indexId: state.indexId, showAll: state.showAll });
+    const readNode = async (state: typeof NetworkGraphState.State) => {
+      return timed("NetworkGraph.read", async () => {
+        logger.verbose("Read indexes", { userId: state.userId, networkId: state.networkId, showAll: state.showAll });
 
         try {
           const [allMemberships, ownedIndexes, publicIndexesResult] = await Promise.all([
@@ -39,10 +47,10 @@ export class IndexGraphFactory {
           ]);
 
           // If index-scoped and not showAll, return just that index (no public indexes in scoped view)
-          const scopeToCurrentIndex = state.indexId && !state.showAll;
+          const scopeToCurrentIndex = state.networkId && !state.showAll;
           if (scopeToCurrentIndex) {
-            const indexId = state.indexId!;
-            const isMember = await this.database.isIndexMember(indexId, state.userId);
+            const networkId = state.networkId!;
+            const isMember = await this.database.isIndexMember(networkId, state.userId);
             if (!isMember) {
               return {
                 readResult: {
@@ -52,15 +60,15 @@ export class IndexGraphFactory {
                 },
               };
             }
-            const membership = allMemberships.find((m) => m.indexId === indexId);
-            const owned = ownedIndexes.find((o) => o.id === indexId);
+            const membership = allMemberships.find((m) => m.networkId === networkId);
+            const owned = ownedIndexes.find((o) => o.id === networkId);
             return {
               readResult: {
                 memberOf: membership
-                  ? [{ indexId: membership.indexId, title: membership.indexTitle, description: membership.indexPrompt, autoAssign: membership.autoAssign, joinedAt: membership.joinedAt }]
+                  ? [{ networkId: membership.networkId, title: membership.indexTitle, description: membership.indexPrompt, autoAssign: membership.autoAssign, joinedAt: membership.joinedAt }]
                   : [],
                 owns: owned
-                  ? [{ indexId: owned.id, title: owned.title, description: owned.prompt, memberCount: owned.memberCount, intentCount: owned.intentCount, joinPolicy: owned.permissions.joinPolicy }]
+                  ? [{ networkId: owned.id, title: owned.title, description: owned.prompt, memberCount: owned.memberCount, intentCount: owned.intentCount, joinPolicy: owned.permissions.joinPolicy }]
                   : [],
                 stats: { memberOfCount: membership ? 1 : 0, ownsCount: owned ? 1 : 0, scopeNote: "Showing current index. Use showAll: true for all indexes." },
               },
@@ -69,7 +77,7 @@ export class IndexGraphFactory {
 
           // Include public indexes available to join
           const publicIndexes = publicIndexesResult.indexes.map((idx) => ({
-            indexId: idx.id,
+            networkId: idx.id,
             title: idx.title,
             description: idx.prompt,
             memberCount: idx.memberCount,
@@ -78,8 +86,8 @@ export class IndexGraphFactory {
 
           return {
             readResult: {
-              memberOf: allMemberships.map((m) => ({ indexId: m.indexId, title: m.indexTitle, description: m.indexPrompt, autoAssign: m.autoAssign, joinedAt: m.joinedAt })),
-              owns: ownedIndexes.map((o) => ({ indexId: o.id, title: o.title, description: o.prompt, memberCount: o.memberCount, intentCount: o.intentCount, joinPolicy: o.permissions.joinPolicy })),
+              memberOf: allMemberships.map((m) => ({ networkId: m.networkId, title: m.indexTitle, description: m.indexPrompt, autoAssign: m.autoAssign, joinedAt: m.joinedAt })),
+              owns: ownedIndexes.map((o) => ({ networkId: o.id, title: o.title, description: o.prompt, memberCount: o.memberCount, intentCount: o.intentCount, joinPolicy: o.permissions.joinPolicy })),
               publicIndexes,
               stats: { memberOfCount: allMemberships.length, ownsCount: ownedIndexes.length, publicIndexesCount: publicIndexes.length },
             },
@@ -94,8 +102,8 @@ export class IndexGraphFactory {
     /**
      * Create Node: Create a new index and add user as owner.
      */
-    const createNode = async (state: typeof IndexGraphState.State) => {
-      return timed("IndexGraph.create", async () => {
+    const createNode = async (state: typeof NetworkGraphState.State) => {
+      return timed("NetworkGraph.create", async () => {
         logger.verbose("Create index", { userId: state.userId, createInput: state.createInput });
 
         if (!state.createInput?.title?.trim()) {
@@ -114,7 +122,7 @@ export class IndexGraphFactory {
 
           const added = await this.database.addMemberToIndex(index.id, state.userId, 'owner');
           if (!added.success) {
-            logger.error("addMemberToIndex failed; cleaning up orphaned index", { indexId: index.id });
+            logger.error("addMemberToIndex failed; cleaning up orphaned index", { networkId: index.id });
             try { await this.database.softDeleteIndex(index.id); } catch {}
             return { mutationResult: { success: false, error: "Failed to set you as owner. Index was not created." } };
           }
@@ -122,7 +130,7 @@ export class IndexGraphFactory {
           return {
             mutationResult: {
               success: true,
-              indexId: index.id,
+              networkId: index.id,
               title: index.title,
               message: `Index "${index.title}" created. You are the owner.`,
             },
@@ -140,27 +148,27 @@ export class IndexGraphFactory {
     /**
      * Update Node: Update index settings (owner only).
      */
-    const updateNode = async (state: typeof IndexGraphState.State) => {
-      return timed("IndexGraph.update", async () => {
-        const indexId = state.indexId;
-        logger.verbose("Update index", { userId: state.userId, indexId, updateInput: state.updateInput });
+    const updateNode = async (state: typeof NetworkGraphState.State) => {
+      return timed("NetworkGraph.update", async () => {
+        const networkId = state.networkId;
+        logger.verbose("Update index", { userId: state.userId, networkId, updateInput: state.updateInput });
 
-        if (!indexId) {
-          return { mutationResult: { success: false, error: "indexId is required for update." } };
+        if (!networkId) {
+          return { mutationResult: { success: false, error: "networkId is required for update." } };
         }
 
         try {
-          const isOwner = await this.database.isIndexOwner(indexId, state.userId);
+          const isOwner = await this.database.isIndexOwner(networkId, state.userId);
           if (!isOwner) {
             return { mutationResult: { success: false, error: "You can only modify indexes you own." } };
           }
 
-          await this.database.updateIndexSettings(indexId, state.userId, state.updateInput ?? {});
+          await this.database.updateIndexSettings(networkId, state.userId, state.updateInput ?? {});
 
           return {
             mutationResult: {
               success: true,
-              indexId,
+              networkId,
               message: "Index settings updated.",
             },
           };
@@ -174,32 +182,32 @@ export class IndexGraphFactory {
     /**
      * Delete Node: Soft-delete an index (owner only, sole member).
      */
-    const deleteNode = async (state: typeof IndexGraphState.State) => {
-      return timed("IndexGraph.delete", async () => {
-        const indexId = state.indexId;
-        logger.verbose("Delete index", { userId: state.userId, indexId });
+    const deleteNode = async (state: typeof NetworkGraphState.State) => {
+      return timed("NetworkGraph.delete", async () => {
+        const networkId = state.networkId;
+        logger.verbose("Delete index", { userId: state.userId, networkId });
 
-        if (!indexId) {
-          return { mutationResult: { success: false, error: "indexId is required for delete." } };
+        if (!networkId) {
+          return { mutationResult: { success: false, error: "networkId is required for delete." } };
         }
 
         try {
-          const isOwner = await this.database.isIndexOwner(indexId, state.userId);
+          const isOwner = await this.database.isIndexOwner(networkId, state.userId);
           if (!isOwner) {
             return { mutationResult: { success: false, error: "You can only delete indexes you own." } };
           }
 
-          const count = await this.database.getIndexMemberCount(indexId);
+          const count = await this.database.getIndexMemberCount(networkId);
           if (count > 1) {
             return { mutationResult: { success: false, error: "Cannot delete index with other members. Remove members first." } };
           }
 
-          await this.database.softDeleteIndex(indexId);
+          await this.database.softDeleteIndex(networkId);
 
           return {
             mutationResult: {
               success: true,
-              indexId,
+              networkId,
               message: "Index deleted.",
             },
           };
@@ -212,7 +220,7 @@ export class IndexGraphFactory {
 
     // --- CONDITIONAL ROUTING ---
 
-    const routeByMode = (state: typeof IndexGraphState.State): string => {
+    const routeByMode = (state: typeof NetworkGraphState.State): string => {
       switch (state.operationMode) {
         case 'create': return 'create';
         case 'read': return 'read';
@@ -224,7 +232,7 @@ export class IndexGraphFactory {
 
     // --- GRAPH ASSEMBLY ---
 
-    const workflow = new StateGraph(IndexGraphState)
+    const workflow = new StateGraph(NetworkGraphState)
       .addNode("read", readNode)
       .addNode("create", createNode)
       .addNode("update", updateNode)

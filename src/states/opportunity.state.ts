@@ -30,14 +30,14 @@ export interface IndexedIntent {
   summary?: string;
   hydeDocumentId?: string;
   hydeEmbedding?: number[];
-  indexes: Id<'indexes'>[];
+  indexes: Id<'networks'>[];
 }
 
 /**
  * Target index for search (from scope node)
  */
 export interface TargetIndex {
-  indexId: Id<'indexes'>;
+  networkId: Id<'networks'>;
   title: string;
   memberCount: number;
 }
@@ -49,7 +49,7 @@ export interface TargetIndex {
 export interface CandidateMatch {
   candidateUserId: Id<'users'>;
   candidateIntentId?: Id<'intents'>;
-  indexId: Id<'indexes'>;
+  networkId: Id<'networks'>;
   similarity: number;
   /** Free-text lens label that produced this match. */
   lens: string;
@@ -68,7 +68,7 @@ export interface EvaluatedCandidate {
   candidateUserId: Id<'users'>;
   sourceIntentId?: Id<'intents'>;
   candidateIntentId?: Id<'intents'>;
-  indexId: Id<'indexes'>;
+  networkId: Id<'networks'>;
   score: number; // 0-100
   reasoning: string; // Third-party analytical explanation of the match (for LLM agents)
   valencyRole: 'Agent' | 'Patient' | 'Peer';
@@ -78,13 +78,13 @@ export interface EvaluatedCandidate {
 
 /**
  * Actor in an evaluated opportunity (from entity-bundle evaluator).
- * indexId is filled from the entity bundle in the graph, not by the evaluator.
+ * networkId is filled from the entity bundle in the graph, not by the evaluator.
  */
 export interface EvaluatedOpportunityActor {
   userId: Id<'users'>;
   role: 'agent' | 'patient' | 'peer';
   intentId?: Id<'intents'>;
-  indexId: Id<'indexes'>;
+  networkId: Id<'networks'>;
 }
 
 /**
@@ -131,7 +131,7 @@ export const OpportunityGraphState = Annotation.Root({
     default: () => undefined,
   }),
   
-  indexId: Annotation<Id<'indexes'> | undefined>({
+  networkId: Annotation<Id<'networks'> | undefined>({
     reducer: (curr, next) => next ?? curr,
     default: () => undefined,
   }),
@@ -164,7 +164,7 @@ export const OpportunityGraphState = Annotation.Root({
    * - 'create': Existing discover pipeline (Prep → Scope → Discovery → Evaluation → Ranking → Persist)
    * - 'create_introduction': Introduction path (validation → evaluation → persist) for chat-driven intros
    * - 'continue_discovery': Pagination path (Prep → Evaluation → Ranking → Persist) using pre-loaded candidates
-   * - 'read': List opportunities filtered by userId and optionally indexId (fast path)
+   * - 'read': List opportunities filtered by userId and optionally networkId (fast path)
    * - 'update': Change opportunity status (accept, reject, etc.)
    * - 'delete': Expire/archive an opportunity
    * - 'send': Promote latent opportunity to pending + queue notification
@@ -188,8 +188,8 @@ export const OpportunityGraphState = Annotation.Root({
     default: () => undefined,
   }),
 
-  /** When set (e.g. chat scope), indexId must match this. */
-  requiredIndexId: Annotation<Id<'indexes'> | undefined>({
+  /** When set (e.g. chat scope), networkId must match this. */
+  requiredIndexId: Annotation<Id<'networks'> | undefined>({
     reducer: (curr, next) => next ?? curr,
     default: () => undefined,
   }),
@@ -221,7 +221,7 @@ export const OpportunityGraphState = Annotation.Root({
   }),
   
   /** User's index memberships (from prep) */
-  userIndexes: Annotation<Id<'indexes'>[]>({
+  userIndexes: Annotation<Id<'networks'>[]>({
     reducer: (curr, next) => next ?? curr,
     default: () => [],
   }),
@@ -232,7 +232,7 @@ export const OpportunityGraphState = Annotation.Root({
     default: () => [],
   }),
 
-  /** Per-index relevancy scores for dedup tie-breaking. Background path: from intent_indexes. Chat path: transient from IntentIndexer. */
+  /** Per-index relevancy scores for dedup tie-breaking. Background path: from intent_indexes. Chat path: transient from IntentNetworker. */
   indexRelevancyScores: Annotation<Record<string, number>>({
     reducer: (curr, next) => next ?? curr,
     default: () => ({}),
@@ -321,7 +321,7 @@ export const OpportunityGraphState = Annotation.Root({
   /** Discovery path: pairs skipped because an opportunity already exists between viewer and candidate (no duplicate created). */
   existingBetweenActors: Annotation<Array<{
     candidateUserId: Id<'users'>;
-    indexId: Id<'indexes'>;
+    networkId: Id<'networks'>;
     existingOpportunityId?: Id<'opportunities'>;
     existingStatus?: OpportunityStatus;
   }>>({

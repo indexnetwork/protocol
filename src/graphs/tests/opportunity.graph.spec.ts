@@ -1,7 +1,7 @@
 /**
  * Opportunity Graph: tests for the refactored linear workflow.
  * Flow: Prep → Scope → Discovery → Evaluation → Ranking → Persist.
- * Invoke API: { userId, searchQuery?, indexId?, options }.
+ * Invoke API: { userId, searchQuery?, networkId?, options }.
  */
 /** Config */
 import { config } from "dotenv";
@@ -44,8 +44,8 @@ function createMockEvaluator(
 }
 
 function createMockGraph(deps?: {
-  getUserIndexIds?: () => Promise<Id<'indexes'>[]>;
-  getIndexMemberships?: () => Promise<Array<{ indexId: string; indexTitle: string; indexPrompt: string | null; permissions: string[]; memberPrompt: string | null; autoAssign: boolean; isPersonal: boolean; joinedAt: Date }>>;
+  getUserIndexIds?: () => Promise<Id<'networks'>[]>;
+  getIndexMemberships?: () => Promise<Array<{ networkId: string; indexTitle: string; indexPrompt: string | null; permissions: string[]; memberPrompt: string | null; autoAssign: boolean; isPersonal: boolean; joinedAt: Date }>>;
   getActiveIntents?: () => Promise<Array<{ id: Id<'intents'>; payload: string; summary: string | null; createdAt: Date }>>;
   getIndex?: (id: string) => Promise<{ id: string; title: string } | null>;
   getIndexMemberCount?: (id: string) => Promise<number>;
@@ -70,10 +70,10 @@ function createMockGraph(deps?: {
     opportunityExistsBetweenActors: () => Promise.resolve(false),
     getOpportunityBetweenActors: () => Promise.resolve(null),
     findOverlappingOpportunities: () => Promise.resolve([]),
-    getUserIndexIds: deps?.getUserIndexIds ?? (() => Promise.resolve(['idx-1'] as Id<'indexes'>[])),
+    getUserIndexIds: deps?.getUserIndexIds ?? (() => Promise.resolve(['idx-1'] as Id<'networks'>[])),
     getIndexMemberships: deps?.getIndexMemberships ?? (async () => {
-      const ids = deps?.getUserIndexIds ? await deps.getUserIndexIds() : ['idx-1'] as Id<'indexes'>[];
-      return ids.map(id => ({ indexId: id, indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }));
+      const ids = deps?.getUserIndexIds ? await deps.getUserIndexIds() : ['idx-1'] as Id<'networks'>[];
+      return ids.map(id => ({ networkId: id, indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }));
     }),
     getActiveIntents:
       deps?.getActiveIntents ??
@@ -110,7 +110,7 @@ function createMockGraph(deps?: {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]),
     searchWithProfileEmbedding: () => Promise.resolve([]),
@@ -137,8 +137,8 @@ function createMockGraphWithFnOverrides(deps?: {
   getProfileFn?: (userId: string) => Promise<Awaited<ReturnType<OpportunityGraphDatabase['getProfile']>>>;
   getActiveIntentsFn?: (userId: string) => Promise<Array<{ id: Id<'intents'>; payload: string; summary: string | null; createdAt: Date }>>;
   evaluatorResult?: EvaluatedOpportunityWithActors[];
-  getUserIndexIds?: () => Promise<Id<'indexes'>[]>;
-  getIndexMemberships?: () => Promise<Array<{ indexId: string; indexTitle: string; indexPrompt: string | null; permissions: string[]; memberPrompt: string | null; autoAssign: boolean; isPersonal: boolean; joinedAt: Date }>>;
+  getUserIndexIds?: () => Promise<Id<'networks'>[]>;
+  getIndexMemberships?: () => Promise<Array<{ networkId: string; indexTitle: string; indexPrompt: string | null; permissions: string[]; memberPrompt: string | null; autoAssign: boolean; isPersonal: boolean; joinedAt: Date }>>;
 }) {
   const mockDb: OpportunityGraphDatabase = {
     getProfile: (userId: string) =>
@@ -161,10 +161,10 @@ function createMockGraphWithFnOverrides(deps?: {
     opportunityExistsBetweenActors: () => Promise.resolve(false),
     getOpportunityBetweenActors: () => Promise.resolve(null),
     findOverlappingOpportunities: () => Promise.resolve([]),
-    getUserIndexIds: deps?.getUserIndexIds ?? (() => Promise.resolve(['idx-1'] as Id<'indexes'>[])),
+    getUserIndexIds: deps?.getUserIndexIds ?? (() => Promise.resolve(['idx-1'] as Id<'networks'>[])),
     getIndexMemberships: deps?.getIndexMemberships ?? (async () => {
-      const ids = deps?.getUserIndexIds ? await deps.getUserIndexIds() : ['idx-1'] as Id<'indexes'>[];
-      return ids.map(id => ({ indexId: id, indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }));
+      const ids = deps?.getUserIndexIds ? await deps.getUserIndexIds() : ['idx-1'] as Id<'networks'>[];
+      return ids.map(id => ({ networkId: id, indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }));
     }),
     getActiveIntents: (userId: string) =>
       deps?.getActiveIntentsFn
@@ -201,7 +201,7 @@ function createMockGraphWithFnOverrides(deps?: {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]),
     searchWithProfileEmbedding: () => Promise.resolve([]),
@@ -265,25 +265,25 @@ describe('Opportunity Graph', () => {
   });
 
   describe('Scope node', () => {
-    test('when indexId provided and user is member, targetIndexes contains only that index', async () => {
+    test('when networkId provided and user is member, targetIndexes contains only that index', async () => {
       const { compiledGraph, mockDb } = createMockGraph({
-        getUserIndexIds: () => Promise.resolve(['idx-1', 'idx-2'] as Id<'indexes'>[]),
+        getUserIndexIds: () => Promise.resolve(['idx-1', 'idx-2'] as Id<'networks'>[]),
       });
       const getIndexSpy = spyOn(mockDb, 'getIndex');
 
       await compiledGraph.invoke({
         userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
         searchQuery: 'co-founder',
-        indexId: 'idx-1' as Id<'indexes'>,
+        networkId: 'idx-1' as Id<'networks'>,
         options: {},
       } as OpportunityGraphInvokeInput);
 
       expect(getIndexSpy).toHaveBeenCalledWith('idx-1');
     });
 
-    test('when indexId omitted, scope uses all user indexes', async () => {
+    test('when networkId omitted, scope uses all user indexes', async () => {
       const { compiledGraph, mockDb } = createMockGraph({
-        getUserIndexIds: () => Promise.resolve(['idx-1', 'idx-2'] as Id<'indexes'>[]),
+        getUserIndexIds: () => Promise.resolve(['idx-1', 'idx-2'] as Id<'networks'>[]),
       });
       const getIndexSpy = spyOn(mockDb, 'getIndex');
 
@@ -308,7 +308,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.92,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -334,7 +334,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -354,7 +354,7 @@ describe('Opportunity Graph', () => {
   describe('Evaluation node: userId dedup', () => {
     test('when same user appears via multiple indexes, evaluates them only once (deduped by userId)', async () => {
       const { compiledGraph, mockEmbedder } = createMockGraph({
-        getUserIndexIds: () => Promise.resolve(['idx-1', 'idx-2'] as Id<'indexes'>[]),
+        getUserIndexIds: () => Promise.resolve(['idx-1', 'idx-2'] as Id<'networks'>[]),
         getIndex: (id: string) => Promise.resolve({ id, title: `Index ${id}` }),
         getIndexMemberCount: () => Promise.resolve(5),
         evaluatorResult: [
@@ -371,8 +371,8 @@ describe('Opportunity Graph', () => {
 
       // Same user appears in two indexes from search results
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-bob-1', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
-        { type: 'intent' as const, id: 'intent-bob-2', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.85, matchedVia: 'mirror' as const, indexId: 'idx-2' },
+        { type: 'intent' as const, id: 'intent-bob-1', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-bob-2', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.85, matchedVia: 'mirror' as const, networkId: 'idx-2' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -392,10 +392,10 @@ describe('Opportunity Graph', () => {
 
     test('dedup prefers candidate from index with higher relevancy score on equal similarity', async () => {
       const { compiledGraph } = createMockGraph({
-        getUserIndexIds: async () => ['idx-high', 'idx-low'] as Id<'indexes'>[],
+        getUserIndexIds: async () => ['idx-high', 'idx-low'] as Id<'networks'>[],
         getIndexMemberships: async () => [
-          { indexId: 'idx-high', indexTitle: 'High Relevancy', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
-          { indexId: 'idx-low', indexTitle: 'Low Relevancy', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
+          { networkId: 'idx-high', indexTitle: 'High Relevancy', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
+          { networkId: 'idx-low', indexTitle: 'Low Relevancy', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
         ],
       });
 
@@ -407,7 +407,7 @@ describe('Opportunity Graph', () => {
         indexRelevancyScores: { 'idx-high': 0.9, 'idx-low': 0.3 },
       });
 
-      // The opportunity actors should have indexId from the higher-scoring index
+      // The opportunity actors should have networkId from the higher-scoring index
       if (result.evaluatedOpportunities?.length > 0) {
         const sourceActor = result.evaluatedOpportunities[0].actors.find(
           (a: { userId: string }) => a.userId === 'a0000000-0000-4000-8000-000000000001'
@@ -415,9 +415,9 @@ describe('Opportunity Graph', () => {
         const counterpartActor = result.evaluatedOpportunities[0].actors.find(
           (a: { userId: string }) => a.userId !== 'a0000000-0000-4000-8000-000000000001'
         );
-        // If both actors exist, source should inherit counterpart's indexId
+        // If both actors exist, source should inherit counterpart's networkId
         if (sourceActor && counterpartActor) {
-          expect(sourceActor.indexId).toBe(counterpartActor.indexId);
+          expect(sourceActor.networkId).toBe(counterpartActor.networkId);
         }
       }
     }, 30_000);
@@ -436,7 +436,7 @@ describe('Opportunity Graph', () => {
         userId: `${String(i + 1).padStart(8, '0')}-0000-4000-8000-0000000000a0`,
         score: 0.9 - i * 0.01,
         matchedVia: 'Painters' as const,
-        indexId: 'idx-1',
+        networkId: 'idx-1',
       }));
       const profileCandidates = Array.from({ length: 25 }, (_, i) => ({
         type: 'profile' as const,
@@ -444,7 +444,7 @@ describe('Opportunity Graph', () => {
         userId: `${String(i + 1).padStart(8, '0')}-0000-4000-8000-0000000000b0`,
         score: 0.6 - i * 0.005,
         matchedVia: 'profile-similarity' as const,
-        indexId: 'idx-1',
+        networkId: 'idx-1',
       }));
 
       const { compiledGraph, mockEmbedder } = createMockGraph({
@@ -482,7 +482,7 @@ describe('Opportunity Graph', () => {
         userId: `${String(i).padStart(8, '0')}-0000-4000-8000-000000000000`,
         score: 0.95 - i * 0.01,
         matchedVia: 'Painters' as const,
-        indexId: 'idx-1',
+        networkId: 'idx-1',
       }));
 
       const { compiledGraph, mockEmbedder } = createMockGraph({
@@ -512,7 +512,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -545,8 +545,8 @@ describe('Opportunity Graph', () => {
         ],
       });
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
-        { type: 'intent' as const, id: 'intent-third', userId: 'e0000000-0000-4000-8000-000000000005', score: 0.85, matchedVia: 'reciprocal' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-third', userId: 'e0000000-0000-4000-8000-000000000005', score: 0.85, matchedVia: 'reciprocal' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -598,8 +598,8 @@ describe('Opportunity Graph', () => {
         Promise.resolve(profilesByUserId[userId] ?? null)
       );
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-alice', userId: 'c0000000-0000-4000-8000-000000000003', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
-        { type: 'intent' as const, id: 'intent-charlie', userId: 'f0000000-0000-4000-8000-000000000006', score: 0.85, matchedVia: 'reciprocal' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-alice', userId: 'c0000000-0000-4000-8000-000000000003', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-charlie', userId: 'f0000000-0000-4000-8000-000000000006', score: 0.85, matchedVia: 'reciprocal' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -659,8 +659,8 @@ describe('Opportunity Graph', () => {
         Promise.resolve(profilesByUserId[userId] ?? null)
       );
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-alice', userId: 'c0000000-0000-4000-8000-000000000003', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
-        { type: 'intent' as const, id: 'intent-charlie', userId: 'f0000000-0000-4000-8000-000000000006', score: 0.85, matchedVia: 'reciprocal' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-alice', userId: 'c0000000-0000-4000-8000-000000000003', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-charlie', userId: 'f0000000-0000-4000-8000-000000000006', score: 0.85, matchedVia: 'reciprocal' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -698,8 +698,8 @@ describe('Opportunity Graph', () => {
         ],
       });
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.8, matchedVia: 'mirror' as const, indexId: 'idx-1' },
-        { type: 'intent' as const, id: 'intent-alice', userId: 'c0000000-0000-4000-8000-000000000003', score: 0.9, matchedVia: 'reciprocal' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.8, matchedVia: 'mirror' as const, networkId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-alice', userId: 'c0000000-0000-4000-8000-000000000003', score: 0.9, matchedVia: 'reciprocal' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -724,7 +724,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -749,7 +749,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -786,7 +786,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -827,7 +827,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -867,7 +867,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'collaborator' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -893,8 +893,8 @@ describe('Opportunity Graph', () => {
         id: 'opp-existing-pending',
         status: 'pending',
         actors: [
-          { indexId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'patient' as const },
-          { indexId: 'idx-1', userId: 'b0000000-0000-4000-8000-000000000002', role: 'agent' as const },
+          { networkId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'patient' as const },
+          { networkId: 'idx-1', userId: 'b0000000-0000-4000-8000-000000000002', role: 'agent' as const },
         ],
         detection: { source: 'opportunity_graph' as const, timestamp: new Date().toISOString() },
         interpretation: { category: 'collaboration', reasoning: 'Previous match', confidence: 0.8 },
@@ -909,7 +909,7 @@ describe('Opportunity Graph', () => {
       const createSpy = spyOn(mockDb, 'createOpportunity');
       spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([existingOpp]);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -930,12 +930,12 @@ describe('Opportunity Graph', () => {
         id: 'opp-expired',
         status: 'expired',
         actors: [
-          { indexId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'patient' as const },
-          { indexId: 'idx-1', userId: 'b0000000-0000-4000-8000-000000000002', role: 'agent' as const },
+          { networkId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'patient' as const },
+          { networkId: 'idx-1', userId: 'b0000000-0000-4000-8000-000000000002', role: 'agent' as const },
         ],
         detection: { source: 'opportunity_graph' as const, timestamp: new Date().toISOString() },
         interpretation: { category: 'collaboration', reasoning: 'Old match', confidence: 0.7 },
-        context: { indexId: 'idx-1' },
+        context: { networkId: 'idx-1' },
         confidence: '0.7',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -948,7 +948,7 @@ describe('Opportunity Graph', () => {
       spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([expiredOpp]);
       spyOn(mockDb, 'updateOpportunityStatus').mockResolvedValue(reactivatedOpp);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -969,9 +969,9 @@ describe('Opportunity Graph', () => {
         id: 'opp-three-actors',
         status: 'pending',
         actors: [
-          { indexId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'patient' as const },
-          { indexId: 'idx-1', userId: 'b0000000-0000-4000-8000-000000000002', role: 'agent' as const },
-          { indexId: 'idx-1', userId: 'a1000000-0000-4000-8000-000000000007', role: 'peer' as const },
+          { networkId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'patient' as const },
+          { networkId: 'idx-1', userId: 'b0000000-0000-4000-8000-000000000002', role: 'agent' as const },
+          { networkId: 'idx-1', userId: 'a1000000-0000-4000-8000-000000000007', role: 'peer' as const },
         ],
         detection: { source: 'opportunity_graph' as const, timestamp: new Date().toISOString() },
         interpretation: { category: 'collaboration', reasoning: 'Three-way match', confidence: 0.85 },
@@ -986,7 +986,7 @@ describe('Opportunity Graph', () => {
       const createSpy = spyOn(mockDb, 'createOpportunity');
       spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([threeActorOpp]);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -1007,7 +1007,7 @@ describe('Opportunity Graph', () => {
       const createSpy = spyOn(mockDb, 'createOpportunity');
       spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([]);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -1026,8 +1026,8 @@ describe('Opportunity Graph', () => {
         id: 'opp-latent',
         status: 'latent',
         actors: [
-          { indexId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'patient' as const },
-          { indexId: 'idx-1', userId: 'b0000000-0000-4000-8000-000000000002', role: 'agent' as const },
+          { networkId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'patient' as const },
+          { networkId: 'idx-1', userId: 'b0000000-0000-4000-8000-000000000002', role: 'agent' as const },
         ],
         detection: { source: 'opportunity_graph' as const, timestamp: new Date().toISOString() },
         interpretation: { category: 'collaboration', reasoning: 'Background match', confidence: 0.75 },
@@ -1042,7 +1042,7 @@ describe('Opportunity Graph', () => {
       const createSpy = spyOn(mockDb, 'createOpportunity');
       spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([latentOpp]);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -1063,8 +1063,8 @@ describe('Opportunity Graph', () => {
         id: 'opp-latent-upgrade',
         status: 'latent',
         actors: [
-          { indexId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'patient' as const },
-          { indexId: 'idx-1', userId: 'b0000000-0000-4000-8000-000000000002', role: 'agent' as const },
+          { networkId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'patient' as const },
+          { networkId: 'idx-1', userId: 'b0000000-0000-4000-8000-000000000002', role: 'agent' as const },
         ],
         detection: { source: 'opportunity_graph' as const, timestamp: new Date().toISOString() },
         interpretation: { category: 'collaboration', reasoning: 'Background match', confidence: 0.75 },
@@ -1081,7 +1081,7 @@ describe('Opportunity Graph', () => {
       spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([latentOpp]);
       const updateSpy = spyOn(mockDb, 'updateOpportunityStatus').mockResolvedValue(upgradedOpp);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -1104,7 +1104,7 @@ describe('Opportunity Graph', () => {
       const createSpy = spyOn(mockDb, 'createOpportunity');
       const findOverlappingSpy = spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([]);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
-        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, indexId: 'idx-1' },
+        { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
 
       const result = (await compiledGraph.invoke({
@@ -1171,7 +1171,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -1188,9 +1188,9 @@ describe('Opportunity Graph', () => {
         expect(opp.detection.source).toBe('opportunity_graph');
         expect(opp.detection.createdBy).toBe('agent-opportunity-finder');
         expect(opp.interpretation.reasoning).toBeDefined();
-        // context.indexId is set only when user explicitly scoped search; actor tokens carry discovery indexId
+        // context.networkId is set only when user explicitly scoped search; actor tokens carry discovery networkId
         expect(opp.actors.length).toBeGreaterThanOrEqual(1);
-        expect(opp.actors[0].indexId).toBeDefined();
+        expect(opp.actors[0].networkId).toBeDefined();
         expect(opp.actors[0].userId).toBeDefined();
         expect(opp.status).toBe('latent');
       }
@@ -1221,7 +1221,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.6,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -1238,8 +1238,8 @@ describe('Opportunity Graph', () => {
 
   describe('create_introduction path', () => {
     const introEntities = [
-      { userId: 'c0000000-0000-4000-8000-000000000003', profile: { name: 'Alice' }, indexId: 'idx-1' },
-      { userId: 'b0000000-0000-4000-8000-000000000002', profile: { name: 'Bob' }, indexId: 'idx-1' },
+      { userId: 'c0000000-0000-4000-8000-000000000003', profile: { name: 'Alice' }, networkId: 'idx-1' },
+      { userId: 'b0000000-0000-4000-8000-000000000002', profile: { name: 'Bob' }, networkId: 'idx-1' },
     ];
 
     test('with valid entities and hint returns one opportunity with manual detection and introducer actor', async () => {
@@ -1260,7 +1260,7 @@ describe('Opportunity Graph', () => {
       const result = (await compiledGraph.invoke({
         operationMode: 'create_introduction',
         userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
-        indexId: 'idx-1' as Id<'indexes'>,
+        networkId: 'idx-1' as Id<'networks'>,
         introductionEntities: introEntities,
         introductionHint: 'both AI devs',
       } as OpportunityGraphInvokeInput)) as OpportunityGraphInvokeResult;
@@ -1278,15 +1278,15 @@ describe('Opportunity Graph', () => {
       );
     });
 
-    test('when requiredIndexId does not match indexId returns error', async () => {
+    test('when requiredIndexId does not match networkId returns error', async () => {
       const { compiledGraph } = createMockGraph();
 
       const result = (await compiledGraph.invoke({
         operationMode: 'create_introduction',
         userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
-        indexId: 'idx-1' as Id<'indexes'>,
+        networkId: 'idx-1' as Id<'networks'>,
         introductionEntities: introEntities,
-        requiredIndexId: 'idx-other' as Id<'indexes'>,
+        requiredIndexId: 'idx-other' as Id<'networks'>,
       } as OpportunityGraphInvokeInput)) as OpportunityGraphInvokeResult;
 
       expect(result.error).toBeDefined();
@@ -1301,7 +1301,7 @@ describe('Opportunity Graph', () => {
       const result = (await compiledGraph.invoke({
         operationMode: 'create_introduction',
         userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
-        indexId: 'idx-1' as Id<'indexes'>,
+        networkId: 'idx-1' as Id<'networks'>,
         introductionEntities: introEntities,
       } as OpportunityGraphInvokeInput)) as OpportunityGraphInvokeResult;
 
@@ -1312,7 +1312,7 @@ describe('Opportunity Graph', () => {
 
     test('when introducer is not index member returns error', async () => {
       const { compiledGraph, mockDb } = createMockGraph();
-      spyOn(mockDb, 'isIndexMember').mockImplementation(async (indexId: string, userId: string) => {
+      spyOn(mockDb, 'isIndexMember').mockImplementation(async (networkId: string, userId: string) => {
         if (userId === 'a0000000-0000-4000-8000-000000000001') return false;
         return true;
       });
@@ -1320,7 +1320,7 @@ describe('Opportunity Graph', () => {
       const result = (await compiledGraph.invoke({
         operationMode: 'create_introduction',
         userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
-        indexId: 'idx-1' as Id<'indexes'>,
+        networkId: 'idx-1' as Id<'networks'>,
         introductionEntities: introEntities,
       } as OpportunityGraphInvokeInput)) as OpportunityGraphInvokeResult;
 
@@ -1335,7 +1335,7 @@ describe('Opportunity Graph', () => {
       const result = (await compiledGraph.invoke({
         operationMode: 'create_introduction',
         userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
-        indexId: 'idx-1' as Id<'indexes'>,
+        networkId: 'idx-1' as Id<'networks'>,
         introductionEntities: introEntities,
         introductionHint: 'both AI devs',
       } as OpportunityGraphInvokeInput)) as OpportunityGraphInvokeResult;
@@ -1425,8 +1425,8 @@ describe('Opportunity Graph', () => {
         opportunityExistsBetweenActors: () => Promise.resolve(false),
         getOpportunityBetweenActors: () => Promise.resolve(null),
         findOverlappingOpportunities: () => Promise.resolve([]),
-        getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'indexes'>[]),
-        getIndexMemberships: async () => [{ indexId: 'idx-1', indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }],
+        getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
+        getIndexMemberships: async () => [{ networkId: 'idx-1', indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }],
         getActiveIntents: async (userId: string) => {
           if (userId === onBehalfUserId) {
             return [{
@@ -1462,7 +1462,7 @@ describe('Opportunity Graph', () => {
               userId: 'b0000000-0000-4000-8000-000000000002',
               score: 0.9,
               matchedVia: 'mirror' as const,
-              indexId: 'idx-1',
+              networkId: 'idx-1',
             },
           ]),
         searchWithProfileEmbedding: () => Promise.resolve([]),
@@ -1554,7 +1554,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
         {
           type: 'intent' as const,
@@ -1562,7 +1562,7 @@ describe('Opportunity Graph', () => {
           userId: 'c0000000-0000-4000-8000-000000000003',
           score: 0.85,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -1608,7 +1608,7 @@ describe('Opportunity Graph', () => {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
         {
           type: 'intent' as const,
@@ -1616,7 +1616,7 @@ describe('Opportunity Graph', () => {
           userId: 'c0000000-0000-4000-8000-000000000003',
           score: 0.85,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]);
 
@@ -1638,12 +1638,12 @@ describe('Opportunity Graph', () => {
         id: opportunityId,
         status: 'draft' as const,
         actors: [
-          { indexId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'party' as const },
-          { indexId: 'idx-1', userId: 'a2000000-0000-4000-8000-000000000008', role: 'party' as const },
+          { networkId: 'idx-1', userId: 'a0000000-0000-4000-8000-000000000001', role: 'party' as const },
+          { networkId: 'idx-1', userId: 'a2000000-0000-4000-8000-000000000008', role: 'party' as const },
         ],
         detection: { source: 'opportunity_graph' as const, timestamp: new Date().toISOString() },
         interpretation: { category: 'collaboration', reasoning: 'Match', confidence: 0.8 },
-        context: { indexId: 'idx-1', conversationId: 'chat-1' },
+        context: { networkId: 'idx-1', conversationId: 'chat-1' },
         confidence: '0.8',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -1830,13 +1830,13 @@ describe('Opportunity Graph', () => {
         opportunityExistsBetweenActors: () => Promise.resolve(false),
         getOpportunityBetweenActors: () => Promise.resolve(null),
         findOverlappingOpportunities: () => Promise.resolve([]),
-        getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'indexes'>[]),
+        getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
         getIndexMemberships: (userId: string) => {
           // Discoverer is in idx-1, target is in idx-999 — no overlap
           if (userId === discovererId) {
-            return Promise.resolve([{ indexId: 'idx-1', indexTitle: 'Alpha', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }]);
+            return Promise.resolve([{ networkId: 'idx-1', indexTitle: 'Alpha', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }]);
           }
-          return Promise.resolve([{ indexId: 'idx-999', indexTitle: 'Beta', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }]);
+          return Promise.resolve([{ networkId: 'idx-999', indexTitle: 'Beta', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }]);
         },
         getActiveIntents: () => Promise.resolve([{
           id: 'intent-1' as Id<'intents'>, payload: 'Test intent', summary: null, createdAt: new Date(),

@@ -95,7 +95,7 @@ export const IntentGraphState = Annotation.Root({
    * and for scoping read operations. Prep always fetches ALL user intents via
    * getActiveIntents(userId) regardless of index scope (for global dedup/reconciliation).
    */
-  indexId: Annotation<string | undefined>({
+  networkId: Annotation<string | undefined>({
     reducer: (curr, next) => next ?? curr,
     default: () => undefined,
   }),
@@ -212,7 +212,7 @@ export const IntentGraphState = Annotation.Root({
       userName?: string | null;
     }>;
     message?: string;
-    indexId?: string;
+    networkId?: string;
   } | undefined>({
     reducer: (curr, next) => next,
     default: () => undefined,

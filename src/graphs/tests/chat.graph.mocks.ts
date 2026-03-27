@@ -9,7 +9,7 @@ import type {
   CreateIntentData,
   ActiveIntent,
   IndexedIntentDetails,
-  IndexMembership,
+  NetworkMembership,
   OwnedIndex,
   UserRecord,
   Opportunity,
@@ -33,26 +33,26 @@ export interface ChatGraphMockConfig {
   profile?: MockProfileFixture | null;
   /** Active intents per userId (global scope). */
   activeIntents?: (userId: string) => ActiveIntent[] | Promise<ActiveIntent[]>;
-  /** Intents in index for a member (userId, indexId) -> member's intents in that index. */
+  /** Intents in index for a member (userId, networkId) -> member's intents in that index. */
   intentsInIndexForMember?: (
     userId: string,
-    indexId: string
+    networkId: string
   ) => ActiveIntent[] | Promise<ActiveIntent[]>;
-  /** All intents in index (owner view). (indexId, requestingUserId) -> details. */
+  /** All intents in index (owner view). (networkId, requestingUserId) -> details. */
   indexIntentsForOwner?: (
-    indexId: string,
+    networkId: string,
     requestingUserId: string
   ) => IndexedIntentDetails[] | Promise<IndexedIntentDetails[]>;
   /** Opportunities for user. */
   opportunitiesForUser?: (userId: string) => Opportunity[] | Promise<Opportunity[]>;
   /** Index memberships for user. */
-  indexMemberships?: (userId: string) => IndexMembership[] | Promise<IndexMembership[]>;
+  indexMemberships?: (userId: string) => NetworkMembership[] | Promise<NetworkMembership[]>;
   /** Index by id (for scope validation). */
-  getIndex?: (indexId: string) => { id: string; title: string } | null | Promise<{ id: string; title: string } | null>;
-  /** (indexId, userId) -> is member. */
-  isIndexMember?: (indexId: string, userId: string) => boolean | Promise<boolean>;
-  /** (indexId, userId) -> is owner. */
-  isIndexOwner?: (indexId: string, userId: string) => boolean | Promise<boolean>;
+  getIndex?: (networkId: string) => { id: string; title: string } | null | Promise<{ id: string; title: string } | null>;
+  /** (networkId, userId) -> is member. */
+  isIndexMember?: (networkId: string, userId: string) => boolean | Promise<boolean>;
+  /** (networkId, userId) -> is owner. */
+  isIndexOwner?: (networkId: string, userId: string) => boolean | Promise<boolean>;
   /** User record by id. */
   getUser?: (userId: string) => UserRecord | null | Promise<UserRecord | null>;
   /** Owned indexes for user. */
@@ -84,13 +84,13 @@ const defaultOwnedIndex = (): OwnedIndex => ({
 });
 
 /** Actor shape for opportunity mocks (role determines visibility). */
-export type MockOpportunityActor = { indexId: string; userId: string; role: "introducer" | "patient" | "agent" | "peer" | "party"; intent?: string };
+export type MockOpportunityActor = { networkId: string; userId: string; role: "introducer" | "patient" | "agent" | "peer" | "party"; intent?: string };
 
 /** Build a minimal Opportunity for list_my_opportunities / create_opportunities tests. */
 export function mockOpportunity(overrides: {
   id?: string;
   status?: OpportunityStatus;
-  indexId?: string;
+  networkId?: string;
   /** Current user (must be one of the actors so they "have" this opportunity). */
   currentUserId?: string;
   /** Other party user ids (role "party"); tool resolves names via getUser. Ignored if actors is provided. */
@@ -99,12 +99,12 @@ export function mockOpportunity(overrides: {
   actors?: MockOpportunityActor[];
 }): Opportunity {
   const id = overrides.id ?? `opp-${Date.now()}`;
-  const indexId = overrides.indexId ?? "idx-1";
+  const networkId = overrides.networkId ?? "idx-1";
   const otherIds = overrides.otherPartyUserIds ?? ["user-alice"];
   const currentUserId = overrides.currentUserId ?? "current-user";
   const actors = overrides.actors ?? [
-    { indexId, userId: currentUserId, role: "party" as const },
-    ...otherIds.map((userId) => ({ indexId, userId, role: "party" as const })),
+    { networkId, userId: currentUserId, role: "party" as const },
+    ...otherIds.map((userId) => ({ networkId, userId, role: "party" as const })),
   ];
   return {
     id,
@@ -114,7 +114,7 @@ export function mockOpportunity(overrides: {
     },
     actors,
     interpretation: { category: "connection", reasoning: "Match", confidence: 0.8 },
-    context: { indexId },
+    context: { networkId },
     confidence: "0.8",
     status: overrides.status ?? "latent",
     createdAt: new Date(),
@@ -193,8 +193,8 @@ export function createChatGraphMockDb(
     getProfileByUserId: async () => (profile ? { ...profile } : null),
     getActiveIntents: async (userId: string) =>
       Promise.resolve(activeIntents(userId)).then((f) => (Array.isArray(f) ? f : [])),
-    getIntentsInIndexForMember: async (userId: string, indexId: string) =>
-      Promise.resolve(intentsInIndexForMember(userId, indexId)).then((f) =>
+    getIntentsInIndexForMember: async (userId: string, networkId: string) =>
+      Promise.resolve(intentsInIndexForMember(userId, networkId)).then((f) =>
         Array.isArray(f) ? f : []
       ),
     getUser: async (userId: string) => Promise.resolve(getUser(userId)),
@@ -219,16 +219,16 @@ export function createChatGraphMockDb(
     archiveIntent: async () => ({ success: true }),
     getUserIndexIds: async (userId: string) => {
       const memberships = await Promise.resolve(indexMemberships(userId));
-      return Array.isArray(memberships) ? memberships.map((m) => m.indexId) : [];
+      return Array.isArray(memberships) ? memberships.map((m) => m.networkId) : [];
     },
     getIndexMemberships: async (userId: string) =>
       Promise.resolve(indexMemberships(userId)).then((f) => (Array.isArray(f) ? f : [])),
-    getIndex: async (indexId: string) => Promise.resolve(getIndex(indexId)),
-    getIndexMembership: async (indexId: string, userId: string) => {
-      const index = await Promise.resolve(getIndex(indexId));
+    getIndex: async (networkId: string) => Promise.resolve(getIndex(networkId)),
+    getIndexMembership: async (networkId: string, userId: string) => {
+      const index = await Promise.resolve(getIndex(networkId));
       if (!index) return null;
-      const member = await Promise.resolve(isIndexMember(indexId, userId));
-      return member ? { indexId, indexTitle: index.title, indexPrompt: null, permissions: [] } : null;
+      const member = await Promise.resolve(isIndexMember(networkId, userId));
+      return member ? { networkId, indexTitle: index.title, indexPrompt: null, permissions: [] } : null;
     },
     getIndexWithPermissions: async () => null,
     getIntentForIndexing: noopNull,
@@ -251,16 +251,16 @@ export function createChatGraphMockDb(
     getIndexIdsForIntent: noopArray,
     getOwnedIndexes: async (userId: string) =>
       Promise.resolve(ownedIndexes(userId)).then((f) => (Array.isArray(f) ? f : [])),
-    isIndexOwner: async (indexId: string, userId: string) =>
-      Promise.resolve(isIndexOwner(indexId, userId)),
-    isIndexMember: async (indexId: string, userId: string) =>
-      Promise.resolve(isIndexMember(indexId, userId)),
+    isIndexOwner: async (networkId: string, userId: string) =>
+      Promise.resolve(isIndexOwner(networkId, userId)),
+    isIndexMember: async (networkId: string, userId: string) =>
+      Promise.resolve(isIndexMember(networkId, userId)),
     getIndexMembersForOwner: noopArray,
     getIndexMembersForMember: noopArray,
     getMembersFromUserIndexes: async () => [],
     removeMemberFromIndex: async () => ({ success: true }),
-    getIndexIntentsForOwner: async (indexId: string, requestingUserId: string, opts?: { limit?: number; offset?: number }) =>
-      Promise.resolve(indexIntentsForOwner(indexId, requestingUserId)).then((f) =>
+    getIndexIntentsForOwner: async (networkId: string, requestingUserId: string, opts?: { limit?: number; offset?: number }) =>
+      Promise.resolve(indexIntentsForOwner(networkId, requestingUserId)).then((f) =>
         Array.isArray(f) ? f : []
       ),
     getIndexIntentsForMember: async () => [],

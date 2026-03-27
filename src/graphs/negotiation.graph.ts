@@ -11,7 +11,7 @@ interface NegotiationAgentLike {
   invoke(input: {
     ownUser: UserNegotiationContext;
     otherUser: UserNegotiationContext;
-    indexContext: { indexId: string; prompt: string };
+    indexContext: { networkId: string; prompt: string };
     seedAssessment: SeedAssessment;
     history: NegotiationTurn[];
   }): Promise<NegotiationTurn>;
@@ -211,7 +211,7 @@ export interface NegotiationCandidate {
   score: number;
   reasoning: string;
   valencyRole: string;
-  indexId?: string;
+  networkId?: string;
   candidateUser: UserNegotiationContext;
 }
 
@@ -236,7 +236,7 @@ export async function negotiateCandidates(
   negotiationGraph: NegotiationGraphLike,
   sourceUser: UserNegotiationContext,
   candidates: NegotiationCandidate[],
-  indexContext: { indexId: string; prompt: string },
+  indexContext: { networkId: string; prompt: string },
   opts?: { maxTurns?: number; traceEmitter?: TraceEmitter; indexContextOverrides?: Map<string, string> },
 ): Promise<NegotiationResult[]> {
   const { maxTurns, traceEmitter, indexContextOverrides } = opts ?? {};
@@ -248,8 +248,8 @@ export async function negotiateCandidates(
 
       try {
         // Use per-candidate index context; never fall back to a different index's prompt
-        const candidateIndexContext = candidate.indexId
-          ? { indexId: candidate.indexId, prompt: indexContextOverrides?.get(candidate.indexId) ?? '' }
+        const candidateIndexContext = candidate.networkId
+          ? { networkId: candidate.networkId, prompt: indexContextOverrides?.get(candidate.networkId) ?? '' }
           : indexContext;
 
         const result = await negotiationGraph.invoke({

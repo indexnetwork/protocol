@@ -21,7 +21,7 @@ export const IntentIndexerOutputSchema = z.object({
  */
 export type IntentIndexerOutput = z.infer<typeof IntentIndexerOutputSchema>;
 
-const logger = log.lib.from("IntentIndexer");
+const logger = log.lib.from("IntentNetworker");
 
 /**
  * Config
@@ -29,7 +29,7 @@ const logger = log.lib.from("IntentIndexer");
 import { config } from "dotenv";
 config({ path: ".env.development", override: true });
 
-const model = createModel("intentIndexer");
+const model = createModel("intentNetworker");
 
 // ──────────────────────────────────────────────────────────────
 // 1. SYSTEM PROMPT
@@ -76,7 +76,7 @@ type ResponseType = z.infer<typeof responseFormat>;
 // 4. CLASS DEFINITION
 // ──────────────────────────────────────────────────────────────
 
-export class IntentIndexer {
+export class IntentNetworker {
   private model: ReturnType<ChatOpenAI["withStructuredOutput"]>;
 
   constructor() {
@@ -113,7 +113,7 @@ export class IntentIndexer {
     memberPrompt: string | null,
     sourceName?: string | null
   ): Promise<IntentIndexerOutput | null> {
-    logger.verbose("[IntentIndexer.invoke] Evaluating intent");
+    logger.verbose("[IntentNetworker.invoke] Evaluating intent");
 
     const contextParts: string[] = [];
     if (sourceName) contextParts.push(`Source: ${sourceName}`);
@@ -139,13 +139,13 @@ export class IntentIndexer {
       const result = await this.model.invoke(messages);
       const output = responseFormat.parse(result) as IntentIndexerOutput;
 
-      logger.verbose("[IntentIndexer.invoke] Evaluation complete", {
+      logger.verbose("[IntentNetworker.invoke] Evaluation complete", {
         indexScore: output.indexScore,
         memberScore: output.memberScore,
       });
       return output;
     } catch (error) {
-      logger.error("[IntentIndexer] Error during execution", { error });
+      logger.error("[IntentNetworker] Error during execution", { error });
       return null;
     }
   }
@@ -176,7 +176,7 @@ export class IntentIndexer {
         memberPrompt: string | null;
         sourceName?: string | null;
       }) => {
-        const agent = new IntentIndexer();
+        const agent = new IntentNetworker();
         return await agent.invoke(
           args.intent,
           args.indexPrompt,

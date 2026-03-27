@@ -27,7 +27,7 @@ Rules:
 export interface NegotiationProposerInput {
   ownUser: UserNegotiationContext;
   otherUser: UserNegotiationContext;
-  indexContext: { indexId: string; prompt: string };
+  indexContext: { networkId: string; prompt: string };
   seedAssessment: SeedAssessment;
   history: NegotiationTurn[];
 }

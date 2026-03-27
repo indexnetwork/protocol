@@ -53,9 +53,9 @@ const MEANINGFUL = {
   },
 } as const;
 
-function minimalNewData(actorUserIds: string[], indexId: string, reasoning: string): CreateOpportunityData {
+function minimalNewData(actorUserIds: string[], networkId: string, reasoning: string): CreateOpportunityData {
   const actors = actorUserIds.map((userId) => ({
-    indexId,
+    networkId,
     userId,
     role: 'party' as const,
   }));
@@ -68,7 +68,7 @@ function minimalNewData(actorUserIds: string[], indexId: string, reasoning: stri
       confidence: 0.8,
       signals: [{ type: 'curator_judgment', weight: 1, detail: 'Manual' }],
     },
-    context: { indexId },
+    context: { networkId },
     confidence: '0.8',
     status: 'pending',
   };
@@ -76,14 +76,14 @@ function minimalNewData(actorUserIds: string[], indexId: string, reasoning: stri
 
 function existingOpportunity(
   id: string,
-  actors: Array<{ indexId: string; userId: string; role: string; intent?: string }>,
+  actors: Array<{ networkId: string; userId: string; role: string; intent?: string }>,
   reasoning: string,
   status: 'latent' | 'draft' | 'pending' | 'accepted' | 'rejected' | 'expired' = 'pending'
 ): Opportunity {
   return {
     id,
     detection: { source: 'manual', timestamp: new Date().toISOString() },
-    actors: actors.map((a) => ({ ...a, indexId: a.indexId as typeof a.indexId })),
+    actors: actors.map((a) => ({ ...a, networkId: a.networkId as typeof a.networkId })),
     interpretation: {
       category: 'collaboration',
       reasoning,
@@ -119,8 +119,8 @@ describe('Opportunity enricher', () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party' },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
       MEANINGFUL.reasoning.hardwarePrototyping
     );
@@ -146,8 +146,8 @@ describe('Opportunity enricher', () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent' },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent' },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       MEANINGFUL.reasoning.aiMlResearch
     );
@@ -178,8 +178,8 @@ describe('Opportunity enricher', () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent' },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent' },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       MEANINGFUL.reasoning.aiMlResearch,
       'accepted'
@@ -201,16 +201,16 @@ describe('Opportunity enricher', () => {
     const opp1 = existingOpportunity(
       'opp-1',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent' },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent' },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       MEANINGFUL.reasoning.aiMlCofounder
     );
     const opp2 = existingOpportunity(
       'opp-2',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'peer' },
-        { indexId: 'idx-1', userId: 'user-b', role: 'peer' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'peer' },
+        { networkId: 'idx-1', userId: 'user-b', role: 'peer' },
       ],
       MEANINGFUL.reasoning.aiMlResearch
     );
@@ -235,12 +235,12 @@ describe('Opportunity enricher', () => {
     }
   });
 
-  test('actor deduplication: same (indexId, userId, intent) appears once', async () => {
+  test('actor deduplication: same (networkId, userId, intent) appears once', async () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent' },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent' },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       MEANINGFUL.reasoning.aiMlResearch
     );
@@ -251,7 +251,7 @@ describe('Opportunity enricher', () => {
     const result = await enrichOrCreate(db, embedder, newData, { similarityThreshold: 0.7 });
     expect(result.enriched).toBe(true);
     if (result.enriched) {
-      const keys = result.data.actors.map((a) => `${a.indexId}:${a.userId}:${a.intent ?? ''}`);
+      const keys = result.data.actors.map((a) => `${a.networkId}:${a.userId}:${a.intent ?? ''}`);
       const uniqueKeys = new Set(keys);
       expect(uniqueKeys.size).toBe(keys.length);
     }
@@ -261,16 +261,16 @@ describe('Opportunity enricher', () => {
     const newDataWithIntroducer: CreateOpportunityData = {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', MEANINGFUL.reasoning.aiMlCofounder),
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party' },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
-        { indexId: 'idx-1', userId: 'user-intro', role: 'introducer' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-intro', role: 'introducer' },
       ],
     };
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent' },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent' },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       MEANINGFUL.reasoning.aiMlResearch
     );
@@ -290,8 +290,8 @@ describe('Opportunity enricher', () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent', intent: sharedIntent },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent', intent: sharedIntent },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       'Short.'
     );
@@ -300,8 +300,8 @@ describe('Opportunity enricher', () => {
     const newData: CreateOpportunityData = {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', 'Hi'),
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: sharedIntent },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: sharedIntent },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
     };
     const result = await enrichOrCreate(db, embedder, newData);
@@ -317,8 +317,8 @@ describe('Opportunity enricher', () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent', intent: sharedIntent },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent', intent: sharedIntent },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       'Short.',
       'latent'
@@ -329,8 +329,8 @@ describe('Opportunity enricher', () => {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', 'Hi'),
       status: 'draft',
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: sharedIntent },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: sharedIntent },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
     };
     const result = await enrichOrCreate(db, embedder, newData);
@@ -346,8 +346,8 @@ describe('Opportunity enricher', () => {
     const existing = existingOpportunity(
       'opp-expired',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent', intent: sharedIntent },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent', intent: sharedIntent },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       'Short.',
       'expired'
@@ -358,8 +358,8 @@ describe('Opportunity enricher', () => {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', 'Hi'),
       status: 'draft',
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: sharedIntent },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: sharedIntent },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
     };
     const result = await enrichOrCreate(db, embedder, newData);
@@ -375,8 +375,8 @@ describe('Opportunity enricher', () => {
     const existing = existingOpportunity(
       'opp-draft',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent', intent: sharedIntent },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent', intent: sharedIntent },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       'Short.',
       'draft'
@@ -387,8 +387,8 @@ describe('Opportunity enricher', () => {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', 'Hi'),
       status: 'latent',
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: sharedIntent },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: sharedIntent },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
     };
     const result = await enrichOrCreate(db, embedder, newData);
@@ -402,7 +402,7 @@ describe('Opportunity enricher', () => {
   test('no non-introducer actors: returns original data unchanged', async () => {
     const newDataOnlyIntroducers: CreateOpportunityData = {
       ...minimalNewData([], 'idx-1', MEANINGFUL.reasoning.fundraising),
-      actors: [{ indexId: 'idx-1', userId: 'user-intro', role: 'introducer' }],
+      actors: [{ networkId: 'idx-1', userId: 'user-intro', role: 'introducer' }],
     };
     const db = { findOverlappingOpportunities: async () => [] as Opportunity[] };
     const embedder = { generate: async () => [] } as unknown as Embedder;
@@ -463,8 +463,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
 
   /** Shorthand: two-party actor list. */
   const actors = (idx = 'idx-1') => [
-    { indexId: idx, userId: 'user-a', role: 'party' },
-    { indexId: idx, userId: 'user-b', role: 'party' },
+    { networkId: idx, userId: 'user-a', role: 'party' },
+    { networkId: idx, userId: 'user-b', role: 'party' },
   ];
 
   // ── Same match rediscovered ──────────────────────────────────────────
@@ -591,8 +591,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const intentOpp = existingOpportunity(
       'opp-intent',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent', intent: MEANINGFUL.intentIds.aliceMlCofounder },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient', intent: MEANINGFUL.intentIds.bobEarlyStage },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent', intent: MEANINGFUL.intentIds.aliceMlCofounder },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient', intent: MEANINGFUL.intentIds.bobEarlyStage },
       ],
       MEANINGFUL.reasoning.aiMlCofounder
     );
@@ -614,8 +614,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const aiOpp = existingOpportunity(
       'opp-ai',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent', intent: MEANINGFUL.intentIds.aliceMlCofounder },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient', intent: MEANINGFUL.intentIds.bobEarlyStage },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent', intent: MEANINGFUL.intentIds.aliceMlCofounder },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient', intent: MEANINGFUL.intentIds.bobEarlyStage },
       ],
       MEANINGFUL.reasoning.aiMlCofounder
     );
@@ -624,8 +624,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const newData: CreateOpportunityData = {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', MEANINGFUL.reasoning.designProduct),
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.daveDesign },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.daveDesign },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
     };
     const result = await enrichOrCreate(db, domainEmbedder(), newData, { similarityThreshold: 0.7 });
@@ -757,8 +757,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
       MEANINGFUL.reasoning.aiMlCofounder
     );
@@ -772,8 +772,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const newData: CreateOpportunityData = {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', MEANINGFUL.reasoning.aiMlResearch),
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
     };
     const result = await enrichOrCreate(db, embedder, newData);
@@ -790,8 +790,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent', intent: MEANINGFUL.intentIds.aliceMlCofounder },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent', intent: MEANINGFUL.intentIds.aliceMlCofounder },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       MEANINGFUL.reasoning.aiMlCofounder
     );
@@ -801,8 +801,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const newData: CreateOpportunityData = {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', MEANINGFUL.reasoning.fundraising),
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
     };
     // domainEmbedder would say these are unrelated (AI vs fundraising = cosine 0)
@@ -821,8 +821,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
       MEANINGFUL.reasoning.aiMlCofounder
     );
@@ -834,8 +834,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const newData: CreateOpportunityData = {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', MEANINGFUL.reasoning.aiMlResearch),
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
     };
     const result = await enrichOrCreate(db, embedder, newData);
@@ -850,8 +850,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party' },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
       MEANINGFUL.reasoning.aiMlCofounder
     );
@@ -870,8 +870,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const existing = existingOpportunity(
       'opp-old',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'agent', intent: MEANINGFUL.intentIds.aliceMlCofounder },
-        { indexId: 'idx-1', userId: 'user-b', role: 'patient' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'agent', intent: MEANINGFUL.intentIds.aliceMlCofounder },
+        { networkId: 'idx-1', userId: 'user-b', role: 'patient' },
       ],
       'Short.' // below MIN_REASONING_LENGTH_FOR_EMBEDDING
     );
@@ -882,8 +882,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const withSharedIntent: CreateOpportunityData = {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', 'Brief.'),
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.aliceMlCofounder },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
     };
     const resultMerge = await enrichOrCreate(db, embedder, withSharedIntent);
@@ -893,8 +893,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const withoutSharedIntent: CreateOpportunityData = {
       ...minimalNewData(['user-a', 'user-b'], 'idx-1', 'Brief.'),
       actors: [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.carolHardware },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party', intent: MEANINGFUL.intentIds.carolHardware },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
     };
     const resultNoMerge = await enrichOrCreate(db, embedder, withoutSharedIntent);
@@ -907,16 +907,16 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     const opp1 = existingOpportunity(
       'opp-idx1',
       [
-        { indexId: 'idx-1', userId: 'user-a', role: 'party' },
-        { indexId: 'idx-1', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-a', role: 'party' },
+        { networkId: 'idx-1', userId: 'user-b', role: 'party' },
       ],
       MEANINGFUL.reasoning.aiMlCofounder
     );
     const opp2 = existingOpportunity(
       'opp-idx2',
       [
-        { indexId: 'idx-2', userId: 'user-a', role: 'party' },
-        { indexId: 'idx-2', userId: 'user-b', role: 'party' },
+        { networkId: 'idx-2', userId: 'user-a', role: 'party' },
+        { networkId: 'idx-2', userId: 'user-b', role: 'party' },
       ],
       MEANINGFUL.reasoning.aiMlResearch
     );
@@ -929,7 +929,7 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
     if (result.enriched) {
       expect(result.expiredIds).toContain('opp-idx1');
       expect(result.expiredIds).toContain('opp-idx2');
-      const indexIds = new Set(result.data.actors.map((a) => a.indexId));
+      const indexIds = new Set(result.data.actors.map((a) => a.networkId));
       expect(indexIds.has('idx-1')).toBe(true);
       expect(indexIds.has('idx-2')).toBe(true);
     }

@@ -29,7 +29,7 @@ Rules:
 export interface NegotiationResponderInput {
   ownUser: UserNegotiationContext;
   otherUser: UserNegotiationContext;
-  indexContext: { indexId: string; prompt: string };
+  indexContext: { networkId: string; prompt: string };
   seedAssessment: SeedAssessment;
   history: NegotiationTurn[];
 }

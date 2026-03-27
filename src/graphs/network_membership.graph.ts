@@ -1,10 +1,17 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
+<<<<<<<< HEAD:packages/protocol/src/graphs/index_membership.graph.ts
 import type { IndexMembershipGraphDatabase } from "../interfaces/database.interface.js";
 import { protocolLogger } from "../support/protocol.logger.js";
 import { timed } from "../support/performance.js";
 import { IndexMembershipGraphState } from "../states/index_membership.state.js";
+========
+import type { NetworkMembershipGraphDatabase } from "../interfaces/database.interface";
+import { protocolLogger } from "../support/protocol.logger";
+import { timed } from "../support/performance";
+import { NetworkMembershipGraphState } from "../states/network_membership.state";
+>>>>>>>> 608653918 (refactor: rename community 'index' to 'network' across full stack):packages/protocol/src/graphs/network_membership.graph.ts
 
-const logger = protocolLogger("IndexMembershipGraphFactory");
+const logger = protocolLogger("NetworkMembershipGraphFactory");
 
 /**
  * Factory class to build and compile the Index Membership Graph.
@@ -14,8 +21,8 @@ const logger = protocolLogger("IndexMembershipGraphFactory");
  * - read: List members of an index (validates caller is member)
  * - delete: Remove a member from an index (future, validates ownership)
  */
-export class IndexMembershipGraphFactory {
-  constructor(private database: IndexMembershipGraphDatabase) {}
+export class NetworkMembershipGraphFactory {
+  constructor(private database: NetworkMembershipGraphDatabase) {}
 
   public createGraph() {
     // --- NODE DEFINITIONS ---
@@ -26,11 +33,11 @@ export class IndexMembershipGraphFactory {
      * 1. Self-join (targetUserId === userId): Only allowed for public indexes (joinPolicy 'anyone')
      * 2. Invite others (targetUserId !== userId): Requires caller to be member; owner-only for invite_only
      */
-    const addMemberNode = async (state: typeof IndexMembershipGraphState.State) => {
-      return timed("IndexMembershipGraph.addMember", async () => {
+    const addMemberNode = async (state: typeof NetworkMembershipGraphState.State) => {
+      return timed("NetworkMembershipGraph.addMember", async () => {
         logger.verbose("Add member to index", {
           userId: state.userId,
-          indexId: state.indexId,
+          networkId: state.networkId,
           targetUserId: state.targetUserId,
         });
 
@@ -39,7 +46,7 @@ export class IndexMembershipGraphFactory {
         }
 
         try {
-          const indexRecord = await this.database.getIndexWithPermissions(state.indexId);
+          const indexRecord = await this.database.getIndexWithPermissions(state.networkId);
           if (!indexRecord) {
             return { mutationResult: { success: false, error: "Index not found." } };
           }
@@ -58,7 +65,7 @@ export class IndexMembershipGraphFactory {
               };
             }
 
-            const result = await this.database.addMemberToIndex(state.indexId, state.targetUserId, 'member');
+            const result = await this.database.addMemberToIndex(state.networkId, state.targetUserId, 'member');
             if (result.alreadyMember) {
               return { mutationResult: { success: true, message: "You are already a member of this index." } };
             }
@@ -67,19 +74,19 @@ export class IndexMembershipGraphFactory {
           }
 
           // Inviting others: must be a member first
-          const isMember = await this.database.isIndexMember(state.indexId, state.userId);
+          const isMember = await this.database.isIndexMember(state.networkId, state.userId);
           if (!isMember) {
             return { mutationResult: { success: false, error: "You must be a member of that index to add others." } };
           }
 
           if (joinPolicy === 'invite_only') {
-            const isOwner = await this.database.isIndexOwner(state.indexId, state.userId);
+            const isOwner = await this.database.isIndexOwner(state.networkId, state.userId);
             if (!isOwner) {
               return { mutationResult: { success: false, error: "Only the index owner can add members when the index is invite-only." } };
             }
           }
 
-          const result = await this.database.addMemberToIndex(state.indexId, state.targetUserId, 'member');
+          const result = await this.database.addMemberToIndex(state.networkId, state.targetUserId, 'member');
           if (result.alreadyMember) {
             return { mutationResult: { success: true, message: "That user is already a member of this index." } };
           }
@@ -101,19 +108,19 @@ export class IndexMembershipGraphFactory {
      * List Members Node: List all members of an index.
      * Validates caller is a member.
      */
-    const listMembersNode = async (state: typeof IndexMembershipGraphState.State) => {
-      return timed("IndexMembershipGraph.listMembers", async () => {
+    const listMembersNode = async (state: typeof NetworkMembershipGraphState.State) => {
+      return timed("NetworkMembershipGraph.listMembers", async () => {
         logger.verbose("List index members", {
           userId: state.userId,
-          indexId: state.indexId,
+          networkId: state.networkId,
         });
 
         try {
-          const isMember = await this.database.isIndexMember(state.indexId, state.userId);
+          const isMember = await this.database.isIndexMember(state.networkId, state.userId);
           if (!isMember) {
             return {
               readResult: {
-                indexId: state.indexId,
+                networkId: state.networkId,
                 count: 0,
                 members: [],
               },
@@ -121,10 +128,10 @@ export class IndexMembershipGraphFactory {
             };
           }
 
-          const members = await this.database.getIndexMembersForMember(state.indexId, state.userId);
+          const members = await this.database.getIndexMembersForMember(state.networkId, state.userId);
           return {
             readResult: {
-              indexId: state.indexId,
+              networkId: state.networkId,
               count: members.length,
               members: members.map((m) => ({
                 userId: m.userId,
@@ -149,11 +156,11 @@ export class IndexMembershipGraphFactory {
     /**
      * Remove Member Node: Remove a member from an index (owner only).
      */
-    const removeMemberNode = async (state: typeof IndexMembershipGraphState.State) => {
-      return timed("IndexMembershipGraph.removeMember", async () => {
+    const removeMemberNode = async (state: typeof NetworkMembershipGraphState.State) => {
+      return timed("NetworkMembershipGraph.removeMember", async () => {
         logger.verbose("Remove member from index", {
           userId: state.userId,
-          indexId: state.indexId,
+          networkId: state.networkId,
           targetUserId: state.targetUserId,
         });
 
@@ -167,12 +174,12 @@ export class IndexMembershipGraphFactory {
         }
 
         try {
-          const isOwner = await this.database.isIndexOwner(state.indexId, state.userId);
+          const isOwner = await this.database.isIndexOwner(state.networkId, state.userId);
           if (!isOwner) {
             return { mutationResult: { success: false, error: "Only the index owner can remove members." } };
           }
 
-          const result = await this.database.removeMemberFromIndex(state.indexId, state.targetUserId);
+          const result = await this.database.removeMemberFromIndex(state.networkId, state.targetUserId);
 
           if (result.wasOwner) {
             return { mutationResult: { success: false, error: "Cannot remove the index owner." } };
@@ -199,7 +206,7 @@ export class IndexMembershipGraphFactory {
 
     // --- CONDITIONAL ROUTING ---
 
-    const routeByMode = (state: typeof IndexMembershipGraphState.State): string => {
+    const routeByMode = (state: typeof NetworkMembershipGraphState.State): string => {
       switch (state.operationMode) {
         case 'create': return 'add_member';
         case 'read': return 'list_members';
@@ -210,7 +217,7 @@ export class IndexMembershipGraphFactory {
 
     // --- GRAPH ASSEMBLY ---
 
-    const workflow = new StateGraph(IndexMembershipGraphState)
+    const workflow = new StateGraph(NetworkMembershipGraphState)
       .addNode("add_member", addMemberNode)
       .addNode("list_members", listMembersNode)
       .addNode("remove_member", removeMemberNode)

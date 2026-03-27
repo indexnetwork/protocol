@@ -7,14 +7,14 @@ import { Annotation } from "@langchain/langgraph";
  * Flow:
  * START → routerNode → {createNode | readNode | updateNode | deleteNode} → END
  */
-export const IndexGraphState = Annotation.Root({
+export const NetworkGraphState = Annotation.Root({
   // --- Core Inputs (from ChatGraph via ToolContext) ---
 
   /** User performing the action. Always required. */
   userId: Annotation<string>,
 
   /** Target index ID. Required for read/update/delete. From ChatGraph or tool arg. */
-  indexId: Annotation<string | undefined>({
+  networkId: Annotation<string | undefined>({
     reducer: (_, next) => next,
     default: () => undefined,
   }),
@@ -61,14 +61,14 @@ export const IndexGraphState = Annotation.Root({
   /** Output for read mode. */
   readResult: Annotation<{
     memberOf: Array<{
-      indexId: string;
+      networkId: string;
       title: string;
       description: string | null;
       autoAssign: boolean;
       joinedAt: Date;
     }>;
     owns: Array<{
-      indexId: string;
+      networkId: string;
       title: string;
       description: string | null;
       memberCount: number;
@@ -76,7 +76,7 @@ export const IndexGraphState = Annotation.Root({
       joinPolicy: string;
     }>;
     publicIndexes?: Array<{
-      indexId: string;
+      networkId: string;
       title: string;
       description: string | null;
       memberCount: number;
@@ -96,7 +96,7 @@ export const IndexGraphState = Annotation.Root({
   /** Output for create/update/delete modes. */
   mutationResult: Annotation<{
     success: boolean;
-    indexId?: string;
+    networkId?: string;
     title?: string;
     message?: string;
     error?: string;

@@ -7,14 +7,14 @@ import { Annotation } from "@langchain/langgraph";
  * Flow:
  * START → routerNode → {addMemberNode | listMembersNode | removeMemberNode} → END
  */
-export const IndexMembershipGraphState = Annotation.Root({
+export const NetworkMembershipGraphState = Annotation.Root({
   // --- Core Inputs (from ChatGraph via ToolContext) ---
 
   /** User performing the action (the actor). Always required. */
   userId: Annotation<string>,
 
   /** Target index. Required for all operations. */
-  indexId: Annotation<string>,
+  networkId: Annotation<string>,
 
   /** Operation mode. */
   operationMode: Annotation<'create' | 'read' | 'delete'>({
@@ -34,7 +34,7 @@ export const IndexMembershipGraphState = Annotation.Root({
 
   /** Output for read mode: list of members. */
   readResult: Annotation<{
-    indexId: string;
+    networkId: string;
     count: number;
     members: Array<{
       userId: string;

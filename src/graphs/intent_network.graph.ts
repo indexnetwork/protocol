@@ -1,37 +1,50 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
 
+<<<<<<<< HEAD:packages/protocol/src/graphs/intent_index.graph.ts
 import { IntentIndexer } from "../agents/intent.indexer.js";
 import type { IntentIndexGraphDatabase } from "../interfaces/database.interface.js";
 import { protocolLogger } from "../support/protocol.logger.js";
 import { timed } from "../support/performance.js";
 import { requestContext } from "../support/request-context.js";
 import type { DebugMetaAgent } from "../types/chat-streaming.types.js";
+========
+import { IntentNetworker } from "../agents/intent.networker";
+import type { IntentNetworkGraphDatabase } from "../interfaces/database.interface";
+import { protocolLogger } from "../support/protocol.logger";
+import { timed } from "../support/performance";
+import { requestContext } from "../support/request-context";
+import type { DebugMetaAgent } from "../types/chat-streaming.types";
+>>>>>>>> 608653918 (refactor: rename community 'index' to 'network' across full stack):packages/protocol/src/graphs/intent_network.graph.ts
 
 import {
-  IntentIndexGraphState,
+  IntentNetworkGraphState,
   type IntentForIndexing,
   type IndexMemberContext,
   type AssignmentResult,
+<<<<<<<< HEAD:packages/protocol/src/graphs/intent_index.graph.ts
 } from "../states/intent_index.state.js";
+========
+} from "../states/intent_network.state";
+>>>>>>>> 608653918 (refactor: rename community 'index' to 'network' across full stack):packages/protocol/src/graphs/intent_network.graph.ts
 
-const logger = protocolLogger("IntentIndexGraphFactory");
+const logger = protocolLogger("IntentNetworkGraphFactory");
 const QUALIFICATION_THRESHOLD = 0.7;
 
 /**
  * Factory class to build and compile the Intent Index Graph.
  *
  * Handles CRUD for the intent_indexes junction table:
- * - create: Assign an intent to an index (direct or evaluated via IntentIndexer agent)
- * - read: List intent-index links (by intentId or by indexId)
+ * - create: Assign an intent to an index (direct or evaluated via IntentNetworker agent)
+ * - read: List intent-index links (by intentId or by networkId)
  * - delete: Unassign an intent from an index
  *
  * The evaluate-based assignment flow is migrated from the old Index Graph.
  */
-export class IntentIndexGraphFactory {
-  constructor(private database: IntentIndexGraphDatabase) {}
+export class IntentNetworkGraphFactory {
+  constructor(private database: IntentNetworkGraphDatabase) {}
 
   public createGraph() {
-    const indexer = new IntentIndexer();
+    const indexer = new IntentNetworker();
 
     // --- NODE DEFINITIONS ---
 
@@ -39,18 +52,18 @@ export class IntentIndexGraphFactory {
      * Assign Node: Assign an intent to an index.
      * Two sub-paths:
      * - Direct assignment (skipEvaluation=true): assign immediately
-     * - Evaluated assignment (skipEvaluation=false): load intent + index context, evaluate via IntentIndexer
+     * - Evaluated assignment (skipEvaluation=false): load intent + index context, evaluate via IntentNetworker
      */
-    const assignNode = async (state: typeof IntentIndexGraphState.State) => {
-      return timed("IntentIndexGraph.assign", async () => {
+    const assignNode = async (state: typeof IntentNetworkGraphState.State) => {
+      return timed("IntentNetworkGraph.assign", async () => {
         const intentId = state.intentId;
-        const indexId = state.indexId;
-        logger.verbose("Assign intent to index", { userId: state.userId, intentId, indexId, skipEvaluation: state.skipEvaluation });
+        const networkId = state.networkId;
+        logger.verbose("Assign intent to index", { userId: state.userId, intentId, networkId, skipEvaluation: state.skipEvaluation });
 
         const agentTimingsAccum: DebugMetaAgent[] = [];
 
-        if (!intentId || !indexId) {
-          return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "Both intentId and indexId are required." } };
+        if (!intentId || !networkId) {
+          return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "Both intentId and networkId are required." } };
         }
 
         try {
@@ -62,23 +75,23 @@ export class IntentIndexGraphFactory {
           if (intent.userId !== state.userId) {
             return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "You can only add your own intents to an index." } };
           }
-          const isMember = await this.database.isIndexMember(indexId, state.userId);
+          const isMember = await this.database.isIndexMember(networkId, state.userId);
           if (!isMember) {
             return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "You are not a member of that index." } };
           }
 
           // Check if already assigned
-          const alreadyAssigned = await this.database.isIntentAssignedToIndex(intentId, indexId);
+          const alreadyAssigned = await this.database.isIntentAssignedToIndex(intentId, networkId);
           if (alreadyAssigned) {
             return { agentTimings: agentTimingsAccum, mutationResult: { success: true, message: "That intent is already in this index." } };
           }
 
           // Direct assignment (skip evaluation)
           if (state.skipEvaluation) {
-            await this.database.assignIntentToIndex(intentId, indexId, 1.0);
+            await this.database.assignIntentToIndex(intentId, networkId, 1.0);
             return {
               agentTimings: agentTimingsAccum,
-              assignmentResult: { indexId, assigned: true, success: true } as AssignmentResult,
+              assignmentResult: { networkId, assigned: true, success: true } as AssignmentResult,
               mutationResult: { success: true, message: "Intent saved to the index." },
             };
           }
@@ -89,35 +102,35 @@ export class IntentIndexGraphFactory {
             return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "Intent not found for indexing." } };
           }
 
-          const indexContext = await this.database.getIndexMemberContext(indexId, intentForIndexing.userId);
+          const indexContext = await this.database.getIndexMemberContext(networkId, intentForIndexing.userId);
           if (!indexContext) {
             // No prompts or not eligible - auto-assign
-            await this.database.assignIntentToIndex(intentId, indexId, 1.0);
+            await this.database.assignIntentToIndex(intentId, networkId, 1.0);
             return {
               agentTimings: agentTimingsAccum,
-              assignmentResult: { indexId, assigned: true, success: true } as AssignmentResult,
+              assignmentResult: { networkId, assigned: true, success: true } as AssignmentResult,
               mutationResult: { success: true, message: "Intent assigned to index (auto-assign, no prompts)." },
             };
           }
 
           const hasNoPrompts = !indexContext.indexPrompt?.trim() && !indexContext.memberPrompt?.trim();
           if (hasNoPrompts) {
-            await this.database.assignIntentToIndex(intentId, indexId, 1.0);
+            await this.database.assignIntentToIndex(intentId, networkId, 1.0);
             return {
               agentTimings: agentTimingsAccum,
-              assignmentResult: { indexId, assigned: true, success: true } as AssignmentResult,
+              assignmentResult: { networkId, assigned: true, success: true } as AssignmentResult,
               mutationResult: { success: true, message: "Intent assigned to index (no prompts, auto-assign)." },
             };
           }
 
-          // Run IntentIndexer evaluation
+          // Run IntentNetworker evaluation
           const sourceName = intentForIndexing.sourceType
             ? `${intentForIndexing.sourceType}:${intentForIndexing.sourceId ?? ""}`
             : undefined;
 
           const _traceEmitterIndexer = requestContext.getStore()?.traceEmitter;
           const _indexerStart = Date.now();
-          _traceEmitterIndexer?.({ type: "agent_start", name: "intent-indexer" });
+          _traceEmitterIndexer?.({ type: "agent_start", name: "intent-networker" });
           const result = await indexer.evaluate(
             intentForIndexing.payload,
             indexContext.indexPrompt,
@@ -125,8 +138,8 @@ export class IntentIndexGraphFactory {
             sourceName
           );
           const _indexerMs = Date.now() - _indexerStart;
-          agentTimingsAccum.push({ name: 'intent.indexer', durationMs: _indexerMs });
-          _traceEmitterIndexer?.({ type: "agent_end", name: "intent-indexer", durationMs: _indexerMs, summary: result ? `Scored: index=${result.indexScore.toFixed(2)}, member=${result.memberScore.toFixed(2)}` : "intent-indexer completed" });
+          agentTimingsAccum.push({ name: 'intent.networker', durationMs: _indexerMs });
+          _traceEmitterIndexer?.({ type: "agent_end", name: "intent-networker", durationMs: _indexerMs, summary: result ? `Scored: index=${result.indexScore.toFixed(2)}, member=${result.memberScore.toFixed(2)}` : "intent-networker completed" });
 
           if (!result) {
             return {
@@ -166,13 +179,13 @@ export class IntentIndexGraphFactory {
           }
 
           if (shouldAssign) {
-            await this.database.assignIntentToIndex(intentId, indexId, finalScore);
+            await this.database.assignIntentToIndex(intentId, networkId, finalScore);
             return {
               agentTimings: agentTimingsAccum,
               evaluation: result,
               shouldAssign: true,
               finalScore,
-              assignmentResult: { indexId, assigned: true, success: true } as AssignmentResult,
+              assignmentResult: { networkId, assigned: true, success: true } as AssignmentResult,
               mutationResult: { success: true, message: `Intent assigned to index (score: ${finalScore.toFixed(2)}).` },
             };
           }
@@ -182,7 +195,7 @@ export class IntentIndexGraphFactory {
             evaluation: result,
             shouldAssign: false,
             finalScore,
-            assignmentResult: { indexId, assigned: false, success: true } as AssignmentResult,
+            assignmentResult: { networkId, assigned: false, success: true } as AssignmentResult,
             mutationResult: { success: false, error: `Intent did not qualify for this index (score: ${finalScore.toFixed(2)}).` },
           };
         } catch (err) {
@@ -195,18 +208,18 @@ export class IntentIndexGraphFactory {
     /**
      * Read Node: Query intent-index relationships.
      * - By intentId only: list all indexes the intent is in (owner only)
-     * - By indexId only: list intents in the index (member only)
-     * - By both intentId and indexId: check if specific link exists (owner only)
+     * - By networkId only: list intents in the index (member only)
+     * - By both intentId and networkId: check if specific link exists (owner only)
      */
-    const readNode = async (state: typeof IntentIndexGraphState.State) => {
-      return timed("IntentIndexGraph.read", async () => {
+    const readNode = async (state: typeof IntentNetworkGraphState.State) => {
+      return timed("IntentNetworkGraph.read", async () => {
         const intentId = state.intentId;
-        const indexId = state.indexId;
-        logger.verbose("Read intent-index links", { userId: state.userId, intentId, indexId, queryUserId: state.queryUserId });
+        const networkId = state.networkId;
+        logger.verbose("Read intent-index links", { userId: state.userId, intentId, networkId, queryUserId: state.queryUserId });
 
         try {
           // By both: check if specific intent-index link exists
-          if (intentId && indexId) {
+          if (intentId && networkId) {
             const intent = await this.database.getIntent(intentId);
             if (!intent) {
               return { readResult: { links: [], count: 0, mode: "check_link" }, error: "Intent not found." };
@@ -214,10 +227,10 @@ export class IntentIndexGraphFactory {
             if (intent.userId !== state.userId) {
               return { readResult: { links: [], count: 0, mode: "check_link" }, error: "You can only check links for your own intents." };
             }
-            const isLinked = await this.database.isIntentAssignedToIndex(intentId, indexId);
+            const isLinked = await this.database.isIntentAssignedToIndex(intentId, networkId);
             return {
               readResult: {
-                links: isLinked ? [{ intentId, indexId }] : [],
+                links: isLinked ? [{ intentId, networkId }] : [],
                 count: isLinked ? 1 : 0,
                 mode: "check_link",
                 note: isLinked ? "Intent is linked to this index." : "Intent is not linked to this index.",
@@ -237,7 +250,7 @@ export class IntentIndexGraphFactory {
             const indexIds = await this.database.getIndexIdsForIntent(intentId);
             return {
               readResult: {
-                links: indexIds.map((id) => ({ intentId, indexId: id })),
+                links: indexIds.map((id) => ({ intentId, networkId: id })),
                 count: indexIds.length,
                 mode: "indexes_for_intent",
                 note: "To show index titles, use read_indexes.",
@@ -246,14 +259,14 @@ export class IntentIndexGraphFactory {
           }
 
           // By index: list intents in the index
-          if (!indexId) {
+          if (!networkId) {
             return {
               readResult: { links: [], count: 0, mode: "unknown" },
-              error: "Provide indexId or intentId.",
+              error: "Provide networkId or intentId.",
             };
           }
 
-          const isMember = await this.database.isIndexMember(indexId, state.userId);
+          const isMember = await this.database.isIndexMember(networkId, state.userId);
           if (!isMember) {
             return {
               readResult: { links: [], count: 0, mode: "intents_in_index" },
@@ -263,12 +276,12 @@ export class IntentIndexGraphFactory {
 
           // All intents or filtered by user
           if (!state.queryUserId) {
-            const intents = await this.database.getIndexIntentsForMember(indexId, state.userId, { limit: 50, offset: 0 });
+            const intents = await this.database.getIndexIntentsForMember(networkId, state.userId, { limit: 50, offset: 0 });
             return {
               readResult: {
                 links: intents.map((i) => ({
                   intentId: i.id,
-                  indexId,
+                  networkId,
                   intentTitle: i.payload,
                   userId: i.userId,
                   userName: i.userName,
@@ -282,12 +295,12 @@ export class IntentIndexGraphFactory {
           }
 
           // Specific user's intents
-          const intents = await this.database.getIntentsInIndexForMember(state.queryUserId, indexId);
+          const intents = await this.database.getIntentsInIndexForMember(state.queryUserId, networkId);
           return {
             readResult: {
               links: intents.map((i) => ({
                 intentId: i.id,
-                indexId,
+                networkId,
                 intentTitle: i.payload,
                 createdAt: i.createdAt,
               })),
@@ -306,14 +319,14 @@ export class IntentIndexGraphFactory {
     /**
      * Unassign Node: Remove an intent from an index.
      */
-    const unassignNode = async (state: typeof IntentIndexGraphState.State) => {
-      return timed("IntentIndexGraph.unassign", async () => {
+    const unassignNode = async (state: typeof IntentNetworkGraphState.State) => {
+      return timed("IntentNetworkGraph.unassign", async () => {
         const intentId = state.intentId;
-        const indexId = state.indexId;
-        logger.verbose("Unassign intent from index", { userId: state.userId, intentId, indexId });
+        const networkId = state.networkId;
+        logger.verbose("Unassign intent from index", { userId: state.userId, intentId, networkId });
 
-        if (!intentId || !indexId) {
-          return { mutationResult: { success: false, error: "Both intentId and indexId are required." } };
+        if (!intentId || !networkId) {
+          return { mutationResult: { success: false, error: "Both intentId and networkId are required." } };
         }
 
         try {
@@ -324,17 +337,17 @@ export class IntentIndexGraphFactory {
           if (intent.userId !== state.userId) {
             return { mutationResult: { success: false, error: "You can only remove your own intents from an index." } };
           }
-          const isMember = await this.database.isIndexMember(indexId, state.userId);
+          const isMember = await this.database.isIndexMember(networkId, state.userId);
           if (!isMember) {
             return { mutationResult: { success: false, error: "You are not a member of that index." } };
           }
 
-          const assigned = await this.database.isIntentAssignedToIndex(intentId, indexId);
+          const assigned = await this.database.isIntentAssignedToIndex(intentId, networkId);
           if (!assigned) {
             return { mutationResult: { success: true, message: "That intent is not in this index." } };
           }
 
-          await this.database.unassignIntentFromIndex(intentId, indexId);
+          await this.database.unassignIntentFromIndex(intentId, networkId);
           return { mutationResult: { success: true, message: "Intent removed from the index." } };
         } catch (err) {
           logger.error("Unassign failed", { error: err });
@@ -345,7 +358,7 @@ export class IntentIndexGraphFactory {
 
     // --- CONDITIONAL ROUTING ---
 
-    const routeByMode = (state: typeof IntentIndexGraphState.State): string => {
+    const routeByMode = (state: typeof IntentNetworkGraphState.State): string => {
       switch (state.operationMode) {
         case 'create': return 'assign';
         case 'read': return 'read';
@@ -356,7 +369,7 @@ export class IntentIndexGraphFactory {
 
     // --- GRAPH ASSEMBLY ---
 
-    const workflow = new StateGraph(IntentIndexGraphState)
+    const workflow = new StateGraph(IntentNetworkGraphState)
       .addNode("assign", assignNode)
       .addNode("read", readNode)
       .addNode("unassign", unassignNode)

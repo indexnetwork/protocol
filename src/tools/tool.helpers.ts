@@ -3,7 +3,7 @@ import type { ModelConfig } from "../agents/model.config.js";
 import type { ProfileDocument } from "../agents/profile.generator.js";
 import type {
   ChatGraphCompositeDatabase,
-  IndexMembership,
+  NetworkMembership,
   UserRecord,
   UserDatabase,
   SystemDatabase,
@@ -44,7 +44,7 @@ export interface ResolvedToolContext {
   userId: string;
   userName: string;
   userEmail: string;
-  indexId?: string;
+  networkId?: string;
   indexName?: string;
   /** True when chat is index-scoped and the user owns the index. */
   isOwner?: boolean;
@@ -52,7 +52,7 @@ export interface ResolvedToolContext {
   // Rich identity context for prompt/tool orchestration (profile omits embedding to keep context lean).
   user: UserRecord;
   userProfile: ProfileContext;
-  userIndexes: IndexMembership[];
+  userIndexes: NetworkMembership[];
   scopedIndex?: {
     id: string;
     title: string;
@@ -85,7 +85,7 @@ export interface ToolContext {
   embedder: Embedder;
   scraper: Scraper;
   /** When set, chat is scoped to this index; tools use it as default for read_intents and create_intent. */
-  indexId?: string;
+  networkId?: string;
   /** Chat session ID when creating tools for a chat; enables draft opportunities with context.conversationId. */
   sessionId?: string;
 
@@ -155,11 +155,11 @@ export async function resolveChatContext(params: {
     "getUser" | "getProfile" | "getIndexMemberships" | "getIndexMembership" | "getIndex" | "isIndexOwner" | "isIndexMember"
   >;
   userId: string;
-  indexId?: string;
+  networkId?: string;
   /** Chat session ID for draft opportunities (stored as context.conversationId). */
   sessionId?: string;
 }): Promise<ResolvedToolContext> {
-  const { database, userId, indexId, sessionId } = params;
+  const { database, userId, networkId, sessionId } = params;
 
   const [user, rawProfile, userIndexes] = await Promise.all([
     database.getUser(userId),
@@ -187,11 +187,11 @@ export async function resolveChatContext(params: {
   let isOwner = false;
   let indexName: string | undefined;
 
-  if (indexId) {
+  if (networkId) {
     const [index, isMember, owner] = await Promise.all([
-      database.getIndex(indexId),
-      database.isIndexMember(indexId, userId),
-      database.isIndexOwner(indexId, userId),
+      database.getIndex(networkId),
+      database.isIndexMember(networkId, userId),
+      database.isIndexOwner(networkId, userId),
     ]);
 
     if (!index) {
@@ -210,7 +210,7 @@ export async function resolveChatContext(params: {
       );
     }
 
-    let membership = userIndexes.find((m) => m.indexId === index.id);
+    let membership = userIndexes.find((m) => m.networkId === index.id);
     if (membership === undefined) {
       membership = (await database.getIndexMembership(index.id, userId)) ?? undefined;
     }
@@ -232,7 +232,7 @@ export async function resolveChatContext(params: {
     userId,
     userName,
     userEmail,
-    indexId,
+    networkId,
     indexName,
     isOwner,
     user,

@@ -47,7 +47,7 @@ const mockScraper: Scraper = {
 function runOpportunityScenario(
   db: ReturnType<typeof createChatGraphMockDb>,
   message: string,
-  options: { indexId?: string } = {}
+  options: { networkId?: string } = {}
 ) {
   const factory = new ChatGraphFactory(db, mockEmbedder, mockScraper, mockChatSessionReader, createMockProtocolDeps());
   const graph = factory.createGraph();
@@ -55,23 +55,23 @@ function runOpportunityScenario(
     defineScenario({
       name: `opp-${message.slice(0, 22).replace(/\s/g, "-")}`,
       description: `Opportunity workflow: ${message}`,
-      fixtures: { userId: testUserId, indexId: options.indexId, message },
+      fixtures: { userId: testUserId, networkId: options.networkId, message },
       sut: {
         type: "graph",
         factory: () => graph,
         invoke: async (instance: unknown, resolvedInput: unknown) => {
-          const input = resolvedInput as { userId: string; indexId?: string; message: string };
+          const input = resolvedInput as { userId: string; networkId?: string; message: string };
           return await (
             instance as ReturnType<ChatGraphFactory["createGraph"]>
           ).invoke({
             userId: input.userId,
-            indexId: input.indexId,
+            networkId: input.networkId,
             messages: [new HumanMessage(input.message)],
           });
         },
         input: {
           userId: "@fixtures.userId",
-          indexId: "@fixtures.indexId",
+          networkId: "@fixtures.networkId",
           message: "@fixtures.message",
         },
       },
@@ -106,7 +106,7 @@ describe("Chat Graph opportunity workflows", () => {
         mockOpportunity({
           id: "opp-1",
           status: "latent",
-          indexId: testIndexId,
+          networkId: testIndexId,
           currentUserId: testUserId,
           otherPartyUserIds: ["user-alice"],
         }),
@@ -183,8 +183,8 @@ describe("Chat Graph opportunity workflows", () => {
           uid === testUserId
             ? [mockActiveIntent({ id: "i1", payload: "Looking for co-founder" })]
             : [],
-        intentsInIndexForMember: (uid, indexId) =>
-          indexId === testIndexId && uid === testUserId
+        intentsInIndexForMember: (uid, networkId) =>
+          networkId === testIndexId && uid === testUserId
             ? [mockActiveIntent({ id: "i1", payload: "Looking for co-founder" })]
             : [],
         opportunitiesForUser: () => [],
@@ -192,7 +192,7 @@ describe("Chat Graph opportunity workflows", () => {
       const result = await runOpportunityScenario(
         db,
         "Find me opportunities in this index.",
-        { indexId: testIndexId }
+        { networkId: testIndexId }
       );
       expectSmartest(result);
       const output = result.output as { responseText?: string };

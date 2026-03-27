@@ -71,9 +71,9 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
       name: "Test User",
       email: "test@example.com",
     }),
-    getIndex: async (indexId: string) => ({ id: indexId, title: "AI Builders" }),
-    getIndexMembership: async (indexId: string, _userId: string) => ({
-      indexId,
+    getIndex: async (networkId: string) => ({ id: networkId, title: "AI Builders" }),
+    getIndexMembership: async (networkId: string, _userId: string) => ({
+      networkId,
       indexTitle: "AI Builders",
       indexPrompt: "Community for AI builders",
       permissions: ["member"],
@@ -95,7 +95,7 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
     getUserIndexIds: async () => [testIndexId],
     getIndexMemberships: async () => [
       {
-        indexId: testIndexId,
+        networkId: testIndexId,
         indexTitle: "AI Builders",
         indexPrompt: "Community for AI builders",
         permissions: ["member"],
@@ -117,7 +117,7 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
         },
         actors: [],
         interpretation: { category: "connection", reasoning: "", confidence: 0 },
-        context: { indexId: testIndexId },
+        context: { networkId: testIndexId },
         confidence: "0",
         status: "latent",
         createdAt: new Date(),

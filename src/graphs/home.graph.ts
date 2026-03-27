@@ -39,7 +39,7 @@ type HomeGraphDb = HomeGraphDatabase;
 
 export type HomeGraphInvokeInput = {
   userId: string;
-  indexId?: string;
+  networkId?: string;
   limit?: number;
   noCache?: boolean;
 };
@@ -166,10 +166,10 @@ export class HomeGraphFactory {
           // (connection, connector-flow, expired) for selectByComposition to fill
           // its soft targets, even after visibility filtering and dedup.
           const fetchLimit = Math.min(150, Math.max(50, state.limit * 3));
-          const options: { limit?: number; indexId?: string } = {
+          const options: { limit?: number; networkId?: string } = {
             limit: fetchLimit,
           };
-          if (state.indexId) options.indexId = state.indexId;
+          if (state.networkId) options.networkId = state.networkId;
           // Do not pass conversationId: home view excludes draft opportunities (chat-only drafts).
           const raw = await this.database.getOpportunitiesForUser(state.userId, options);
           const visible = raw.filter((opp) =>

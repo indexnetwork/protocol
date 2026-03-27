@@ -46,7 +46,7 @@ const mockScraper: Scraper = {
 function runInvokeScenario(
   db: ReturnType<typeof createChatGraphMockDb>,
   message: string,
-  options: { indexId?: string; userId?: string } = {}
+  options: { networkId?: string; userId?: string } = {}
 ) {
   const factory = new ChatGraphFactory(db, mockEmbedder, mockScraper, mockChatSessionReader, createMockProtocolDeps());
   const graph = factory.createGraph();
@@ -55,23 +55,23 @@ function runInvokeScenario(
     defineScenario({
       name: `scope-${message.slice(0, 20).replace(/\s/g, "-")}`,
       description: `Scope workflow: ${message}`,
-      fixtures: { userId, indexId: options.indexId, message },
+      fixtures: { userId, networkId: options.networkId, message },
       sut: {
         type: "graph",
         factory: () => graph,
         invoke: async (instance: unknown, resolvedInput: unknown) => {
-          const input = resolvedInput as { userId: string; indexId?: string; message: string };
+          const input = resolvedInput as { userId: string; networkId?: string; message: string };
           return await (
             instance as ReturnType<ChatGraphFactory["createGraph"]>
           ).invoke({
             userId: input.userId,
-            indexId: input.indexId,
+            networkId: input.networkId,
             messages: [new HumanMessage(input.message)],
           });
         },
         input: {
           userId: "@fixtures.userId",
-          indexId: "@fixtures.indexId",
+          networkId: "@fixtures.networkId",
           message: "@fixtures.message",
         },
       },
@@ -124,7 +124,7 @@ describe("Chat Graph scope workflows", () => {
       const result = await runInvokeScenario(
         db,
         "What are my intents here?",
-        { indexId: testIndexId }
+        { networkId: testIndexId }
       );
       expectSmartest(result);
       const output = result.output as { responseText?: string };
@@ -141,13 +141,13 @@ describe("Chat Graph scope workflows", () => {
         getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "AI Network" } : null),
         isIndexMember: (id, uid) => id === testIndexId && uid === testUserId,
         isIndexOwner: () => false,
-        intentsInIndexForMember: (uid, indexId) =>
-          indexId === testIndexId && uid === testUserId ? intentsInIndex : [],
+        intentsInIndexForMember: (uid, networkId) =>
+          networkId === testIndexId && uid === testUserId ? intentsInIndex : [],
       });
       const result = await runInvokeScenario(
         db,
         "What are my intents in this index?",
-        { indexId: testIndexId }
+        { networkId: testIndexId }
       );
       expectSmartest(result);
       const output = result.output as { responseText?: string };
@@ -166,13 +166,13 @@ describe("Chat Graph scope workflows", () => {
         getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "Founders" } : null),
         isIndexMember: (id, uid) => id === testIndexId && uid === testUserId,
         isIndexOwner: (id, uid) => id === testIndexId && uid === testUserId,
-        indexIntentsForOwner: (indexId, _req) =>
-          indexId === testIndexId ? allIntents : [],
+        indexIntentsForOwner: (networkId, _req) =>
+          networkId === testIndexId ? allIntents : [],
       });
       const result = await runInvokeScenario(
         db,
         "Show all intents in this index. Everyone's intents.",
-        { indexId: testIndexId }
+        { networkId: testIndexId }
       );
       expectSmartest(result);
       const output = result.output as { responseText?: string };
@@ -191,7 +191,7 @@ describe("Chat Graph scope workflows", () => {
       const result = await runInvokeScenario(
         db,
         "What are my intents here?",
-        { indexId: testIndexId }
+        { networkId: testIndexId }
       );
       expectSmartest(result);
       const output = result.output as { responseText?: string; error?: string };

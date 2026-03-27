@@ -36,7 +36,7 @@ const sourceEntity: EvaluatorEntity = {
     { intentId: 'i-yanki-1', payload: 'Explore the intersection of linguistics and sound design in game development' },
     { intentId: 'i-yanki-2', payload: 'Find investors for a game project using Unreal Engine and TypeScript' },
   ],
-  indexId: 'idx-shared',
+  networkId: 'idx-shared',
 };
 
 const targetEntity: EvaluatorEntity = {
@@ -53,7 +53,7 @@ const targetEntity: EvaluatorEntity = {
     { intentId: 'i-sam-1', payload: 'Find a co-founder with ML/data engineering background to build LLM-based developer tools' },
     { intentId: 'i-sam-2', payload: 'Connect with Laravel and Vue developers interested in gaming projects' },
   ],
-  indexId: 'idx-shared',
+  networkId: 'idx-shared',
   ragScore: 100, // Explicit mention = perfect match
   matchedVia: 'explicit_mention',
 };

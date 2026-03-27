@@ -11,15 +11,15 @@ describe('presentOpportunity', () => {
     id: 'opp-1',
     detection: { source: 'manual', timestamp: new Date().toISOString() },
     actors: [
-      { indexId: 'idx-1', userId: 'alice', role: 'agent' },
-      { indexId: 'idx-1', userId: 'bob', role: 'patient' },
+      { networkId: 'idx-1', userId: 'alice', role: 'agent' },
+      { networkId: 'idx-1', userId: 'bob', role: 'patient' },
     ],
     interpretation: {
       category: 'collaboration',
       reasoning: 'The source user (Alice) has deep React expertise while the candidate (Bob) is building a frontend-heavy product, making this a strong technical collaboration opportunity.',
       confidence: 0.85,
     },
-    context: { indexId: 'idx-1' },
+    context: { networkId: 'idx-1' },
     confidence: '0.85',
     status: 'pending',
     createdAt: new Date(),

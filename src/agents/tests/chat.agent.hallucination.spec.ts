@@ -45,7 +45,7 @@ mock.module("../../tools/tool.helpers", () => ({
     userId: ctx.userId ?? "test-user",
     userName: "Test User",
     userEmail: "test@example.com",
-    indexId: ctx.indexId,
+    networkId: ctx.networkId,
     indexName: undefined,
     sessionId: ctx.sessionId ?? "test-session",
     isOwner: false,

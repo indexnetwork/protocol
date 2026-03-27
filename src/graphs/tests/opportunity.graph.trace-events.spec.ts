@@ -63,9 +63,9 @@ function createTraceMockGraph() {
     opportunityExistsBetweenActors: () => Promise.resolve(false),
     getOpportunityBetweenActors: () => Promise.resolve(null),
     findOverlappingOpportunities: () => Promise.resolve([]),
-    getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'indexes'>[]),
+    getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
     getIndexMemberships: async () => [
-      { indexId: 'idx-1', indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
+      { networkId: 'idx-1', indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
     ],
     getActiveIntents: () =>
       Promise.resolve([
@@ -100,7 +100,7 @@ function createTraceMockGraph() {
           userId: 'b0000000-0000-4000-8000-000000000002',
           score: 0.9,
           matchedVia: 'mirror' as const,
-          indexId: 'idx-1',
+          networkId: 'idx-1',
         },
       ]),
     searchWithProfileEmbedding: () => Promise.resolve([]),

@@ -37,7 +37,7 @@ function makeCtx(
     userProfile: { bio: "Builder", skills: ["typescript"], interests: ["AI"] },
     userIndexes: [
       {
-        indexId: "idx-personal",
+        networkId: "idx-personal",
         indexTitle: "My Network",
         indexPrompt: null,
         permissions: ["owner"],
@@ -47,7 +47,7 @@ function makeCtx(
         joinedAt: "2024-01-01T00:00:00Z",
       },
       {
-        indexId: "idx-community",
+        networkId: "idx-community",
         indexTitle: "AI Builders",
         indexPrompt: "AI enthusiasts",
         permissions: ["member"],

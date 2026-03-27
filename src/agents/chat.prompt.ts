@@ -21,11 +21,11 @@ export const ITERATION_NUDGE = `[System Note: You've made several tool calls. Pl
  * Corresponds to the opening of the system prompt through the Session section.
  */
 function buildCoreHead(ctx: ResolvedToolContext): string {
-  const roleLabel = !ctx.indexId
+  const roleLabel = !ctx.networkId
     ? "general"
     : (ctx.scopedMembershipRole ?? (ctx.isOwner ? "owner" : "member"));
-  const indexScope = ctx.indexId
-    ? `index "${ctx.indexName ?? "Unknown"}" (id: ${ctx.indexId}), role: ${roleLabel}`
+  const indexScope = ctx.networkId
+    ? `index "${ctx.indexName ?? "Unknown"}" (id: ${ctx.networkId}), role: ${roleLabel}`
     : "no index scope (general chat)";
 
   return `You are Index. You help the right people find the user and help the user find them.
@@ -117,13 +117,25 @@ ${ctx.hasName ? `   - Call \`create_user_profile()\` with no arguments to look t
    - If already connected (tool returns import stats immediately on the first call — user never went through the auth button): **skip to step 6 immediately. Do NOT write any text about Gmail, contacts, or the import. Your next sentence must be the step 6 intro.**
    - If the user just completed OAuth (you called \`import_gmail_contacts()\` a second time after auth): acknowledge the import with a brief summary, then proceed to step 6
 
-6. **Capture intent**
+6. **Discover communities**
+   - Call \`read_indexes()\` to get available public indexes (returned in \`publicIndexes\` array)
+   - **Do NOT list communities in text.** The UI renders an interactive card panel automatically.
+   - First write the intro text: "Here are some communities you might find relevant — pick any you'd like to join, or skip and we'll continue."
+   - Then immediately output this block (do not include any JSON data — just the empty object):
+     \`\`\`networks_panel
+     {}
+     \`\`\`
+   - When presenting, avoid being vocal about 'indexes' unless the user asks.
+   - For each index the user wants to join → call \`create_index_membership(networkId=X)\` (omit userId to self-join)
+   - After handling the user's response (joins processed, question answered, or user skips) → ALWAYS proceed to step 7 (intent capture). Do NOT end the conversation at communities.
+
+7. **Capture intent**
    - Ask about their active intent: "Now tell me — what are you open to right now? Building something together, thinking through a problem, exploring partnerships, hiring, or raising?"
    - When they respond → call \`create_intent(description="...")\` — this returns a proposal card
    - Include the \`\`\`intent_proposal block verbatim and explain: "I've drafted this as a signal for you. Approving it will let me keep an eye out for relevant people in the background."
-   - IMMEDIATELY proceed to step 7 in the SAME response — do NOT stop and wait for the user to approve the proposal
+   - IMMEDIATELY proceed to step 8 in the SAME response — do NOT stop and wait for the user to approve the proposal
 
-7. **Wrap up** (must happen in the same response as step 6)
+8. **Wrap up** (must happen in the same response as step 7)
    - Call \`create_opportunities(searchQuery="[user's intent description]")\` to discover initial matches based on their intent
    - If opportunities found: present them naturally, e.g. "I already found some relevant people based on what you're looking for:" followed by the opportunity cards
    - If no opportunities found: "No matches yet, but I'll keep looking in the background."
@@ -135,7 +147,7 @@ ${ctx.hasName ? `   - Call \`create_user_profile()\` with no arguments to look t
 When the user says "yes", "looks good", "that's right", "correct", or any affirmation after you show them their profile:
 1. Call \`create_user_profile(confirm=true)\` to save the profile
 2. Proceed to the Gmail connect step (step 5)
-3. Do NOT call \`complete_onboarding()\` yet — it must only be called at step 7 (wrap up), after intent capture
+3. Do NOT call \`complete_onboarding()\` yet — it must only be called at step 8 (wrap up), after intent capture
 
 ### Onboarding Rules
 - If user already introduced themselves, do NOT redundantly ask for name confirmation — acknowledge and proceed
@@ -157,12 +169,12 @@ function buildCoreBody(ctx: ResolvedToolContext): string {
 
   // When scoped to an index, only include that index in memberships context
   // When not scoped (general chat), include all indexes
-  const relevantIndexes = ctx.indexId
-    ? ctx.userIndexes.filter((m) => m.indexId === ctx.indexId)
+  const relevantIndexes = ctx.networkId
+    ? ctx.userIndexes.filter((m) => m.networkId === ctx.networkId)
     : ctx.userIndexes;
   const indexesContext = JSON.stringify(
     relevantIndexes.map((membership) => ({
-      indexId: membership.indexId,
+      networkId: membership.networkId,
       indexTitle: membership.indexTitle,
       indexPrompt: membership.indexPrompt,
       permissions: membership.permissions,
@@ -196,7 +208,7 @@ ${userContext}
 ${profileContext}
 \`\`\`
 
-### Current User Index Memberships (preloaded context${ctx.indexId ? " — scoped to current index" : ""})
+### Current User Index Memberships (preloaded context${ctx.networkId ? " — scoped to current index" : ""})
 \`\`\`json
 ${indexesContext}
 \`\`\`
@@ -244,24 +256,24 @@ All tools are simple read/write operations. No hidden logic.
 
 | Tool | Params | What it does |
 |------|--------|-------------|
-| **read_user_profiles** | userId?, indexId?, query? | Read profile(s). No args = self. With \`query\`: find members by name across user's indexes |
+| **read_user_profiles** | userId?, networkId?, query? | Read profile(s). No args = self. With \`query\`: find members by name across user's indexes |
 | **create_user_profile** | linkedinUrl?, githubUrl?, etc. | Generate profile from URLs/data |
 | **update_user_profile** | profileId?, action, details | Patch profile (omit profileId for current user) |
 | **complete_onboarding** | (none) | Mark onboarding complete (call once at step 8 wrap-up, after intent capture) |
 | **read_indexes** | showAll? | List user's indexes |
 | **create_index** | title, prompt?, joinPolicy? | Create community |
-| **update_index** | indexId?, settings | Update index (owner only) |
-| **delete_index** | indexId | Delete index (owner, sole member) |
-| **read_index_memberships** | indexId?, userId? | List members or list user's indexes |
-| **create_index_membership** | userId, indexId | Add user to index |
-| **read_intents** | indexId?, userId?, limit?, page? | Read intents by index/user |
-| **create_intent** | description, indexId? | Proposes an intent — returns an interactive card (intent_proposal block) for the user to approve or skip. Does NOT persist until the user clicks "Create Intent". |
+| **update_index** | networkId?, settings | Update index (owner only) |
+| **delete_index** | networkId | Delete index (owner, sole member) |
+| **read_index_memberships** | networkId?, userId? | List members or list user's indexes |
+| **create_index_membership** | userId, networkId | Add user to index |
+| **read_intents** | networkId?, userId?, limit?, page? | Read intents by index/user |
+| **create_intent** | description, networkId? | Proposes an intent — returns an interactive card (intent_proposal block) for the user to approve or skip. Does NOT persist until the user clicks "Create Intent". |
 | **update_intent** | intentId, newDescription | Update intent text |
 | **delete_intent** | intentId | Archive intent |
-| **create_intent_index** | intentId, indexId | Link intent to index |
-| **read_intent_indexes** | intentId?, indexId?, userId? | Read intent↔index links |
-| **delete_intent_index** | intentId, indexId | Unlink intent from index |
-| **create_opportunities** | searchQuery?, indexId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
+| **create_intent_index** | intentId, networkId | Link intent to index |
+| **read_intent_indexes** | intentId?, networkId?, userId? | Read intent↔index links |
+| **delete_intent_index** | intentId, networkId | Unlink intent from index |
+| **create_opportunities** | searchQuery?, networkId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
 | **update_opportunity** | opportunityId, status | Change status: pending (send draft or latent), accepted, rejected, expired |
 | **scrape_url** | url, objective? | Extract text from web page |
 | **read_docs** | topic? | Protocol documentation |
@@ -274,15 +286,15 @@ All tools are simple read/write operations. No hidden logic.
 }
 
 /**
- * Index scope block. Returns scoped variant when ctx.indexId is set,
+ * Index scope block. Returns scoped variant when ctx.networkId is set,
  * scopeless variant otherwise. Includes owner line.
  */
 function buildScoping(ctx: ResolvedToolContext): string {
   return `
 ### Index Scope
 ${
-  ctx.indexId
-    ? `- This chat is scoped to index "${ctx.indexName}" (id: ${ctx.indexId}). Default indexId for read_intents and create_intent is ${ctx.indexId}.
+  ctx.networkId
+    ? `- This chat is scoped to index "${ctx.indexName}" (id: ${ctx.networkId}). Default networkId for read_intents and create_intent is ${ctx.networkId}.
 - **Scope enforcement**: read_intents returns only intents in this community. create_intent still checks **all** of the user's intents across communities (to avoid duplicates and update similar ones). Do not infer "no similar signals" or "fresh slate" from an empty read_intents result here.
 - **Communicating scope**: When tool results include \`_scopeRestriction\`, inform the user that results are limited to this community and they may have other memberships not shown. Never imply the scoped results represent all their data.
 - To query other communities, the user must start a new unscoped chat or switch to a different community.

@@ -4,7 +4,7 @@
  *
  * Covers:
  * - §1.1 Basic flow: greeting, profile/intent queries, no raw JSON
- * - §1.4 Index-scoped chat (indexId in invoke)
+ * - §1.4 Index-scoped chat (networkId in invoke)
  * - §2.1 Iterations: single round, one-tool, multi-tool summary
  * - §2.2 No raw JSON in response
  * - §2.3 Confirmation flow for destructive actions
@@ -52,9 +52,9 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
     getActiveIntents: noopArray,
     getIntentsInIndexForMember: async () => [],
     getUser: async (uid: string) => ({ id: uid, name: "Test User", email: "test@example.com" }),
-    getIndex: async (indexId: string) => ({ id: indexId, title: "Test Index" }),
-    getIndexMembership: async (indexId: string, _userId: string) =>
-      ({ indexId, indexTitle: "Test Index", indexPrompt: null, permissions: [] }),
+    getIndex: async (networkId: string) => ({ id: networkId, title: "Test Index" }),
+    getIndexMembership: async (networkId: string, _userId: string) =>
+      ({ networkId, indexTitle: "Test Index", indexPrompt: null, permissions: [] }),
     getIndexWithPermissions: async () => null,
     saveProfile: noop,
     createIntent: async (data: CreateIntentData) => ({
@@ -81,7 +81,7 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
         detection: { source: "opportunity_graph" as const, timestamp: new Date().toISOString() },
         actors: [],
         interpretation: { category: "connection", reasoning: "", confidence: 0 },
-        context: { indexId: "" },
+        context: { networkId: "" },
         confidence: "0",
         status: "latent",
         createdAt: new Date(),
@@ -477,23 +477,23 @@ describe("Chat Graph invoke (Smartest)", () => {
             "Index-scoped chat: user asks for intents in this index; response must be coherent for index context (e.g. list or none) and must not contain raw JSON.",
           fixtures: {
             userId: testUserId,
-            indexId: testIndexId,
+            networkId: testIndexId,
             message: "What are my intents here?",
           },
           sut: {
             type: "graph",
             factory: () => compiledGraph,
             invoke: async (instance: unknown, resolvedInput: unknown) => {
-              const input = resolvedInput as { userId: string; indexId: string; message: string };
+              const input = resolvedInput as { userId: string; networkId: string; message: string };
               return await (instance as ReturnType<ChatGraphFactory["createGraph"]>).invoke({
                 userId: input.userId,
-                indexId: input.indexId,
+                networkId: input.networkId,
                 messages: [new HumanMessage(input.message)],
               });
             },
             input: {
               userId: "@fixtures.userId",
-              indexId: "@fixtures.indexId",
+              networkId: "@fixtures.networkId",
               message: "@fixtures.message",
             },
           },

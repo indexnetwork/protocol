@@ -72,8 +72,8 @@ describe("opportunity.discover", () => {
             {
               id: "opp-1",
               actors: [
-                { indexId: "idx-1", userId: "u1", role: "patient" },
-                { indexId: "idx-1", userId: candidateId, role: "agent" },
+                { networkId: "idx-1", userId: "u1", role: "patient" },
+                { networkId: "idx-1", userId: candidateId, role: "agent" },
               ],
               interpretation: {
                 reasoning: "Strong match for mentorship.",
@@ -203,8 +203,8 @@ describe("opportunity.discover", () => {
             {
               id: "opp-fallback",
               actors: [
-                { indexId: "idx-1", userId: "u1", role: "patient" },
-                { indexId: "idx-1", userId: candidateId, role: "agent" },
+                { networkId: "idx-1", userId: "u1", role: "patient" },
+                { networkId: "idx-1", userId: candidateId, role: "agent" },
               ],
               interpretation: {
                 reasoning: "Yuki Tanaka is a visual artist looking for clients.",
@@ -274,9 +274,9 @@ describe("opportunity.discover", () => {
             {
               id: "opp-intro-1",
               actors: [
-                { indexId: "idx-1", userId: targetId, role: "patient" },
-                { indexId: "idx-1", userId: candidateId, role: "agent" },
-                { indexId: "idx-1", userId: introducerId, role: "introducer" },
+                { networkId: "idx-1", userId: targetId, role: "patient" },
+                { networkId: "idx-1", userId: candidateId, role: "agent" },
+                { networkId: "idx-1", userId: introducerId, role: "introducer" },
               ],
               interpretation: {
                 reasoning: "Great match for collaboration.",
@@ -339,9 +339,9 @@ describe("opportunity.discover", () => {
             {
               id: "opp-third-party",
               actors: [
-                { indexId: "idx-1", userId: viewerId, role: "patient" },
-                { indexId: "idx-1", userId: candidateId, role: "agent" },
-                { indexId: "idx-1", userId: introducerThirdPartyId, role: "introducer" },
+                { networkId: "idx-1", userId: viewerId, role: "patient" },
+                { networkId: "idx-1", userId: candidateId, role: "agent" },
+                { networkId: "idx-1", userId: introducerThirdPartyId, role: "introducer" },
               ],
               interpretation: {
                 reasoning: "Recommended by a mutual friend.",
@@ -402,8 +402,8 @@ describe("opportunity.discover", () => {
             {
               id: "opp-standard",
               actors: [
-                { indexId: "idx-1", userId: "u1", role: "patient" },
-                { indexId: "idx-1", userId: candidateId, role: "agent" },
+                { networkId: "idx-1", userId: "u1", role: "patient" },
+                { networkId: "idx-1", userId: candidateId, role: "agent" },
               ],
               interpretation: {
                 reasoning: "Good fit for mentoring.",
@@ -455,8 +455,8 @@ describe("opportunity.discover", () => {
             {
               id: "opp-deleted",
               actors: [
-                { indexId: "idx-1", userId: "u1", role: "patient" },
-                { indexId: "idx-1", userId: deletedUserId, role: "agent" },
+                { networkId: "idx-1", userId: "u1", role: "patient" },
+                { networkId: "idx-1", userId: deletedUserId, role: "agent" },
               ],
               interpretation: { reasoning: "Match with deleted user.", confidence: 0.9 },
               detection: { source: "opportunity_graph", createdBy: "agent", timestamp: new Date().toISOString() },
@@ -465,8 +465,8 @@ describe("opportunity.discover", () => {
             {
               id: "opp-active",
               actors: [
-                { indexId: "idx-1", userId: "u1", role: "patient" },
-                { indexId: "idx-1", userId: activeUserId, role: "agent" },
+                { networkId: "idx-1", userId: "u1", role: "patient" },
+                { networkId: "idx-1", userId: activeUserId, role: "agent" },
               ],
               interpretation: { reasoning: "Match with active user.", confidence: 0.85 },
               detection: { source: "opportunity_graph", createdBy: "agent", timestamp: new Date().toISOString() },
@@ -520,8 +520,8 @@ describe("opportunity.discover", () => {
             {
               id: "opp-ghost",
               actors: [
-                { indexId: "idx-1", userId: "u1", role: "patient" },
-                { indexId: "idx-1", userId: ghostId, role: "agent" },
+                { networkId: "idx-1", userId: "u1", role: "patient" },
+                { networkId: "idx-1", userId: ghostId, role: "agent" },
               ],
               interpretation: { reasoning: "Great match.", confidence: 0.88 },
               detection: { source: "opportunity_graph", createdBy: "agent", timestamp: new Date().toISOString() },
@@ -564,8 +564,8 @@ describe("opportunity.discover", () => {
             {
               id: "opp-onboarded",
               actors: [
-                { indexId: "idx-1", userId: "u1", role: "patient" },
-                { indexId: "idx-1", userId: onboardedId, role: "agent" },
+                { networkId: "idx-1", userId: "u1", role: "patient" },
+                { networkId: "idx-1", userId: onboardedId, role: "agent" },
               ],
               interpretation: { reasoning: "Good match.", confidence: 0.82 },
               detection: { source: "opportunity_graph", createdBy: "agent", timestamp: new Date().toISOString() },

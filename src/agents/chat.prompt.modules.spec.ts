@@ -106,7 +106,7 @@ describe("extractRecentToolCalls", () => {
 });
 
 // Minimal mock for ResolvedToolContext — only fields needed by resolution logic
-function mockCtx(overrides: Partial<{ indexId: string; isOwner: boolean; isOnboarding: boolean }> = {}): IterationContext["ctx"] {
+function mockCtx(overrides: Partial<{ networkId: string; isOwner: boolean; isOnboarding: boolean }> = {}): IterationContext["ctx"] {
   return {
     userId: "test-user",
     userEmail: "test@example.com",
@@ -116,7 +116,7 @@ function mockCtx(overrides: Partial<{ indexId: string; isOwner: boolean; isOnboa
     userIndexes: [],
     scopedIndex: null,
     scopedMembershipRole: null,
-    indexId: overrides.indexId ?? null,
+    networkId: overrides.networkId ?? null,
     indexName: null,
     isOwner: overrides.isOwner ?? false,
     isOnboarding: overrides.isOnboarding ?? false,
@@ -338,7 +338,7 @@ function makeCtx(overrides: Partial<ResolvedToolContext> = {}): ResolvedToolCont
     } as unknown as ResolvedToolContext["userProfile"],
     userIndexes: [
       {
-        indexId: "idx-personal",
+        networkId: "idx-personal",
         indexTitle: "My Network",
         indexPrompt: null,
         permissions: ["owner"],
@@ -348,7 +348,7 @@ function makeCtx(overrides: Partial<ResolvedToolContext> = {}): ResolvedToolCont
         joinedAt: "2024-01-01T00:00:00Z",
       },
       {
-        indexId: "idx-community",
+        networkId: "idx-community",
         indexTitle: "AI Builders",
         indexPrompt: "AI enthusiasts",
         permissions: ["member"],
@@ -408,7 +408,7 @@ describe("buildSystemContent snapshot identity", () => {
 
   test("scoped chat (index scope, owner) produces stable output", () => {
     const ctx = makeCtx({
-      indexId: "idx-community",
+      networkId: "idx-community",
       indexName: "AI Builders",
       isOwner: true,
       scopedIndex: { id: "idx-community", title: "AI Builders", prompt: "AI enthusiasts" },

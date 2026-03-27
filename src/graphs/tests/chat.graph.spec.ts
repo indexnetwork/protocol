@@ -45,7 +45,7 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
     archiveIntent: async () => ({ success: true }),
     getUserIndexIds: noopArray,
     getIndexMemberships: noopArray,
-    getIndex: async (indexId: string) => ({ id: indexId, title: "Test Index" }),
+    getIndex: async (networkId: string) => ({ id: networkId, title: "Test Index" }),
     getIntentForIndexing: noopNull,
     getIndexMemberContext: noopNull,
     getOpportunitiesForUser: noopArray,
