@@ -783,7 +783,7 @@ export interface Database {
    * @returns Object containing array of public indexes with owner info
    */
   getPublicIndexesNotJoined(userId: string): Promise<{
-    indexes: Array<{
+    networks: Array<{
       id: string;
       title: string;
       prompt: string | null;
@@ -1388,7 +1388,7 @@ export interface UserDatabase {
 
   /** Get public indexes (joinPolicy 'anyone') that the user has not joined. */
   getPublicIndexesNotJoined(): Promise<{
-    indexes: Array<{
+    networks: Array<{
       id: string;
       title: string;
       prompt: string | null;

@@ -346,30 +346,32 @@ export class OpportunityGraphFactory {
               const scopeAgentTimings: DebugMetaAgent[] = [];
               const scorableIndexes = targetIndexes.filter(ti => ti.title !== 'Unknown');
               const scoringPromises = scorableIndexes.map(async (ti) => {
+                const ctx = await this.database.getIndexMemberContext(ti.networkId, state.userId);
+                if (!ctx?.indexPrompt?.trim() && !ctx?.memberPrompt?.trim()) {
+                  return { networkId: ti.networkId, score: 1.0 };
+                }
+                const _indexerStart = Date.now();
+                const traceEmitter = requestContext.getStore()?.traceEmitter;
+                traceEmitter?.({ type: "agent_start", name: "intent-networker" });
+                let result: Awaited<ReturnType<typeof indexer.invoke>> | null = null;
                 try {
-                  const ctx = await this.database.getIndexMemberContext(ti.networkId, state.userId);
-                  if (!ctx?.indexPrompt?.trim() && !ctx?.memberPrompt?.trim()) {
-                    return { networkId: ti.networkId, score: 1.0 };
-                  }
-                  const _indexerStart = Date.now();
-                  const traceEmitter = requestContext.getStore()?.traceEmitter;
-                  traceEmitter?.({ type: "agent_start", name: "intent-networker" });
-                  const result = await indexer.invoke(
+                  result = await indexer.invoke(
                     state.searchQuery!,
                     ctx?.indexPrompt ?? null,
                     ctx?.memberPrompt ?? null,
                   );
+                } catch {
+                  return { networkId: ti.networkId, score: 1.0 };
+                } finally {
                   const _indexerDuration = Date.now() - _indexerStart;
                   traceEmitter?.({ type: "agent_end", name: "intent-networker", durationMs: _indexerDuration, summary: `Scored index ${ti.networkId}` });
                   scopeAgentTimings.push({ name: 'intent.networker', durationMs: _indexerDuration });
-                  if (!result) return { networkId: ti.networkId, score: 1.0 };
-                  const score = ctx?.indexPrompt && ctx?.memberPrompt
-                    ? result.indexScore * 0.6 + result.memberScore * 0.4
-                    : ctx?.indexPrompt ? result.indexScore : result.memberScore;
-                  return { networkId: ti.networkId, score };
-                } catch {
-                  return { networkId: ti.networkId, score: 1.0 };
                 }
+                if (!result) return { networkId: ti.networkId, score: 1.0 };
+                const score = ctx?.indexPrompt && ctx?.memberPrompt
+                  ? result.indexScore * 0.6 + result.memberScore * 0.4
+                  : ctx?.indexPrompt ? result.indexScore : result.memberScore;
+                return { networkId: ti.networkId, score };
               });
               const results = await Promise.all(scoringPromises);
               for (const { networkId, score } of results) {

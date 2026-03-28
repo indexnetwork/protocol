@@ -978,7 +978,8 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         if (!opportunity) {
           return error("Opportunity not found.");
         }
-        const opportunityIndexId = opportunity.context?.networkId;
+        const opportunityIndexId = opportunity.context?.networkId
+          ?? opportunity.actors?.find((a) => a.networkId === context.networkId)?.networkId;
         if (!opportunityIndexId || opportunityIndexId !== context.networkId) {
           return error("Opportunity not found.");
         }

@@ -10,6 +10,7 @@ import { LensInferrer } from "../agents/lens.inferrer.js";
 import { NetworkGraphFactory } from "../graphs/network.graph.js";
 import { NetworkMembershipGraphFactory } from "../graphs/network_membership.graph.js";
 import { IntentNetworkGraphFactory } from "../graphs/intent_network.graph.js";
+import { IntentNetworker } from "../agents/intent.networker.js";
 import { NegotiationGraphFactory } from "../graphs/negotiation.graph.js";
 import { NegotiationProposer } from "../agents/negotiation.proposer.js";
 import { NegotiationResponder } from "../agents/negotiation.responder.js";
@@ -129,7 +130,7 @@ export async function createChatTools(
   ).createGraph();
   const networkGraph = new NetworkGraphFactory(database).createGraph();
   const networkMembershipGraph = new NetworkMembershipGraphFactory(database).createGraph();
-  const intentNetworkGraph = new IntentNetworkGraphFactory(database).createGraph();
+  const intentNetworkGraph = new IntentNetworkGraphFactory(database, new IntentNetworker()).createGraph();
 
   // ─── Create context-bound databases ────────────────────────────────────────
   // Get the user's network scope (all networks they have access to)

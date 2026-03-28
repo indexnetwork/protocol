@@ -208,7 +208,7 @@ function createMockDatabase(
     archiveIntent: async () => ({ success: true }),
     getUserIndexIds: noopArray,
     getNetworkMemberships: noopArray,
-    getPublicIndexesNotJoined: async () => ({ indexes: [] }),
+    getPublicIndexesNotJoined: async () => ({ networks: [] }),
     getNetworkMembership: noopNull,
     getIndexWithPermissions: async () => null,
     getIntentForIndexing: noopNull,

@@ -41,10 +41,13 @@ const QUALIFICATION_THRESHOLD = 0.7;
  * The evaluate-based assignment flow is migrated from the old Index Graph.
  */
 export class IntentNetworkGraphFactory {
-  constructor(private database: IntentNetworkGraphDatabase) {}
+  constructor(
+    private database: IntentNetworkGraphDatabase,
+    private intentNetworker: IntentNetworker,
+  ) {}
 
   public createGraph() {
-    const indexer = new IntentNetworker();
+    const indexer = this.intentNetworker;
 
     // --- NODE DEFINITIONS ---
 

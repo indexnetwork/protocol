@@ -76,7 +76,7 @@ export class NetworkGraphFactory {
           }
 
           // Include public indexes available to join
-          const publicIndexes = publicIndexesResult.indexes.map((idx) => ({
+          const publicIndexes = publicIndexesResult.networks.map((idx) => ({
             networkId: idx.id,
             title: idx.title,
             description: idx.prompt,
