@@ -65,9 +65,12 @@ export class IntentNetworkGraphFactory {
           if (intent.userId !== state.userId) {
             return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "You can only add your own intents to an index." } };
           }
-          const isMember = await this.database.isNetworkMember(networkId, state.userId);
-          if (!isMember) {
-            return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "You are not a member of that index." } };
+          const [isMember, isOwner] = await Promise.all([
+            this.database.isNetworkMember(networkId, state.userId),
+            this.database.isIndexOwner(networkId, state.userId),
+          ]);
+          if (!isMember && !isOwner) {
+            return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "You are not a member of that network." } };
           }
 
           // Check if already assigned
@@ -260,11 +263,14 @@ export class IntentNetworkGraphFactory {
             };
           }
 
-          const isMember = await this.database.isNetworkMember(networkId, state.userId);
-          if (!isMember) {
+          const [isMember, isOwner] = await Promise.all([
+            this.database.isNetworkMember(networkId, state.userId),
+            this.database.isIndexOwner(networkId, state.userId),
+          ]);
+          if (!isMember && !isOwner) {
             return {
               readResult: { links: [], count: 0, mode: "intents_in_index" },
-              error: "Index not found or you are not a member.",
+              error: "Network not found or you are not a member.",
             };
           }
 
@@ -331,9 +337,12 @@ export class IntentNetworkGraphFactory {
           if (intent.userId !== state.userId) {
             return { mutationResult: { success: false, error: "You can only remove your own intents from an index." } };
           }
-          const isMember = await this.database.isNetworkMember(networkId, state.userId);
-          if (!isMember) {
-            return { mutationResult: { success: false, error: "You are not a member of that index." } };
+          const [isMember, isOwner] = await Promise.all([
+            this.database.isNetworkMember(networkId, state.userId),
+            this.database.isIndexOwner(networkId, state.userId),
+          ]);
+          if (!isMember && !isOwner) {
+            return { mutationResult: { success: false, error: "You are not a member of that network." } };
           }
 
           const assigned = await this.database.isIntentAssignedToIndex(intentId, networkId);

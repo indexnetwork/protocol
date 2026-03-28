@@ -81,6 +81,7 @@ function createTraceMockGraph() {
     getIndexIdsForIntent: () => Promise.resolve(['idx-1']),
     getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
     isNetworkMember: () => Promise.resolve(true),
+    isIndexOwner: () => Promise.resolve(false),
     getOpportunity: () => Promise.resolve(null),
     getOpportunitiesForUser: () => Promise.resolve([]),
     updateOpportunityStatus: () => Promise.resolve(null),

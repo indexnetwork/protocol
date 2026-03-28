@@ -290,9 +290,11 @@ export class OpportunityGraphFactory {
           let targetIndexIds: Id<'networks'>[];
 
           if (state.networkId) {
-            // Validate user is member of requested index
-            if (!state.userNetworks.includes(state.networkId)) {
-              logger.warn('[Graph:Scope] User not member of requested index', {
+            // Validate user is member or owner of requested network
+            const isInScope = state.userNetworks.includes(state.networkId);
+            const isOwner = !isInScope && await this.database.isIndexOwner(state.networkId, state.userId);
+            if (!isInScope && !isOwner) {
+              logger.warn('[Graph:Scope] User not member of requested network', {
                 networkId: state.networkId,
               });
               return {
@@ -2404,8 +2406,11 @@ export class OpportunityGraphFactory {
         try {
           let indexIdFilter: string | undefined;
           if (state.networkId) {
-            const isMember = await this.database.isNetworkMember(state.networkId, state.userId);
-            if (!isMember) {
+            const [isMember, isOwner] = await Promise.all([
+              this.database.isNetworkMember(state.networkId, state.userId),
+              this.database.isIndexOwner(state.networkId, state.userId),
+            ]);
+            if (!isMember && !isOwner) {
               return {
                 readResult: { count: 0, opportunities: [], message: 'Network not found or you are not a member.' },
               };

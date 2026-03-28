@@ -1706,6 +1706,7 @@ export type OpportunityGraphDatabase = Pick<
   | 'getOpportunitiesForUser'
   | 'updateOpportunityStatus'
   | 'isNetworkMember'
+  | 'isIndexOwner'
   | 'getUser'
   // Load candidate intent payload/summary for evaluator
   | 'getIntent'
@@ -1853,6 +1854,7 @@ export type IntentNetworkGraphDatabase = Pick<
   | 'unassignIntentFromIndex'
   | 'getIntent'
   | 'isNetworkMember'
+  | 'isIndexOwner'
   | 'getIndexIdsForIntent'
   | 'getIndexIntentsForMember'
   | 'getIntentsInIndexForMember'
