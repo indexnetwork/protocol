@@ -1848,16 +1848,25 @@ export class OpportunityGraphFactory {
             };
           }
 
-          const introducerIsMember = await this.database.isNetworkMember(primaryNetworkId, state.userId);
-          if (!introducerIsMember) {
+          const [introducerIsMember, introducerIsOwner] = await Promise.all([
+            this.database.isNetworkMember(primaryNetworkId, state.userId),
+            this.database.isIndexOwner(primaryNetworkId, state.userId),
+          ]);
+          if (!introducerIsMember && !introducerIsOwner) {
             return {
               error: 'One or more users are not members of the specified community. You can only introduce members who share a network.',
             };
           }
-          const partyMemberships = await Promise.all(
-            partyUserIds.map((userId) => this.database.isNetworkMember(primaryNetworkId, userId))
+          const partyInScope = await Promise.all(
+            partyUserIds.map(async (userId) => {
+              const [isMember, isOwner] = await Promise.all([
+                this.database.isNetworkMember(primaryNetworkId, userId),
+                this.database.isIndexOwner(primaryNetworkId, userId),
+              ]);
+              return isMember || isOwner;
+            }),
           );
-          const allPartyMembers = partyMemberships.every(Boolean);
+          const allPartyMembers = partyInScope.every(Boolean);
           if (!allPartyMembers) {
             return {
               error: 'One or more users are not members of the specified community. You can only introduce members who share a network.',
