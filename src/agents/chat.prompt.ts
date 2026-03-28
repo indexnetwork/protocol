@@ -170,12 +170,12 @@ function buildCoreBody(ctx: ResolvedToolContext): string {
   // When scoped to an index, only include that index in memberships context
   // When not scoped (general chat), include all indexes
   const relevantIndexes = ctx.networkId
-    ? ctx.userIndexes.filter((m) => m.networkId === ctx.networkId)
-    : ctx.userIndexes;
+    ? ctx.userNetworks.filter((m) => m.networkId === ctx.networkId)
+    : ctx.userNetworks;
   const indexesContext = JSON.stringify(
     relevantIndexes.map((membership) => ({
       networkId: membership.networkId,
-      indexTitle: membership.indexTitle,
+      networkTitle: membership.networkTitle,
       indexPrompt: membership.indexPrompt,
       permissions: membership.permissions,
       memberPrompt: membership.memberPrompt,
@@ -247,7 +247,7 @@ Every tool is a single-purpose CRUD operation — read, create, update, delete. 
 - **Index** → community with title, prompt (purpose), join policy. Has many **Members**
 - **Membership** → User ↔ Index junction. Tracks permissions
 - **Intent** → what a user is looking for (want/need/signal). Description, summary, embedding
-- **IntentIndex** → Intent ↔ Index junction (many-to-many)
+- **IntentNetwork** → Intent ↔ Network junction (many-to-many)
 - **Opportunity** → discovered connection between users. Roles, status, reasoning
 
 ## Tools Reference

@@ -113,7 +113,7 @@ function mockCtx(overrides: Partial<{ networkId: string; isOwner: boolean; isOnb
     userName: "Test User",
     user: {},
     userProfile: {},
-    userIndexes: [],
+    userNetworks: [],
     scopedIndex: null,
     scopedMembershipRole: null,
     networkId: overrides.networkId ?? null,
@@ -336,10 +336,10 @@ function makeCtx(overrides: Partial<ResolvedToolContext> = {}): ResolvedToolCont
       skills: ["typescript"],
       interests: ["AI"],
     } as unknown as ResolvedToolContext["userProfile"],
-    userIndexes: [
+    userNetworks: [
       {
         networkId: "idx-personal",
-        indexTitle: "My Network",
+        networkTitle: "My Network",
         indexPrompt: null,
         permissions: ["owner"],
         memberPrompt: null,
@@ -349,7 +349,7 @@ function makeCtx(overrides: Partial<ResolvedToolContext> = {}): ResolvedToolCont
       },
       {
         networkId: "idx-community",
-        indexTitle: "AI Builders",
+        networkTitle: "AI Builders",
         indexPrompt: "AI enthusiasts",
         permissions: ["member"],
         memberPrompt: null,
@@ -357,7 +357,7 @@ function makeCtx(overrides: Partial<ResolvedToolContext> = {}): ResolvedToolCont
         isPersonal: false,
         joinedAt: "2024-02-01T00:00:00Z",
       },
-    ] as unknown as ResolvedToolContext["userIndexes"],
+    ] as unknown as ResolvedToolContext["userNetworks"],
     isOnboarding: false,
     hasName: true,
     ...overrides,

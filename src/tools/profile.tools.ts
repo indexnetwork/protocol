@@ -70,7 +70,7 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
                 : `This chat is scoped to this index. You can only look up people in this community.`
             );
           }
-          const callerIsMember = await systemDb.isIndexMember(searchIndexId, context.userId);
+          const callerIsMember = await systemDb.isNetworkMember(searchIndexId, context.userId);
           if (!callerIsMember) {
             return error("You can only look up people in indexes you are a member of.");
           }
@@ -138,7 +138,7 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
         }
 
         // Verify the caller is a member of the index they're querying
-        const callerIsMember = await systemDb.isIndexMember(effectiveIndexId, context.userId);
+        const callerIsMember = await systemDb.isNetworkMember(effectiveIndexId, context.userId);
         if (!callerIsMember) {
           return error(
             "You can only read profiles from indexes you are a member of."
@@ -173,7 +173,7 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
       if (targetUserId && targetUserId !== context.userId) {
         // Strict scope enforcement: when chat is index-scoped, verify user is in that index
         if (context.networkId) {
-          const isInScopedIndex = await systemDb.isIndexMember(context.networkId, targetUserId);
+          const isInScopedIndex = await systemDb.isNetworkMember(context.networkId, targetUserId);
           if (!isInScopedIndex) {
             return error(
               context.indexName

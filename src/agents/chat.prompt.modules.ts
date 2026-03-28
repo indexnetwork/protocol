@@ -340,7 +340,7 @@ const sharedContextModule: PromptModule = {
 \`\`\`
 1. read_index_memberships(userId=me)     → my indexes
 2. read_index_memberships(userId=other)  → their indexes
-3. Intersect indexIds
+3. Intersect networkIds
 4. For each shared index: read_intents(networkId=shared)
 5. read_user_profiles(userId=other)
 6. Synthesize: what overlaps, where they could collaborate

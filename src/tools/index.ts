@@ -133,7 +133,7 @@ export async function createChatTools(
 
   // ─── Create context-bound databases ────────────────────────────────────────
   // Get the user's network scope (all networks they have access to)
-  const networkScope = resolvedContext.userIndexes.map((m) => m.networkId);
+  const networkScope = resolvedContext.userNetworks.map((m) => m.networkId);
 
   // Use injected instances when provided (e.g. tests). Otherwise create from the same
   // database used for graphs so that scope checks (e.g. ensureScopedMembership, opportunity

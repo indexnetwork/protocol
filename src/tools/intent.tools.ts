@@ -23,7 +23,7 @@ async function ensureScopedMembership(
   systemDb: ToolDeps['systemDb']
 ): Promise<string | null> {
   if (!context.networkId) return null;
-  const isMember = await systemDb.isIndexMember(context.networkId, context.userId);
+  const isMember = await systemDb.isNetworkMember(context.networkId, context.userId);
   if (!isMember) {
     return `This chat is scoped to ${context.indexName ?? 'this index'}. You are no longer a member of this community.`;
   }
@@ -59,7 +59,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
 
       const effectiveIndexId = context.networkId || query.networkId?.trim() || undefined;
       if (effectiveIndexId && !UUID_REGEX.test(effectiveIndexId)) {
-        return error("Invalid index ID format.");
+        return error("Invalid network ID format.");
       }
 
       const queryUserId = query.userId?.trim() || undefined;
@@ -68,7 +68,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       if (context.networkId && queryUserId && queryUserId !== context.userId) {
         // Verify target user is a member of the scoped index
         const db = deps.systemDb;
-        const isInScopedIndex = await db.isIndexMember(context.networkId, queryUserId);
+        const isInScopedIndex = await db.isNetworkMember(context.networkId, queryUserId);
         if (!isInScopedIndex) {
           return error(
             `This chat is scoped to ${context.indexName ?? 'this index'}. You can only read intents from members of this community.`
@@ -77,13 +77,13 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       }
 
       if (!effectiveIndexId && queryUserId && queryUserId !== context.userId) {
-        return error("Cannot read another user's global intents. Use networkId to scope to a shared index.");
+        return error("Cannot read another user's global intents. Use networkId to scope to a shared network.");
       }
 
       // Verify the caller is a member of the index they're querying (unscoped chat only - scoped is already validated)
       if (!context.networkId && effectiveIndexId) {
         const db = deps.systemDb;
-        const callerIsMember = await db.isIndexMember(effectiveIndexId, context.userId);
+        const callerIsMember = await db.isNetworkMember(effectiveIndexId, context.userId);
         if (!callerIsMember) {
           return error(
             "You can only read intents from indexes you are a member of."
@@ -109,7 +109,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       _readIntentTraceEmitter?.({ type: "graph_end", name: "intent", durationMs: _readIntentGraphMs });
 
       if (result.readResult) {
-        if (result.readResult.count === 0 && result.readResult.message && /not a member|Index not found/i.test(result.readResult.message)) {
+        if (result.readResult.count === 0 && result.readResult.message && /not a member|Network not found/i.test(result.readResult.message)) {
           return error(result.readResult.message);
         }
 
@@ -414,9 +414,9 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
             _graphTimings: [{ name: 'intent_network', durationMs: _createIntentIndexGraphMs, agents: result.agentTimings ?? [] }],
           });
         }
-        return error(result.mutationResult.error || "Failed to link intent to index.");
+        return error(result.mutationResult.error || "Failed to link intent to network.");
       }
-      return error("Failed to link intent to index.");
+      return error("Failed to link intent to network.");
     },
   });
 
@@ -440,7 +440,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         return error("Invalid intent ID format.");
       }
       if (networkId && !UUID_REGEX.test(networkId)) {
-        return error("Invalid index ID format.");
+        return error("Invalid network ID format.");
       }
       if (!intentId && !networkId) {
         return error("Provide networkId or intentId.");
@@ -461,7 +461,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         } else {
           // When unscoped, still don't reveal all indexes - require explicit networkId
           return error(
-            "Please provide an networkId to check if the intent is linked to a specific index. Listing all linked indexes is not supported."
+            "Please provide a networkId to check if the intent is linked to a specific network. Listing all linked networks is not supported."
           );
         }
       }
@@ -485,7 +485,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       if (result.readResult) {
         return success({ ...result.readResult, _graphTimings: [{ name: 'intent_network', durationMs: _readIntentIndexGraphMs, agents: result.agentTimings ?? [] }] });
       }
-      return error("Failed to fetch intent-index links.");
+      return error("Failed to fetch intent-network links.");
     },
   });
 
@@ -534,7 +534,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         }
         return error(result.mutationResult.error || "Failed to unlink.");
       }
-      return error("Failed to unlink intent from index.");
+      return error("Failed to unlink intent from network.");
     },
   });
 

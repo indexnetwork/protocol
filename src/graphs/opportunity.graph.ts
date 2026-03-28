@@ -207,16 +207,16 @@ export class OpportunityGraphFactory {
             requestedIndexId: state.networkId ?? undefined,
           },
           async () => {
-            // Use getIndexMemberships (all memberships) for search scope — NOT getUserIndexIds
+            // Use getNetworkMemberships (all memberships) for search scope — NOT getUserIndexIds
             // (which filters by autoAssign=true and is intended only for intent assignment).
-            const memberships = await this.database.getIndexMemberships(state.userId);
-            const userIndexIds = memberships.map(m => m.networkId) as Id<'networks'>[];
-            if (userIndexIds.length === 0) {
-              logger.verbose('[Graph:Prep] User has no index memberships - cannot find opportunities');
+            const memberships = await this.database.getNetworkMemberships(state.userId);
+            const userNetworkIds = memberships.map(m => m.networkId) as Id<'networks'>[];
+            if (userNetworkIds.length === 0) {
+              logger.verbose('[Graph:Prep] User has no network memberships - cannot find opportunities');
               return {
-                userIndexes: [] as Id<'networks'>[],
+                userNetworks: [] as Id<'networks'>[],
                 sourceProfile: null,
-                error: 'You need to join at least one index to find opportunities.',
+                error: 'You need to join at least one network to find opportunities.',
               };
             }
             const discoveryUserId = state.onBehalfOfUserId ?? state.userId;
@@ -239,12 +239,12 @@ export class OpportunityGraphFactory {
                 }
               : null;
             return {
-              userIndexes: userIndexIds,
+              userNetworks: userNetworkIds,
               indexedIntents,
               sourceProfile,
               trace: [{
                 node: "prep",
-                detail: `${userIndexIds.length} index(es), ${intents.length} intent(s), ${profile ? 'profile loaded' : 'no profile'}`,
+                detail: `${userNetworkIds.length} network(s), ${intents.length} intent(s), ${profile ? 'profile loaded' : 'no profile'}`,
               }],
             };
           },
@@ -265,7 +265,7 @@ export class OpportunityGraphFactory {
       (result) => {
         const r = result as Record<string, unknown>;
         if (r?.error) return `error: ${r.error}`;
-        const indexes = r?.userIndexes as unknown[];
+        const indexes = r?.userNetworks as unknown[];
         const intents = r?.indexedIntents as unknown[];
         return indexes && intents ? `${indexes.length} index(es), ${intents.length} intent(s)` : undefined;
       },
@@ -283,7 +283,7 @@ export class OpportunityGraphFactory {
       return timed("OpportunityGraph.scope", async () => {
         logger.verbose('[Graph:Scope] Determining search scope', {
           requestedIndexId: state.networkId,
-          userIndexesCount: state.userIndexes.length,
+          userNetworksCount: state.userNetworks.length,
         });
 
         try {
@@ -291,19 +291,19 @@ export class OpportunityGraphFactory {
 
           if (state.networkId) {
             // Validate user is member of requested index
-            if (!state.userIndexes.includes(state.networkId)) {
+            if (!state.userNetworks.includes(state.networkId)) {
               logger.warn('[Graph:Scope] User not member of requested index', {
                 networkId: state.networkId,
               });
               return {
                 targetIndexes: [],
-                error: 'You are not a member of that index.',
+                error: 'You are not a member of that network.',
               };
             }
             targetIndexIds = [state.networkId];
           } else {
             // Search all user's indexes
-            targetIndexIds = state.userIndexes;
+            targetIndexIds = state.userNetworks;
           }
 
           // Fetch index details
@@ -572,7 +572,7 @@ export class OpportunityGraphFactory {
             logger.verbose('[Graph:Discovery] Direct-connection mode — bypassing vector search', {
               targetUserId: state.targetUserId,
             });
-            const targetMemberships = await this.database.getIndexMemberships(state.targetUserId);
+            const targetMemberships = await this.database.getNetworkMemberships(state.targetUserId);
             const targetUserIndexIds = targetMemberships.map(m => m.networkId);
             const sharedIndexIds = state.targetIndexes
               .filter(ti => targetUserIndexIds.includes(ti.networkId))
@@ -1829,38 +1829,38 @@ export class OpportunityGraphFactory {
 
         try {
           const entities = state.introductionEntities ?? [];
-          const primaryIndexId = (state.networkId ?? entities[0]?.networkId) as Id<'networks'> | undefined;
+          const primaryNetworkId = (state.networkId ?? entities[0]?.networkId) as Id<'networks'> | undefined;
           const partyUserIds = [...new Set(entities.map((e) => e.userId).filter((id) => id !== state.userId))];
 
-          if (!primaryIndexId || partyUserIds.length < 1) {
+          if (!primaryNetworkId || partyUserIds.length < 1) {
             return {
               error: 'Introduction requires networkId and at least two entities (introducer + one counterpart).',
             };
           }
 
-          if (state.requiredIndexId && primaryIndexId !== state.requiredIndexId) {
+          if (state.requiredNetworkId && primaryNetworkId !== state.requiredNetworkId) {
             return {
               error: 'This chat is scoped to a different community. You can only introduce members of the current community.',
             };
           }
 
-          const introducerIsMember = await this.database.isIndexMember(primaryIndexId, state.userId);
+          const introducerIsMember = await this.database.isNetworkMember(primaryNetworkId, state.userId);
           if (!introducerIsMember) {
             return {
-              error: 'One or more users are not members of the specified community. You can only introduce members who share an index.',
+              error: 'One or more users are not members of the specified community. You can only introduce members who share a network.',
             };
           }
           const partyMemberships = await Promise.all(
-            partyUserIds.map((userId) => this.database.isIndexMember(primaryIndexId, userId))
+            partyUserIds.map((userId) => this.database.isNetworkMember(primaryNetworkId, userId))
           );
           const allPartyMembers = partyMemberships.every(Boolean);
           if (!allPartyMembers) {
             return {
-              error: 'One or more users are not members of the specified community. You can only introduce members who share an index.',
+              error: 'One or more users are not members of the specified community. You can only introduce members who share a network.',
             };
           }
 
-          const exists = await this.database.opportunityExistsBetweenActors(partyUserIds, primaryIndexId);
+          const exists = await this.database.opportunityExistsBetweenActors(partyUserIds, primaryNetworkId);
           if (exists) {
             return { error: 'An opportunity already exists between these people.' };
           }
@@ -1892,7 +1892,7 @@ export class OpportunityGraphFactory {
     function buildIntroFallback(
       entities: EvaluatorEntity[],
       state: typeof OpportunityGraphState.State,
-      primaryIndexId: Id<'networks'>,
+      primaryNetworkId: Id<'networks'>,
       introducerName?: string
     ): { reasoning: string; score: number; actors: EvaluatedOpportunityActor[] } {
       const reasoning =
@@ -1903,7 +1903,7 @@ export class OpportunityGraphFactory {
       const actors: EvaluatedOpportunityActor[] = partyUserIds.map((uid) => ({
         userId: uid as Id<'users'>,
         role: 'peer' as const,
-        networkId: primaryIndexId,
+        networkId: primaryNetworkId,
       }));
       return { reasoning, score, actors };
     }
@@ -1921,9 +1921,9 @@ export class OpportunityGraphFactory {
         }
 
         const entities = state.introductionEntities ?? [];
-        const primaryIndexId = (state.networkId ?? entities[0]?.networkId) as Id<'networks'> | undefined;
-        if (!primaryIndexId || entities.length < 2) {
-          return { evaluatedOpportunities: [], error: 'Missing entities or index for introduction.', agentTimings: [] };
+        const primaryNetworkId = (state.networkId ?? entities[0]?.networkId) as Id<'networks'> | undefined;
+        if (!primaryNetworkId || entities.length < 2) {
+          return { evaluatedOpportunities: [], error: 'Missing entities or network for introduction.', agentTimings: [] };
         }
 
         const agentTimingsAccum: DebugMetaAgent[] = [];
@@ -1961,10 +1961,10 @@ export class OpportunityGraphFactory {
               userId: a.userId as Id<'users'>,
               role: a.role,
               intentId: a.intentId ?? undefined,
-              networkId: primaryIndexId,
+              networkId: primaryNetworkId,
             }));
           } else {
-            const fallback = buildIntroFallback(entities, state, primaryIndexId, introducerName);
+            const fallback = buildIntroFallback(entities, state, primaryNetworkId, introducerName);
             reasoning = fallback.reasoning;
             score = fallback.score;
             actors = fallback.actors;
@@ -1978,7 +1978,7 @@ export class OpportunityGraphFactory {
             agentTimingsAccum.push({ name: 'opportunity.evaluator', durationMs: _introErrDuration });
           }
           logger.warn('[Graph:IntroEvaluation] Evaluator or getUser failed, using fallback', { error: evalErr });
-          const fallback = buildIntroFallback(entities, state, primaryIndexId, introducerName);
+          const fallback = buildIntroFallback(entities, state, primaryNetworkId, introducerName);
           reasoning = fallback.reasoning;
           score = fallback.score;
           actors = fallback.actors;
@@ -2247,7 +2247,7 @@ export class OpportunityGraphFactory {
 
               if (overlapping.length > 0) {
                 const existing = overlapping[0];
-                const existingIndexId = (existing.context?.networkId ?? state.networkId ?? state.userIndexes?.[0] ?? '') as Id<'networks'>;
+                const existingIndexId = (existing.context?.networkId ?? state.networkId ?? state.userNetworks?.[0] ?? '') as Id<'networks'>;
 
                 if (existing.status === 'expired') {
                   const reactivated = await this.database.updateOpportunityStatus(existing.id, initialStatus);
@@ -2402,10 +2402,10 @@ export class OpportunityGraphFactory {
         try {
           let indexIdFilter: string | undefined;
           if (state.networkId) {
-            const isMember = await this.database.isIndexMember(state.networkId, state.userId);
+            const isMember = await this.database.isNetworkMember(state.networkId, state.userId);
             if (!isMember) {
               return {
-                readResult: { count: 0, opportunities: [], message: 'Index not found or you are not a member.' },
+                readResult: { count: 0, opportunities: [], message: 'Network not found or you are not a member.' },
               };
             }
             indexIdFilter = state.networkId;

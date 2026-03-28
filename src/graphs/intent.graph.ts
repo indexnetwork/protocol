@@ -669,7 +669,7 @@ export class IntentGraphFactory {
 
           if (effectiveIndexId) {
             // Verify membership
-            const isMember = await this.database.isIndexMember(effectiveIndexId, state.userId);
+            const isMember = await this.database.isNetworkMember(effectiveIndexId, state.userId);
             if (!isMember) {
               return {
                 readResult: {

@@ -53,7 +53,7 @@ mock.module("../../tools/tool.helpers", () => ({
     hasName: true,
     user: { id: ctx.userId ?? "test-user", name: "Test User", email: "test@example.com" },
     userProfile: { name: "Test User", bio: "Test bio", signals: [] },
-    userIndexes: [],
+    userNetworks: [],
   }),
 }));
 

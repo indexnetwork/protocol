@@ -75,7 +75,7 @@ export class IntentNetworkGraphFactory {
           if (intent.userId !== state.userId) {
             return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "You can only add your own intents to an index." } };
           }
-          const isMember = await this.database.isIndexMember(networkId, state.userId);
+          const isMember = await this.database.isNetworkMember(networkId, state.userId);
           if (!isMember) {
             return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "You are not a member of that index." } };
           }
@@ -88,7 +88,7 @@ export class IntentNetworkGraphFactory {
 
           // Direct assignment (skip evaluation)
           if (state.skipEvaluation) {
-            await this.database.assignIntentToIndex(intentId, networkId, 1.0);
+            await this.database.assignIntentToNetwork(intentId, networkId, 1.0);
             return {
               agentTimings: agentTimingsAccum,
               assignmentResult: { networkId, assigned: true, success: true } as AssignmentResult,
@@ -105,7 +105,7 @@ export class IntentNetworkGraphFactory {
           const indexContext = await this.database.getIndexMemberContext(networkId, intentForIndexing.userId);
           if (!indexContext) {
             // No prompts or not eligible - auto-assign
-            await this.database.assignIntentToIndex(intentId, networkId, 1.0);
+            await this.database.assignIntentToNetwork(intentId, networkId, 1.0);
             return {
               agentTimings: agentTimingsAccum,
               assignmentResult: { networkId, assigned: true, success: true } as AssignmentResult,
@@ -115,7 +115,7 @@ export class IntentNetworkGraphFactory {
 
           const hasNoPrompts = !indexContext.indexPrompt?.trim() && !indexContext.memberPrompt?.trim();
           if (hasNoPrompts) {
-            await this.database.assignIntentToIndex(intentId, networkId, 1.0);
+            await this.database.assignIntentToNetwork(intentId, networkId, 1.0);
             return {
               agentTimings: agentTimingsAccum,
               assignmentResult: { networkId, assigned: true, success: true } as AssignmentResult,
@@ -131,15 +131,19 @@ export class IntentNetworkGraphFactory {
           const _traceEmitterIndexer = requestContext.getStore()?.traceEmitter;
           const _indexerStart = Date.now();
           _traceEmitterIndexer?.({ type: "agent_start", name: "intent-networker" });
-          const result = await indexer.evaluate(
-            intentForIndexing.payload,
-            indexContext.indexPrompt,
-            indexContext.memberPrompt,
-            sourceName
-          );
-          const _indexerMs = Date.now() - _indexerStart;
-          agentTimingsAccum.push({ name: 'intent.networker', durationMs: _indexerMs });
-          _traceEmitterIndexer?.({ type: "agent_end", name: "intent-networker", durationMs: _indexerMs, summary: result ? `Scored: index=${result.indexScore.toFixed(2)}, member=${result.memberScore.toFixed(2)}` : "intent-networker completed" });
+          let result: Awaited<ReturnType<typeof indexer.evaluate>> | null = null;
+          try {
+            result = await indexer.evaluate(
+              intentForIndexing.payload,
+              indexContext.indexPrompt,
+              indexContext.memberPrompt,
+              sourceName
+            );
+          } finally {
+            const _indexerMs = Date.now() - _indexerStart;
+            agentTimingsAccum.push({ name: 'intent.networker', durationMs: _indexerMs });
+            _traceEmitterIndexer?.({ type: "agent_end", name: "intent-networker", durationMs: _indexerMs, summary: result ? `Scored: index=${result.indexScore.toFixed(2)}, member=${result.memberScore.toFixed(2)}` : "intent-networker failed" });
+          }
 
           if (!result) {
             return {
@@ -179,7 +183,7 @@ export class IntentNetworkGraphFactory {
           }
 
           if (shouldAssign) {
-            await this.database.assignIntentToIndex(intentId, networkId, finalScore);
+            await this.database.assignIntentToNetwork(intentId, networkId, finalScore);
             return {
               agentTimings: agentTimingsAccum,
               evaluation: result,
@@ -266,7 +270,7 @@ export class IntentNetworkGraphFactory {
             };
           }
 
-          const isMember = await this.database.isIndexMember(networkId, state.userId);
+          const isMember = await this.database.isNetworkMember(networkId, state.userId);
           if (!isMember) {
             return {
               readResult: { links: [], count: 0, mode: "intents_in_index" },
@@ -337,7 +341,7 @@ export class IntentNetworkGraphFactory {
           if (intent.userId !== state.userId) {
             return { mutationResult: { success: false, error: "You can only remove your own intents from an index." } };
           }
-          const isMember = await this.database.isIndexMember(networkId, state.userId);
+          const isMember = await this.database.isNetworkMember(networkId, state.userId);
           if (!isMember) {
             return { mutationResult: { success: false, error: "You are not a member of that index." } };
           }

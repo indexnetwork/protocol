@@ -117,7 +117,7 @@ describe("Chat Graph scope workflows", () => {
     test("What are my intents here? → empty or no intents in this index", async () => {
       const db = createChatGraphMockDb({
         getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "Test Index" } : null),
-        isIndexMember: (id, uid) => id === testIndexId && uid === testUserId,
+        isNetworkMember: (id, uid) => id === testIndexId && uid === testUserId,
         isIndexOwner: () => false,
         intentsInIndexForMember: () => [],
       });
@@ -139,7 +139,7 @@ describe("Chat Graph scope workflows", () => {
       ];
       const db = createChatGraphMockDb({
         getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "AI Network" } : null),
-        isIndexMember: (id, uid) => id === testIndexId && uid === testUserId,
+        isNetworkMember: (id, uid) => id === testIndexId && uid === testUserId,
         isIndexOwner: () => false,
         intentsInIndexForMember: (uid, networkId) =>
           networkId === testIndexId && uid === testUserId ? intentsInIndex : [],
@@ -164,7 +164,7 @@ describe("Chat Graph scope workflows", () => {
       ];
       const db = createChatGraphMockDb({
         getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "Founders" } : null),
-        isIndexMember: (id, uid) => id === testIndexId && uid === testUserId,
+        isNetworkMember: (id, uid) => id === testIndexId && uid === testUserId,
         isIndexOwner: (id, uid) => id === testIndexId && uid === testUserId,
         indexIntentsForOwner: (networkId, _req) =>
           networkId === testIndexId ? allIntents : [],
@@ -185,7 +185,7 @@ describe("Chat Graph scope workflows", () => {
     test("What are my intents here? → index not found or not a member", async () => {
       const db = createChatGraphMockDb({
         getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "Private" } : null),
-        isIndexMember: () => false,
+        isNetworkMember: () => false,
         isIndexOwner: () => false,
       });
       const result = await runInvokeScenario(

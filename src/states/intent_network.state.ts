@@ -139,7 +139,7 @@ export const IntentNetworkGraphState = Annotation.Root({
       intentId: string;
       networkId: string;
       intentTitle?: string;
-      indexTitle?: string;
+      networkTitle?: string;
       userId?: string;
       userName?: string;
       createdAt?: Date;

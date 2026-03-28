@@ -72,9 +72,9 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
       email: "test@example.com",
     }),
     getIndex: async (networkId: string) => ({ id: networkId, title: "AI Builders" }),
-    getIndexMembership: async (networkId: string, _userId: string) => ({
+    getNetworkMembership: async (networkId: string, _userId: string) => ({
       networkId,
-      indexTitle: "AI Builders",
+      networkTitle: "AI Builders",
       indexPrompt: "Community for AI builders",
       permissions: ["member"],
     }),
@@ -93,10 +93,10 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
     updateUser: noopNull,
     archiveIntent: async () => ({ success: true }),
     getUserIndexIds: async () => [testIndexId],
-    getIndexMemberships: async () => [
+    getNetworkMemberships: async () => [
       {
         networkId: testIndexId,
-        indexTitle: "AI Builders",
+        networkTitle: "AI Builders",
         indexPrompt: "Community for AI builders",
         permissions: ["member"],
         memberPrompt: null,
@@ -125,12 +125,12 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
         expiresAt: null,
       }) as Awaited<ReturnType<ChatGraphCompositeDatabase["createOpportunity"]>>,
     isIntentAssignedToIndex: noopBool,
-    assignIntentToIndex: noop,
+    assignIntentToNetwork: noop,
     unassignIntentFromIndex: noop,
     getIndexIdsForIntent: noopArray,
     getOwnedIndexes: noopArray,
     isIndexOwner: noopBool,
-    isIndexMember: async () => true,
+    isNetworkMember: async () => true,
     getIndexMembersForOwner: noopArray,
     getIndexMembersForMember: noopArray,
     getIndexIntentsForOwner: noopArray,

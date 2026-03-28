@@ -45,7 +45,7 @@ function createMockEvaluator(
 
 function createMockGraph(deps?: {
   getUserIndexIds?: () => Promise<Id<'networks'>[]>;
-  getIndexMemberships?: () => Promise<Array<{ networkId: string; indexTitle: string; indexPrompt: string | null; permissions: string[]; memberPrompt: string | null; autoAssign: boolean; isPersonal: boolean; joinedAt: Date }>>;
+  getNetworkMemberships?: () => Promise<Array<{ networkId: string; networkTitle: string; indexPrompt: string | null; permissions: string[]; memberPrompt: string | null; autoAssign: boolean; isPersonal: boolean; joinedAt: Date }>>;
   getActiveIntents?: () => Promise<Array<{ id: Id<'intents'>; payload: string; summary: string | null; createdAt: Date }>>;
   getIndex?: (id: string) => Promise<{ id: string; title: string } | null>;
   getIndexMemberCount?: (id: string) => Promise<number>;
@@ -71,9 +71,9 @@ function createMockGraph(deps?: {
     getOpportunityBetweenActors: () => Promise.resolve(null),
     findOverlappingOpportunities: () => Promise.resolve([]),
     getUserIndexIds: deps?.getUserIndexIds ?? (() => Promise.resolve(['idx-1'] as Id<'networks'>[])),
-    getIndexMemberships: deps?.getIndexMemberships ?? (async () => {
+    getNetworkMemberships: deps?.getNetworkMemberships ?? (async () => {
       const ids = deps?.getUserIndexIds ? await deps.getUserIndexIds() : ['idx-1'] as Id<'networks'>[];
-      return ids.map(id => ({ networkId: id, indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }));
+      return ids.map(id => ({ networkId: id, networkTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }));
     }),
     getActiveIntents:
       deps?.getActiveIntents ??
@@ -90,7 +90,7 @@ function createMockGraph(deps?: {
     getIndexMemberCount: deps?.getIndexMemberCount ?? (() => Promise.resolve(2)),
     getIndexIdsForIntent: () => Promise.resolve(['idx-1']),
     getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
-    isIndexMember: () => Promise.resolve(true),
+    isNetworkMember: () => Promise.resolve(true),
     getOpportunity: () => Promise.resolve(null),
     getOpportunitiesForUser: () => Promise.resolve([]),
     updateOpportunityStatus: () => Promise.resolve(null),
@@ -138,7 +138,7 @@ function createMockGraphWithFnOverrides(deps?: {
   getActiveIntentsFn?: (userId: string) => Promise<Array<{ id: Id<'intents'>; payload: string; summary: string | null; createdAt: Date }>>;
   evaluatorResult?: EvaluatedOpportunityWithActors[];
   getUserIndexIds?: () => Promise<Id<'networks'>[]>;
-  getIndexMemberships?: () => Promise<Array<{ networkId: string; indexTitle: string; indexPrompt: string | null; permissions: string[]; memberPrompt: string | null; autoAssign: boolean; isPersonal: boolean; joinedAt: Date }>>;
+  getNetworkMemberships?: () => Promise<Array<{ networkId: string; networkTitle: string; indexPrompt: string | null; permissions: string[]; memberPrompt: string | null; autoAssign: boolean; isPersonal: boolean; joinedAt: Date }>>;
 }) {
   const mockDb: OpportunityGraphDatabase = {
     getProfile: (userId: string) =>
@@ -162,9 +162,9 @@ function createMockGraphWithFnOverrides(deps?: {
     getOpportunityBetweenActors: () => Promise.resolve(null),
     findOverlappingOpportunities: () => Promise.resolve([]),
     getUserIndexIds: deps?.getUserIndexIds ?? (() => Promise.resolve(['idx-1'] as Id<'networks'>[])),
-    getIndexMemberships: deps?.getIndexMemberships ?? (async () => {
+    getNetworkMemberships: deps?.getNetworkMemberships ?? (async () => {
       const ids = deps?.getUserIndexIds ? await deps.getUserIndexIds() : ['idx-1'] as Id<'networks'>[];
-      return ids.map(id => ({ networkId: id, indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }));
+      return ids.map(id => ({ networkId: id, networkTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }));
     }),
     getActiveIntents: (userId: string) =>
       deps?.getActiveIntentsFn
@@ -181,7 +181,7 @@ function createMockGraphWithFnOverrides(deps?: {
     getIndexMemberCount: () => Promise.resolve(2),
     getIndexIdsForIntent: () => Promise.resolve(['idx-1']),
     getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
-    isIndexMember: () => Promise.resolve(true),
+    isNetworkMember: () => Promise.resolve(true),
     getOpportunity: () => Promise.resolve(null),
     getOpportunitiesForUser: () => Promise.resolve([]),
     updateOpportunityStatus: () => Promise.resolve(null),
@@ -279,6 +279,7 @@ describe('Opportunity Graph', () => {
       } as OpportunityGraphInvokeInput);
 
       expect(getIndexSpy).toHaveBeenCalledWith('idx-1');
+      expect(getIndexSpy).toHaveBeenCalledTimes(1);
     });
 
     test('when networkId omitted, scope uses all user indexes', async () => {
@@ -393,9 +394,9 @@ describe('Opportunity Graph', () => {
     test('dedup prefers candidate from index with higher relevancy score on equal similarity', async () => {
       const { compiledGraph } = createMockGraph({
         getUserIndexIds: async () => ['idx-high', 'idx-low'] as Id<'networks'>[],
-        getIndexMemberships: async () => [
-          { networkId: 'idx-high', indexTitle: 'High Relevancy', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
-          { networkId: 'idx-low', indexTitle: 'Low Relevancy', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
+        getNetworkMemberships: async () => [
+          { networkId: 'idx-high', networkTitle: 'High Relevancy', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
+          { networkId: 'idx-low', networkTitle: 'Low Relevancy', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
         ],
       });
 
@@ -1278,7 +1279,7 @@ describe('Opportunity Graph', () => {
       );
     });
 
-    test('when requiredIndexId does not match networkId returns error', async () => {
+    test('when requiredNetworkId does not match networkId returns error', async () => {
       const { compiledGraph } = createMockGraph();
 
       const result = (await compiledGraph.invoke({
@@ -1286,7 +1287,7 @@ describe('Opportunity Graph', () => {
         userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
         networkId: 'idx-1' as Id<'networks'>,
         introductionEntities: introEntities,
-        requiredIndexId: 'idx-other' as Id<'networks'>,
+        requiredNetworkId: 'idx-other' as Id<'networks'>,
       } as OpportunityGraphInvokeInput)) as OpportunityGraphInvokeResult;
 
       expect(result.error).toBeDefined();
@@ -1312,7 +1313,7 @@ describe('Opportunity Graph', () => {
 
     test('when introducer is not index member returns error', async () => {
       const { compiledGraph, mockDb } = createMockGraph();
-      spyOn(mockDb, 'isIndexMember').mockImplementation(async (networkId: string, userId: string) => {
+      spyOn(mockDb, 'isNetworkMember').mockImplementation(async (networkId: string, userId: string) => {
         if (userId === 'a0000000-0000-4000-8000-000000000001') return false;
         return true;
       });
@@ -1426,7 +1427,7 @@ describe('Opportunity Graph', () => {
         getOpportunityBetweenActors: () => Promise.resolve(null),
         findOverlappingOpportunities: () => Promise.resolve([]),
         getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
-        getIndexMemberships: async () => [{ networkId: 'idx-1', indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }],
+        getNetworkMemberships: async () => [{ networkId: 'idx-1', networkTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }],
         getActiveIntents: async (userId: string) => {
           if (userId === onBehalfUserId) {
             return [{
@@ -1442,7 +1443,7 @@ describe('Opportunity Graph', () => {
         getIndexMemberCount: () => Promise.resolve(2),
         getIndexIdsForIntent: () => Promise.resolve(['idx-1']),
         getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
-        isIndexMember: () => Promise.resolve(true),
+        isNetworkMember: () => Promise.resolve(true),
         getOpportunity: () => Promise.resolve(null),
         getOpportunitiesForUser: () => Promise.resolve([]),
         updateOpportunityStatus: () => Promise.resolve(null),
@@ -1735,8 +1736,8 @@ describe('Opportunity Graph', () => {
         }],
       });
 
-      // Spy on getIndexMemberships to verify the direct path queries the target's memberships
-      const membershipsSpy = spyOn(mockDb, 'getIndexMemberships');
+      // Spy on getNetworkMemberships to verify the direct path queries the target's memberships
+      const membershipsSpy = spyOn(mockDb, 'getNetworkMemberships');
 
       const result = (await compiledGraph.invoke({
         userId: discovererId,
@@ -1745,7 +1746,7 @@ describe('Opportunity Graph', () => {
         options: {},
       } as OpportunityGraphInvokeInput)) as OpportunityGraphInvokeResult;
 
-      // getIndexMemberships should be called for both discoverer (prep) and target (discovery)
+      // getNetworkMemberships should be called for both discoverer (prep) and target (discovery)
       expect(membershipsSpy).toHaveBeenCalledTimes(2);
       // Candidates should include the target user
       expect(result.candidates.length).toBeGreaterThanOrEqual(1);
@@ -1831,12 +1832,12 @@ describe('Opportunity Graph', () => {
         getOpportunityBetweenActors: () => Promise.resolve(null),
         findOverlappingOpportunities: () => Promise.resolve([]),
         getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
-        getIndexMemberships: (userId: string) => {
+        getNetworkMemberships: (userId: string) => {
           // Discoverer is in idx-1, target is in idx-999 — no overlap
           if (userId === discovererId) {
-            return Promise.resolve([{ networkId: 'idx-1', indexTitle: 'Alpha', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }]);
+            return Promise.resolve([{ networkId: 'idx-1', networkTitle: 'Alpha', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }]);
           }
-          return Promise.resolve([{ networkId: 'idx-999', indexTitle: 'Beta', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }]);
+          return Promise.resolve([{ networkId: 'idx-999', networkTitle: 'Beta', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }]);
         },
         getActiveIntents: () => Promise.resolve([{
           id: 'intent-1' as Id<'intents'>, payload: 'Test intent', summary: null, createdAt: new Date(),
@@ -1845,7 +1846,7 @@ describe('Opportunity Graph', () => {
         getIndexMemberCount: () => Promise.resolve(5),
         getIndexIdsForIntent: () => Promise.resolve(['idx-1']),
         getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
-        isIndexMember: () => Promise.resolve(true),
+        isNetworkMember: () => Promise.resolve(true),
         getOpportunity: () => Promise.resolve(null),
         getOpportunitiesForUser: () => Promise.resolve([]),
         updateOpportunityStatus: () => Promise.resolve(null),

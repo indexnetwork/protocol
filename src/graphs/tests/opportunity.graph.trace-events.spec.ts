@@ -64,8 +64,8 @@ function createTraceMockGraph() {
     getOpportunityBetweenActors: () => Promise.resolve(null),
     findOverlappingOpportunities: () => Promise.resolve([]),
     getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
-    getIndexMemberships: async () => [
-      { networkId: 'idx-1', indexTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
+    getNetworkMemberships: async () => [
+      { networkId: 'idx-1', networkTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
     ],
     getActiveIntents: () =>
       Promise.resolve([
@@ -80,7 +80,7 @@ function createTraceMockGraph() {
     getIndexMemberCount: () => Promise.resolve(2),
     getIndexIdsForIntent: () => Promise.resolve(['idx-1']),
     getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
-    isIndexMember: () => Promise.resolve(true),
+    isNetworkMember: () => Promise.resolve(true),
     getOpportunity: () => Promise.resolve(null),
     getOpportunitiesForUser: () => Promise.resolve([]),
     updateOpportunityStatus: () => Promise.resolve(null),

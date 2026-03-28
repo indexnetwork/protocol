@@ -111,7 +111,7 @@ const SHARED_INDEX = { id: SHARED_INDEX_ID, title: "AI Builders" };
 function sharedMembership(extra?: Partial<NetworkMembership>): NetworkMembership {
   return {
     networkId: SHARED_INDEX_ID,
-    indexTitle: "AI Builders",
+    networkTitle: "AI Builders",
     indexPrompt: "AI enthusiasts and builders",
     permissions: ["member"],
     memberPrompt: null,
@@ -377,7 +377,7 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
             return [sharedMembership()];
           return [];
         },
-        isIndexMember: (networkId: string, userId: string) =>
+        isNetworkMember: (networkId: string, userId: string) =>
           networkId === SHARED_INDEX_ID &&
           (userId === testUserId || userId === "user-alice"),
         getIndex: (networkId: string) =>
@@ -494,7 +494,7 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
               sharedMembership(),
               {
                 networkId: "idx-personal",
-                indexTitle: "My Network",
+                networkTitle: "My Network",
                 indexPrompt: null,
                 permissions: ["owner"],
                 memberPrompt: null,
@@ -511,7 +511,7 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
             return { id: "idx-personal", title: "My Network" };
           return null;
         },
-        isIndexMember: (networkId: string, userId: string) =>
+        isNetworkMember: (networkId: string, userId: string) =>
           userId === testUserId &&
           (networkId === SHARED_INDEX_ID || networkId === "idx-personal"),
       });
@@ -575,7 +575,7 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
             return [sharedMembership()];
           return [];
         },
-        isIndexMember: (networkId: string, userId: string) =>
+        isNetworkMember: (networkId: string, userId: string) =>
           networkId === SHARED_INDEX_ID &&
           [testUserId, "user-alice", "user-bob"].includes(userId),
         getIndex: (networkId: string) =>

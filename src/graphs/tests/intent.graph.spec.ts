@@ -42,7 +42,7 @@ const createMockDatabase = (): IntentGraphDatabase => {
     async getUser(_userId: string) {
       return { id: _userId, name: 'Test User', email: 'test@example.com' };
     },
-    async isIndexMember(_indexId: string, _userId: string): Promise<boolean> {
+    async isNetworkMember(_indexId: string, _userId: string): Promise<boolean> {
       return true;
     },
     async getIndexIntentsForMember(_indexId: string, _requestingUserId: string, _options?: { limit?: number; offset?: number }) {
@@ -90,7 +90,7 @@ const createMockDatabase = (): IntentGraphDatabase => {
         attributes: { skills: ['TypeScript'], interests: ['Web Dev'] },
       } as any;
     },
-    async assignIntentToIndex(_intentId: string, _indexId: string): Promise<void> {
+    async assignIntentToNetwork(_intentId: string, _indexId: string): Promise<void> {
       // no-op for tests
     },
     async getPersonalIndexesForContact(_userId: string): Promise<{ networkId: string }[]> {

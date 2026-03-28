@@ -178,7 +178,7 @@ describe("Chat Graph opportunity workflows", () => {
     test("Find me opportunities with intents in index → create_opportunities path, coherent reply", async () => {
       const db = createChatGraphMockDb({
         getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "Founders" } : null),
-        isIndexMember: (id, uid) => id === testIndexId && uid === testUserId,
+        isNetworkMember: (id, uid) => id === testIndexId && uid === testUserId,
         activeIntents: (uid) =>
           uid === testUserId
             ? [mockActiveIntent({ id: "i1", payload: "Looking for co-founder" })]

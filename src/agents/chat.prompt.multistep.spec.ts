@@ -35,10 +35,10 @@ function makeCtx(
     userEmail: "alice@example.com",
     user: { id: "user-1", name: "Alice Test", email: "alice@example.com" },
     userProfile: { bio: "Builder", skills: ["typescript"], interests: ["AI"] },
-    userIndexes: [
+    userNetworks: [
       {
         networkId: "idx-personal",
-        indexTitle: "My Network",
+        networkTitle: "My Network",
         indexPrompt: null,
         permissions: ["owner"],
         memberPrompt: null,
@@ -48,7 +48,7 @@ function makeCtx(
       },
       {
         networkId: "idx-community",
-        indexTitle: "AI Builders",
+        networkTitle: "AI Builders",
         indexPrompt: "AI enthusiasts",
         permissions: ["member"],
         memberPrompt: null,

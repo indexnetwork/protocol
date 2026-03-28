@@ -52,7 +52,7 @@ export interface ResolvedToolContext {
   // Rich identity context for prompt/tool orchestration (profile omits embedding to keep context lean).
   user: UserRecord;
   userProfile: ProfileContext;
-  userIndexes: NetworkMembership[];
+  userNetworks: NetworkMembership[];
   scopedIndex?: {
     id: string;
     title: string;
@@ -152,7 +152,7 @@ export class ChatContextAccessError extends Error {
 export async function resolveChatContext(params: {
   database: Pick<
     ChatGraphCompositeDatabase,
-    "getUser" | "getProfile" | "getIndexMemberships" | "getIndexMembership" | "getIndex" | "isIndexOwner" | "isIndexMember"
+    "getUser" | "getProfile" | "getNetworkMemberships" | "getNetworkMembership" | "getIndex" | "isIndexOwner" | "isNetworkMember"
   >;
   userId: string;
   networkId?: string;
@@ -161,10 +161,10 @@ export async function resolveChatContext(params: {
 }): Promise<ResolvedToolContext> {
   const { database, userId, networkId, sessionId } = params;
 
-  const [user, rawProfile, userIndexes] = await Promise.all([
+  const [user, rawProfile, userNetworks] = await Promise.all([
     database.getUser(userId),
     database.getProfile(userId),
-    database.getIndexMemberships(userId),
+    database.getNetworkMemberships(userId),
   ]);
 
   // Omit embedding from profile so resolved context stays lean (embedding is for search only).
@@ -190,7 +190,7 @@ export async function resolveChatContext(params: {
   if (networkId) {
     const [index, isMember, owner] = await Promise.all([
       database.getIndex(networkId),
-      database.isIndexMember(networkId, userId),
+      database.isNetworkMember(networkId, userId),
       database.isIndexOwner(networkId, userId),
     ]);
 
@@ -210,9 +210,9 @@ export async function resolveChatContext(params: {
       );
     }
 
-    let membership = userIndexes.find((m) => m.networkId === index.id);
+    let membership = userNetworks.find((m) => m.networkId === index.id);
     if (membership === undefined) {
-      membership = (await database.getIndexMembership(index.id, userId)) ?? undefined;
+      membership = (await database.getNetworkMembership(index.id, userId)) ?? undefined;
     }
     scopedIndex = {
       id: index.id,
@@ -237,7 +237,7 @@ export async function resolveChatContext(params: {
     isOwner,
     user,
     userProfile,
-    userIndexes,
+    userNetworks,
     scopedIndex,
     scopedMembershipRole,
     isOnboarding: !(user.onboarding?.completedAt),

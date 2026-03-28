@@ -354,12 +354,18 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           );
         }
 
-        const primaryIndexId = query.entities[0]?.networkId;
-        if (!primaryIndexId) {
-          return error(
-            "Each entity must include an networkId (the shared index).",
-          );
+        const normalizedEntityNetworkIds = query.entities
+          .map((e) => e.networkId?.trim())
+          .filter((id): id is string => Boolean(id));
+
+        if (
+          normalizedEntityNetworkIds.length !== query.entities.length ||
+          new Set(normalizedEntityNetworkIds).size !== 1
+        ) {
+          return error("All entities must include the same shared networkId.");
         }
+
+        const [primaryNetworkId] = normalizedEntityNetworkIds;
 
         const introducedPartyUserIds = effectivePartyUserIds.filter(
           (uid) => uid !== context.userId,
@@ -385,10 +391,10 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         const result = await graphs.opportunity.invoke({
           operationMode: "create_introduction",
           userId: context.userId,
-          networkId: primaryIndexId,
+          networkId: primaryNetworkId,
           introductionEntities: evaluatorEntities,
           introductionHint: query.hint,
-          requiredIndexId: context.networkId ?? undefined,
+          requiredNetworkId: context.networkId ?? undefined,
           options: {
             initialStatus: "draft" as const,
             ...(context.sessionId ? { conversationId: context.sessionId } : {}),
@@ -519,7 +525,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       const _scopeGraphTimings: Array<{ name: string; durationMs: number; agents: Array<{ name: string; durationMs: number }> }> = [];
       if (effectiveIndexId) {
         if (!UUID_REGEX.test(effectiveIndexId)) {
-          return error("Invalid index ID format.");
+          return error("Invalid network ID format.");
         }
         const _scopeGraphStart = Date.now();
         const _scopeIndexMembershipTraceEmitter = requestContext.getStore()?.traceEmitter;
@@ -533,7 +539,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         _scopeIndexMembershipTraceEmitter?.({ type: "graph_end", name: "network_membership", durationMs: _scopeIndexMembershipMs });
         _scopeGraphTimings.push({ name: 'network_membership', durationMs: _scopeIndexMembershipMs, agents: [] });
         if (memberResult.error) {
-          return error("Index not found or you are not a member.");
+          return error("Network not found or you are not a member.");
         }
         indexScope = [effectiveIndexId];
       } else if (context.networkId) {
@@ -754,7 +760,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       const effectiveIndexId =
         (context.networkId || query.networkId?.trim()) ?? undefined;
       if (effectiveIndexId && !UUID_REGEX.test(effectiveIndexId)) {
-        return error("Invalid index ID format.");
+        return error("Invalid network ID format.");
       }
 
       // Get opportunities; use minimal card data (no LLM presenter) for fast chat response

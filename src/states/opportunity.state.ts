@@ -189,7 +189,7 @@ export const OpportunityGraphState = Annotation.Root({
   }),
 
   /** When set (e.g. chat scope), networkId must match this. */
-  requiredIndexId: Annotation<Id<'networks'> | undefined>({
+  requiredNetworkId: Annotation<Id<'networks'> | undefined>({
     reducer: (curr, next) => next ?? curr,
     default: () => undefined,
   }),
@@ -220,8 +220,8 @@ export const OpportunityGraphState = Annotation.Root({
     default: () => [],
   }),
   
-  /** User's index memberships (from prep) */
-  userIndexes: Annotation<Id<'networks'>[]>({
+  /** User's network memberships (from prep) */
+  userNetworks: Annotation<Id<'networks'>[]>({
     reducer: (curr, next) => next ?? curr,
     default: () => [],
   }),
