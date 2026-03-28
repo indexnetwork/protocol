@@ -21,7 +21,7 @@ export const IntentIndexerOutputSchema = z.object({
  */
 export type IntentIndexerOutput = z.infer<typeof IntentIndexerOutputSchema>;
 
-const logger = log.lib.from("IntentNetworker");
+const logger = log.lib.from("IntentIndexer");
 
 /**
  * Config
@@ -76,7 +76,7 @@ type ResponseType = z.infer<typeof responseFormat>;
 // 4. CLASS DEFINITION
 // ──────────────────────────────────────────────────────────────
 
-export class IntentNetworker {
+export class IntentIndexer {
   private model: ReturnType<ChatOpenAI["withStructuredOutput"]>;
 
   constructor() {
@@ -113,7 +113,7 @@ export class IntentNetworker {
     memberPrompt: string | null,
     sourceName?: string | null
   ): Promise<IntentIndexerOutput | null> {
-    logger.verbose("[IntentNetworker.invoke] Evaluating intent");
+    logger.verbose("[IntentIndexer.invoke] Evaluating intent");
 
     const contextParts: string[] = [];
     if (sourceName) contextParts.push(`Source: ${sourceName}`);
@@ -139,13 +139,13 @@ export class IntentNetworker {
       const result = await this.model.invoke(messages);
       const output = responseFormat.parse(result) as IntentIndexerOutput;
 
-      logger.verbose("[IntentNetworker.invoke] Evaluation complete", {
+      logger.verbose("[IntentIndexer.invoke] Evaluation complete", {
         indexScore: output.indexScore,
         memberScore: output.memberScore,
       });
       return output;
     } catch (error) {
-      logger.error("[IntentNetworker] Error during execution", { error });
+      logger.error("[IntentIndexer] Error during execution", { error });
       return null;
     }
   }
@@ -176,7 +176,7 @@ export class IntentNetworker {
         memberPrompt: string | null;
         sourceName?: string | null;
       }) => {
-        const agent = new IntentNetworker();
+        const agent = new IntentIndexer();
         return await agent.invoke(
           args.intent,
           args.indexPrompt,

@@ -1,11 +1,6 @@
 import { Annotation } from "@langchain/langgraph";
-<<<<<<<< HEAD:packages/protocol/src/states/intent_index.state.ts
 import type { IntentIndexerOutput } from "../agents/intent.indexer.js";
 import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
-========
-import type { IntentIndexerOutput } from "../agents/intent.networker";
-import type { DebugMetaAgent } from '../../../types/chat-streaming.types';
->>>>>>>> 608653918 (refactor: rename community 'index' to 'network' across full stack):packages/protocol/src/states/intent_network.state.ts
 
 /**
  * Intent payload and metadata loaded for index evaluation.

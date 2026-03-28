@@ -33,7 +33,7 @@ import {
   type EvaluatorInput,
 } from '../agents/opportunity.evaluator.js';
 import type { OpportunityGraphDatabase } from '../interfaces/database.interface.js';
-import { IntentNetworker } from '../agents/intent.networker.js';
+import { IntentIndexer } from '../agents/intent.indexer.js';
 import { getModelName } from '../agents/model.config.js';
 import { validateOpportunityActors } from '../support/opportunity.utils.js';
 
@@ -342,7 +342,7 @@ export class OpportunityGraphFactory {
           } else if (state.searchQuery?.trim()) {
             // Chat path: score query against target indexes in parallel
             try {
-              const indexer = new IntentNetworker();
+              const indexer = new IntentIndexer();
               const scopeAgentTimings: DebugMetaAgent[] = [];
               const scorableIndexes = targetIndexes.filter(ti => ti.title !== 'Unknown');
               const scoringPromises = scorableIndexes.map(async (ti) => {
@@ -352,7 +352,7 @@ export class OpportunityGraphFactory {
                 }
                 const _indexerStart = Date.now();
                 const traceEmitter = requestContext.getStore()?.traceEmitter;
-                traceEmitter?.({ type: "agent_start", name: "intent-networker" });
+                traceEmitter?.({ type: "agent_start", name: "intent-indexer" });
                 let result: Awaited<ReturnType<typeof indexer.invoke>> | null = null;
                 try {
                   result = await indexer.invoke(
@@ -364,8 +364,8 @@ export class OpportunityGraphFactory {
                   return { networkId: ti.networkId, score: 1.0 };
                 } finally {
                   const _indexerDuration = Date.now() - _indexerStart;
-                  traceEmitter?.({ type: "agent_end", name: "intent-networker", durationMs: _indexerDuration, summary: `Scored index ${ti.networkId}` });
-                  scopeAgentTimings.push({ name: 'intent.networker', durationMs: _indexerDuration });
+                  traceEmitter?.({ type: "agent_end", name: "intent-indexer", durationMs: _indexerDuration, summary: `Scored index ${ti.networkId}` });
+                  scopeAgentTimings.push({ name: 'intent.indexer', durationMs: _indexerDuration });
                 }
                 if (!result) return { networkId: ti.networkId, score: 1.0 };
                 const score = ctx?.indexPrompt && ctx?.memberPrompt

@@ -20,7 +20,7 @@ const logger = protocolLogger("ResponseStreamer");
  * Note on token streaming:
  * We do NOT emit from `on_chat_model_stream` because `streamEvents` yields
  * events from ALL model invocations, including nested ones
- * (ExplicitIntentInferrer, SemanticVerifier, IntentReconciler, IntentNetworker)
+ * (ExplicitIntentInferrer, SemanticVerifier, IntentReconciler, IntentIndexer)
  * inside tools. Those emit structured JSON that must not reach the user. The
  * chat agent uses `model.invoke()` so we don't get token-by-token streaming
  * anyway. We only emit the clean final response from `on_chain_end`.
