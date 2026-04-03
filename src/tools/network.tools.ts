@@ -9,7 +9,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   const { graphs, userDb, systemDb } = deps;
 
   const readIndexes = defineTool({
-    name: "read_indexes",
+    name: "read_networks",
     description: "Lists indexes the user is a member of and indexes they own. Optional userId (omit for current user). When chat is index-scoped, returns only that index.",
     querySchema: z.object({
       userId: z.string().optional().describe("Omit for current user."),
@@ -54,7 +54,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   });
 
   const readIndexMemberships = defineTool({
-    name: "read_index_memberships",
+    name: "read_network_memberships",
     description:
       "Reads index membership data. Two modes: (1) Pass networkId to list all members of that index (returns userId, name, avatar, permissions, intentCount, joinedAt). (2) Pass userId (or omit for current user) to list all indexes that user belongs to (returns networkId, networkTitle, permissions, joinedAt). Pass both to check whether a specific user is in a specific index. When chat is index-scoped, only that index can be queried.",
     querySchema: z.object({
@@ -66,7 +66,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
       const userId = query.userId?.trim() || undefined;
 
       if (networkId && !UUID_REGEX.test(networkId)) {
-        return error("Invalid index ID format. Use the exact UUID from read_indexes.");
+        return error("Invalid index ID format. Use the exact UUID from read_networks.");
       }
 
       // Mode 1: list members of an index
@@ -261,7 +261,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   }).strict();
 
   const updateNetwork = defineTool({
-    name: "update_index",
+    name: "update_network",
     description: "Updates an index (owner only). Pass networkId or omit when index-scoped.",
     querySchema: z.object({
       networkId: z.string().optional().describe("Index UUID; defaults to current index when scoped."),
@@ -300,7 +300,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   });
 
   const createNetwork = defineTool({
-    name: "create_index",
+    name: "create_network",
     description: "Creates a new index (community). You become the owner. Pass title; optional prompt, imageUrl, and joinPolicy ('anyone' | 'invite_only').",
     querySchema: z.object({
       title: z.string().describe("Display name of the index"),
@@ -346,10 +346,10 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   });
 
   const deleteNetwork = defineTool({
-    name: "delete_index",
+    name: "delete_network",
     description: "Deletes an index (owner only, must be sole member). When chat is index-scoped, can only delete that index.",
     querySchema: z.object({
-      networkId: z.string().optional().describe("Index UUID from read_indexes. Defaults to current index when scoped."),
+      networkId: z.string().optional().describe("Index UUID from read_networks. Defaults to current index when scoped."),
     }),
     handler: async ({ context, query }) => {
       const networkId = query.networkId?.trim() || context.networkId;
@@ -383,17 +383,17 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   });
 
   const createNetworkMembership = defineTool({
-    name: "create_index_membership",
+    name: "create_network_membership",
     description: "Adds a user as a member of an index. Omit userId to join the index yourself (self-join works only for public indexes with joinPolicy 'anyone'). For invite_only indexes only the owner can add members.",
     querySchema: z.object({
       userId: z.string().optional().describe("User ID to add as a member. Omit to join the index yourself."),
-      networkId: z.string().optional().describe("Index UUID from read_indexes. Defaults to current index when scoped."),
+      networkId: z.string().optional().describe("Index UUID from read_networks. Defaults to current index when scoped."),
     }),
     handler: async ({ context, query }) => {
       const networkId = query.networkId?.trim() || context.networkId;
       const targetUserId = query.userId?.trim() || context.userId;
       if (!networkId || !UUID_REGEX.test(networkId)) {
-        return error("Invalid index ID format. Use the exact UUID from read_indexes.");
+        return error("Invalid index ID format. Use the exact UUID from read_networks.");
       }
 
       // Strict scope enforcement: when chat is index-scoped, only allow adding to that index
@@ -431,7 +431,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   });
 
   const deleteNetworkMembership = defineTool({
-    name: "delete_index_membership",
+    name: "delete_network_membership",
     description: "Removes a user from an index. Only the index owner can remove members. Cannot remove the owner themselves.",
     querySchema: z.object({
       userId: z.string().describe("User ID to remove from the index"),
@@ -442,7 +442,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
       const targetUserId = query.userId?.trim();
 
       if (!networkId || !UUID_REGEX.test(networkId)) {
-        return error("Valid networkId required. Use the exact UUID from read_indexes.");
+        return error("Valid networkId required. Use the exact UUID from read_networks.");
       }
       if (!targetUserId) {
         return error("userId is required.");

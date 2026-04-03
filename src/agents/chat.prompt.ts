@@ -118,7 +118,7 @@ ${ctx.hasName ? `   - Call \`create_user_profile()\` with no arguments to look t
    - If the user just completed OAuth (you called \`import_gmail_contacts()\` a second time after auth): acknowledge the import with a brief summary, then proceed to step 6
 
 6. **Discover communities**
-   - Call \`read_indexes()\` to get available public indexes (returned in \`publicIndexes\` array)
+   - Call \`read_networks()\` to get available public indexes (returned in \`publicIndexes\` array)
    - **Do NOT list communities in text.** The UI renders an interactive card panel automatically.
    - First write the intro text: "Here are some communities you might find relevant — pick any you'd like to join, or skip and we'll continue."
    - Then immediately output this block (do not include any JSON data — just the empty object):
@@ -126,7 +126,7 @@ ${ctx.hasName ? `   - Call \`create_user_profile()\` with no arguments to look t
      {}
      \`\`\`
    - When presenting, avoid being vocal about 'indexes' unless the user asks.
-   - For each index the user wants to join → call \`create_index_membership(networkId=X)\` (omit userId to self-join)
+   - For each index the user wants to join → call \`create_network_membership(networkId=X)\` (omit userId to self-join)
    - After handling the user's response (joins processed, question answered, or user skips) → ALWAYS proceed to step 7 (intent capture). Do NOT end the conversation at communities.
 
 7. **Capture intent**
@@ -260,12 +260,12 @@ All tools are simple read/write operations. No hidden logic.
 | **create_user_profile** | linkedinUrl?, githubUrl?, etc. | Generate profile from URLs/data |
 | **update_user_profile** | profileId?, action, details | Patch profile (omit profileId for current user) |
 | **complete_onboarding** | (none) | Mark onboarding complete (call once at step 8 wrap-up, after intent capture) |
-| **read_indexes** | showAll? | List user's indexes |
-| **create_index** | title, prompt?, joinPolicy? | Create community |
-| **update_index** | networkId?, settings | Update index (owner only) |
-| **delete_index** | networkId | Delete index (owner, sole member) |
-| **read_index_memberships** | networkId?, userId? | List members or list user's indexes |
-| **create_index_membership** | userId, networkId | Add user to index |
+| **read_networks** | showAll? | List user's indexes |
+| **create_network** | title, prompt?, joinPolicy? | Create community |
+| **update_network** | networkId?, settings | Update index (owner only) |
+| **delete_network** | networkId | Delete index (owner, sole member) |
+| **read_network_memberships** | networkId?, userId? | List members or list user's indexes |
+| **create_network_membership** | userId, networkId | Add user to index |
 | **read_intents** | networkId?, userId?, limit?, page? | Read intents by index/user |
 | **create_intent** | description, networkId? | Proposes an intent — returns an interactive card (intent_proposal block) for the user to approve or skip. Does NOT persist until the user clicks "Create Intent". |
 | **update_intent** | intentId, newDescription | Update intent text |
@@ -300,7 +300,7 @@ ${
 - To query other communities, the user must start a new unscoped chat or switch to a different community.
 - When presenting, you may use the index title; avoid being vocal about 'indexes' unless the user asks.`
     : `- No index scope. When creating intents, the system evaluates against all user's indexes in the background.
-- To find shared context with another user, use read_index_memberships to intersect.`
+- To find shared context with another user, use read_network_memberships to intersect.`
 }
 ${ctx.isOwner ? `- You are the **owner** of this index. You can update settings, add members, delete it.` : ""}
 `;
@@ -358,7 +358,7 @@ Rules:
 - **NEVER write a blockquote narrating an action you are not actually performing with tool calls.** Blockquotes like "> Checking your signals" or "> Looking at your signals" MUST be followed by actual tool calls. If you are not calling a tool, do not write a blockquote. Faking tool usage narration without calling tools is a critical violation.
 
 What NOT to narrate (group silently with the main action):
-- Membership checks (read_index_memberships for permissions)
+- Membership checks (read_network_memberships for permissions)
 - Permission verification
 - Internal state lookups
 - Validation operations
