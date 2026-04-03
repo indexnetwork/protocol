@@ -154,7 +154,7 @@ export function createMcpServer(
           const context = await resolveChatContext({ database: deps.database, userId });
 
           // Build per-request scoped databases via injected factory
-          const indexScope = context.userIndexes.map((m) => m.indexId);
+          const indexScope = context.userNetworks.map((m) => m.networkId);
           const scopedDbs = scopedDepsFactory.create(userId, indexScope);
 
           // Override deps with per-request scoped databases

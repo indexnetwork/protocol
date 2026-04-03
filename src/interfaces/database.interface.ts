@@ -9,8 +9,8 @@ export type Id<T extends string = string> = string & { readonly __table?: T };
 export interface OnboardingState {
   completedAt?: string;
   flow?: 1 | 2 | 3;
-  currentStep?: 'profile' | 'summary' | 'connections' | 'create_index' | 'invite_members' | 'join_indexes';
-  indexId?: string;
+  currentStep?: 'profile' | 'summary' | 'connections' | 'create_network' | 'invite_members' | 'join_networks';
+  networkId?: string;
   invitationCode?: string;
 }
 
@@ -32,9 +32,9 @@ export interface OpportunityDetection {
   enrichedFrom?: string[];
 }
 
-/** A participant (user + index) involved in an opportunity. */
+/** A participant (user + network) involved in an opportunity. */
 export interface OpportunityActor {
-  indexId: Id<'indexes'>;
+  networkId: Id<'networks'>;
   userId: Id<'users'>;
   intent?: Id<'intents'>;
   role: string;
@@ -55,9 +55,9 @@ export interface OpportunityInterpretation {
   signals?: OpportunitySignal[];
 }
 
-/** Optional scoping context (index / conversation) for an opportunity. */
+/** Optional scoping context (network / conversation) for an opportunity. */
 export interface OpportunityContext {
-  indexId?: Id<'indexes'>;
+  networkId?: Id<'networks'>;
   conversationId?: Id<'conversations'>;
 }
 
