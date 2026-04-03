@@ -312,7 +312,7 @@ export interface ToolDeps {
     profile: CompiledGraph;
     intent: CompiledGraph;
     index: CompiledGraph;
-    indexMembership: CompiledGraph;
+    networkMembership: CompiledGraph;
     intentIndex: CompiledGraph;
     opportunity: CompiledOpportunityGraph;
   };

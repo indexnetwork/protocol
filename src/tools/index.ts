@@ -163,7 +163,7 @@ export async function createChatTools(
       profile: profileGraph,
       intent: intentGraph,
       index: networkGraph,
-      indexMembership: networkMembershipGraph,
+      networkMembership: networkMembershipGraph,
       intentIndex: intentNetworkGraph,
       opportunity: opportunityGraph,
     },

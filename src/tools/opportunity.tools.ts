@@ -327,14 +327,17 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         });
       }
 
+      // Normalize entity networkIds before any checks to avoid raw-vs-trimmed mismatches.
+      const normalizedEntities = query.entities?.map((e) => ({ ...e, networkId: e.networkId?.trim() }));
+
       // Derive partyUserIds from entities when agent passes entities but omits partyUserIds (intro mode).
-      // Only derive when all entities share the same networkId to prevent cross-index introductions.
+      // Only derive when all entities share the same networkId to prevent cross-network introductions.
       const partyUserIdsFromEntities =
-        query.entities &&
-        query.entities.length >= 2 &&
-        query.entities.every((e) => e.userId && e.networkId) &&
-        new Set(query.entities.map((e) => e.networkId)).size === 1
-          ? [...new Set(query.entities.map((e) => e.userId))]
+        normalizedEntities &&
+        normalizedEntities.length >= 2 &&
+        normalizedEntities.every((e) => e.userId && e.networkId) &&
+        new Set(normalizedEntities.map((e) => e.networkId)).size === 1
+          ? [...new Set(normalizedEntities.map((e) => e.userId))]
           : undefined;
       const effectivePartyUserIds =
         query.partyUserIds && query.partyUserIds.length >= 2
@@ -345,21 +348,21 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
 
       // ── Introduction mode ── (validation and persistence via opportunity graph)
       if (effectivePartyUserIds && effectivePartyUserIds.length >= 2) {
-        if (!query.entities || query.entities.length === 0) {
+        if (!normalizedEntities || normalizedEntities.length === 0) {
           return error(
             "Introduction requires pre-gathered entity data. " +
-              "First use read_index_memberships to find shared indexes, " +
+              "First use read_network_memberships to find shared networks, " +
               "then read_user_profiles and read_intents for each party, " +
               "then pass the results as entities.",
           );
         }
 
-        const normalizedEntityNetworkIds = query.entities
-          .map((e) => e.networkId?.trim())
+        const normalizedEntityNetworkIds = normalizedEntities
+          .map((e) => e.networkId)
           .filter((id): id is string => Boolean(id));
 
         if (
-          normalizedEntityNetworkIds.length !== query.entities.length ||
+          normalizedEntityNetworkIds.length !== normalizedEntities.length ||
           new Set(normalizedEntityNetworkIds).size !== 1
         ) {
           return error("All entities must include the same shared networkId.");
@@ -376,7 +379,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           );
         }
 
-        const evaluatorEntities: EvaluatorEntity[] = query.entities.map(
+        const evaluatorEntities: EvaluatorEntity[] = normalizedEntities.map(
           (e) => ({
             userId: e.userId,
             profile: e.profile ?? {},
@@ -530,7 +533,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         const _scopeGraphStart = Date.now();
         const _scopeIndexMembershipTraceEmitter = requestContext.getStore()?.traceEmitter;
         _scopeIndexMembershipTraceEmitter?.({ type: "graph_start", name: "network_membership" });
-        const memberResult = await graphs.indexMembership.invoke({
+        const memberResult = await graphs.networkMembership.invoke({
           userId: context.userId,
           networkId: effectiveIndexId,
           operationMode: "read" as const,

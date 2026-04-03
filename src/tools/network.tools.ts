@@ -81,7 +81,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
         const _readMembersGraphStart = Date.now();
         const _readMembersTraceEmitter = requestContext.getStore()?.traceEmitter;
         _readMembersTraceEmitter?.({ type: "graph_start", name: "network_membership" });
-        const result = await graphs.indexMembership.invoke({
+        const result = await graphs.networkMembership.invoke({
           userId: context.userId,
           networkId,
           operationMode: 'read' as const,
@@ -406,7 +406,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
       const _createMembershipGraphStart = Date.now();
       const _createMembershipTraceEmitter = requestContext.getStore()?.traceEmitter;
       _createMembershipTraceEmitter?.({ type: "graph_start", name: "network_membership" });
-      const result = await graphs.indexMembership.invoke({
+      const result = await graphs.networkMembership.invoke({
         userId: context.userId,
         networkId,
         targetUserId,
@@ -458,7 +458,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
       const _deleteMembershipGraphStart = Date.now();
       const _deleteMembershipTraceEmitter = requestContext.getStore()?.traceEmitter;
       _deleteMembershipTraceEmitter?.({ type: "graph_start", name: "network_membership" });
-      const result = await graphs.indexMembership.invoke({
+      const result = await graphs.networkMembership.invoke({
         userId: context.userId,
         networkId,
         targetUserId,

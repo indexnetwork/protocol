@@ -1903,7 +1903,7 @@ describe("list_opportunities tool (CHAT_DISPLAY_LIMIT cap)", () => {
         profile: noopGraph,
         intent: noopGraph,
         index: noopGraph,
-        indexMembership: noopGraph,
+        networkMembership: noopGraph,
         intentIndex: noopGraph,
         opportunity: noopGraph,
       },
