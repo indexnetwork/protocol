@@ -284,23 +284,23 @@ const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | '
     deleteProfile: db.deleteProfile ?? (async () => {}),
     getUser: db.getUser ?? (async () => null),
     updateUser: db.updateUser ?? (async () => null),
-    getIndexMemberships: db.getIndexMemberships ?? (async () => []),
+    getNetworkMemberships: db.getNetworkMemberships ?? (async () => []),
     getUserIndexIds: db.getUserIndexIds ?? (async () => []),
     getOwnedIndexes: db.getOwnedIndexes ?? (async () => []),
-    getIndexMembership: db.getIndexMembership ?? (async () => null),
+    getNetworkMembership: db.getNetworkMembership ?? (async () => null),
     getIndexMemberContext: db.getIndexMemberContext ?? (async () => null),
     createIndex: db.createIndex ?? (async () => ({ id: "", title: "" })),
     updateIndexSettings: db.updateIndexSettings ?? (async () => ({})),
     softDeleteIndex: db.softDeleteIndex ?? (async () => {}),
     getPublicIndexesNotJoined: db.getPublicIndexesNotJoined ?? (async () => ({ indexes: [] })),
-    joinPublicIndex: db.joinPublicIndex ?? (async () => {}),
+    joinPublicNetwork: db.joinPublicNetwork ?? (async () => {}),
     getOpportunitiesForUser: db.getOpportunitiesForUser ?? (async () => []),
     getOpportunity: db.getOpportunity ?? (async () => null),
     updateOpportunityStatus: db.updateOpportunityStatus ?? (async () => null),
     findSimilarIntents: db.findSimilarIntents ?? (async () => []),
     getIntentForIndexing: db.getIntentForIndexing ?? (async () => null),
     associateIntentWithIndexes: db.associateIntentWithIndexes ?? (async () => {}),
-    assignIntentToIndex: db.assignIntentToIndex ?? (async () => {}),
+    assignIntentToNetwork: db.assignIntentToNetwork ?? (async () => {}),
     unassignIntentFromIndex: db.unassignIntentFromIndex ?? (async () => {}),
     getIndexIdsForIntent: db.getIndexIdsForIntent ?? (async () => []),
     isIntentAssignedToIndex: db.isIntentAssignedToIndex ?? (async () => false),
@@ -312,7 +312,7 @@ const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | '
     deleteHydeDocumentsForSource: db.deleteHydeDocumentsForSource ?? (async () => {}),
   }) as unknown as import("../../interfaces/database.interface").UserDatabase,
   createSystemDatabase: (db: any, _userId: string, _scope: string[]) => ({
-    isIndexMember: db.isIndexMember ?? (async () => false),
+    isNetworkMember: db.isNetworkMember ?? (async () => false),
     isIndexOwner: db.isIndexOwner ?? (async () => false),
     getProfile: db.getProfile ?? (async () => null),
     getUser: db.getUser ?? (async () => null),
@@ -347,14 +347,14 @@ const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | '
 };
 
 describe("createChatTools", () => {
-  test("returns an array that includes read_intents, read_indexes, read_index_memberships", async () => {
+  test("returns an array that includes read_intents, read_networks, read_network_memberships", async () => {
     const mockDb = createMockDatabase(async () => []);
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
     expect(tools).toBeArray();
     expect(tools.find((t: { name: string }) => t.name === "read_intents")).toBeDefined();
-    expect(tools.find((t: { name: string }) => t.name === "read_indexes")).toBeDefined();
-    expect(tools.find((t: { name: string }) => t.name === "read_index_memberships")).toBeDefined();
+    expect(tools.find((t: { name: string }) => t.name === "read_networks")).toBeDefined();
+    expect(tools.find((t: { name: string }) => t.name === "read_network_memberships")).toBeDefined();
   });
 
   test("does not include list_opportunities (chat only proposes opportunities from create_opportunities; home shows the rest)", async () => {
@@ -469,7 +469,7 @@ describe("read_intents tool", () => {
     const result = await tool.invoke({ networkId: "not-a-uuid" });
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
-    expect(parsed.error).toMatch(/Invalid index ID/i);
+    expect(parsed.error).toMatch(/Invalid network ID/i);
   });
 });
 
@@ -745,7 +745,7 @@ describe("read_intents tool (no networkId)", () => {
   });
 });
 
-describe("read_index_memberships tool (list members)", () => {
+describe("read_network_memberships tool (list members)", () => {
   const memberIndexId = testIndexId;
   const mockMembers: IndexMemberDetails[] = [
     { userId: "u1", name: "Alice", avatar: null, email: "alice@example.com", permissions: ["member"], memberPrompt: null, autoAssign: true, joinedAt: new Date("2025-01-01"), intentCount: 2 },
@@ -762,7 +762,7 @@ describe("read_index_memberships tool (list members)", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "read_index_memberships") as { invoke: (args: { networkId: string }) => Promise<string> };
+    const tool = tools.find((t: { name: string }) => t.name === "read_network_memberships") as { invoke: (args: { networkId: string }) => Promise<string> };
     const result = await tool.invoke({ networkId: memberIndexId });
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
@@ -779,7 +779,7 @@ describe("read_index_memberships tool (list members)", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "read_index_memberships") as { invoke: (args: { networkId: string }) => Promise<string> };
+    const tool = tools.find((t: { name: string }) => t.name === "read_network_memberships") as { invoke: (args: { networkId: string }) => Promise<string> };
     const result = await tool.invoke({ networkId: memberIndexId });
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
@@ -791,7 +791,7 @@ describe("read_index_memberships tool (list members)", () => {
     const mockDb = createMockDatabase(async () => []);
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "read_index_memberships") as { invoke: (args: { networkId: string }) => Promise<string> };
+    const tool = tools.find((t: { name: string }) => t.name === "read_network_memberships") as { invoke: (args: { networkId: string }) => Promise<string> };
     const result = await tool.invoke({ networkId: "not-a-uuid" });
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
@@ -893,7 +893,7 @@ describe("scrape_url tool", () => {
   });
 });
 
-describe("read_indexes (Phase 3 index-scoped)", () => {
+describe("read_networks (Phase 3 network-scoped)", () => {
   const scopedIndexId = "a1b2c3d4-0000-4000-8000-000000000010";
 
   test("when context.networkId is set and showAll not true, returns only current index membership with scopeNote", async () => {
@@ -905,7 +905,7 @@ describe("read_indexes (Phase 3 index-scoped)", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, networkId: scopedIndexId, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "read_indexes") as { invoke: (args: { showAll?: boolean }) => Promise<string> };
+    const tool = tools.find((t: { name: string }) => t.name === "read_networks") as { invoke: (args: { showAll?: boolean }) => Promise<string> };
     const result = await tool.invoke({});
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
@@ -927,7 +927,7 @@ describe("read_indexes (Phase 3 index-scoped)", () => {
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, networkId: scopedIndexId, ...mockProtocolDeps };
     const tools = await createChatTools(context);
     // Note: showAll is no longer in querySchema, but even if passed it's ignored
-    const tool = tools.find((t: { name: string }) => t.name === "read_indexes") as { invoke: (args: Record<string, unknown>) => Promise<string> };
+    const tool = tools.find((t: { name: string }) => t.name === "read_networks") as { invoke: (args: Record<string, unknown>) => Promise<string> };
     const result = await tool.invoke({});
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);

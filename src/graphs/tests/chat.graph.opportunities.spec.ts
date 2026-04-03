@@ -158,7 +158,7 @@ describe("Chat Graph opportunity workflows", () => {
       const db = createChatGraphMockDb({
         activeIntents: () => [],
         intentsInIndexForMember: () => [],
-        indexMemberships: () => [],
+        networkMemberships: () => [],
         getIndex: () => null,
       });
       const result = await runOpportunityScenario(

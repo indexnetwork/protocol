@@ -49,7 +49,7 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
       const nameQuery = query.query?.trim() || undefined;
 
       if (effectiveIndexId && !UUID_REGEX.test(effectiveIndexId)) {
-        return error("Invalid index ID format. Use the exact UUID from read_indexes.");
+        return error("Invalid network ID format. Use the exact UUID from read_networks.");
       }
 
       // --- Name search mode: query provided → find members by name ---

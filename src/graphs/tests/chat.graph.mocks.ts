@@ -45,8 +45,8 @@ export interface ChatGraphMockConfig {
   ) => IndexedIntentDetails[] | Promise<IndexedIntentDetails[]>;
   /** Opportunities for user. */
   opportunitiesForUser?: (userId: string) => Opportunity[] | Promise<Opportunity[]>;
-  /** Index memberships for user. */
-  indexMemberships?: (userId: string) => NetworkMembership[] | Promise<NetworkMembership[]>;
+  /** Network memberships for user. */
+  networkMemberships?: (userId: string) => NetworkMembership[] | Promise<NetworkMembership[]>;
   /** Index by id (for scope validation). */
   getIndex?: (networkId: string) => { id: string; title: string } | null | Promise<{ id: string; title: string } | null>;
   /** (networkId, userId) -> is member. */
@@ -179,7 +179,7 @@ export function createChatGraphMockDb(
   const intentsInIndexForMember = config.intentsInIndexForMember ?? (() => []);
   const indexIntentsForOwner = config.indexIntentsForOwner ?? (() => []);
   const opportunitiesForUser = config.opportunitiesForUser ?? (() => []);
-  const indexMemberships = config.indexMemberships ?? (() => []);
+  const networkMemberships = config.networkMemberships ?? (() => []);
   const getIndex = config.getIndex ?? (() => null);
   const isNetworkMember = config.isNetworkMember ?? (() => false);
   const isIndexOwner = config.isIndexOwner ?? (() => false);
@@ -218,11 +218,11 @@ export function createChatGraphMockDb(
     updateIntent: noopNull,
     archiveIntent: async () => ({ success: true }),
     getUserIndexIds: async (userId: string) => {
-      const memberships = await Promise.resolve(indexMemberships(userId));
+      const memberships = await Promise.resolve(networkMemberships(userId));
       return Array.isArray(memberships) ? memberships.map((m) => m.networkId) : [];
     },
     getNetworkMemberships: async (userId: string) =>
-      Promise.resolve(indexMemberships(userId)).then((f) => (Array.isArray(f) ? f : [])),
+      Promise.resolve(networkMemberships(userId)).then((f) => (Array.isArray(f) ? f : [])),
     getIndex: async (networkId: string) => Promise.resolve(getIndex(networkId)),
     getNetworkMembership: async (networkId: string, userId: string) => {
       const index = await Promise.resolve(getIndex(networkId));

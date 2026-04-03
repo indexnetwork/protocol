@@ -536,7 +536,7 @@ export async function runDiscoverFromQuery(
       found: false,
       count: 0,
       message:
-        "You need to join at least one index (community) to discover opportunities. Use read_indexes to see available indexes, or create one.",
+        "You need to join at least one network (community) to discover opportunities. Use read_networks to see available networks, or create one.",
     };
   }
 

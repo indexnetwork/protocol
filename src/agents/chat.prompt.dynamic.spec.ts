@@ -372,7 +372,7 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
           return completedUser(userId);
         },
         profile: mockProfile({ userId: testUserId, name: "Test User" }),
-        indexMemberships: (userId: string) => {
+        networkMemberships: (userId: string) => {
           if (userId === testUserId || userId === "user-alice")
             return [sharedMembership()];
           return [];
@@ -488,7 +488,7 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
       const communityDb = createChatGraphMockDb({
         getUser: (userId: string) => completedUser(userId),
         profile: mockProfile({ userId: testUserId, name: "Test User" }),
-        indexMemberships: (userId: string) => {
+        networkMemberships: (userId: string) => {
           if (userId === testUserId)
             return [
               sharedMembership(),
@@ -566,7 +566,7 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
           return completedUser(userId);
         },
         profile: mockProfile({ userId: testUserId, name: "Test User" }),
-        indexMemberships: (userId: string) => {
+        networkMemberships: (userId: string) => {
           if (
             userId === testUserId ||
             userId === "user-alice" ||

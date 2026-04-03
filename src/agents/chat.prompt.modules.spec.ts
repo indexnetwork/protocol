@@ -91,17 +91,17 @@ describe("extractRecentToolCalls", () => {
         tool_calls: [
           { id: "tc1", name: "read_user_profiles", args: { userId: "alice" }, type: "tool_call" },
           { id: "tc2", name: "read_user_profiles", args: { userId: "bob" }, type: "tool_call" },
-          { id: "tc3", name: "read_index_memberships", args: { userId: "alice" }, type: "tool_call" },
+          { id: "tc3", name: "read_network_memberships", args: { userId: "alice" }, type: "tool_call" },
         ],
       }),
       new ToolMessage({ tool_call_id: "tc1", content: "alice profile", name: "read_user_profiles" }),
       new ToolMessage({ tool_call_id: "tc2", content: "bob profile", name: "read_user_profiles" }),
-      new ToolMessage({ tool_call_id: "tc3", content: "alice memberships", name: "read_index_memberships" }),
+      new ToolMessage({ tool_call_id: "tc3", content: "alice memberships", name: "read_network_memberships" }),
     ];
     const result = extractRecentToolCalls(messages);
     expect(result).toHaveLength(3);
     expect(result[0]).toEqual({ name: "read_user_profiles", args: { userId: "alice" } });
-    expect(result[2]).toEqual({ name: "read_index_memberships", args: { userId: "alice" } });
+    expect(result[2]).toEqual({ name: "read_network_memberships", args: { userId: "alice" } });
   });
 });
 
@@ -225,9 +225,9 @@ describe("resolveModules", () => {
     expect(result).toContain("### 3. User includes a URL");
   });
 
-  test("activates community module on read_indexes trigger", () => {
+  test("activates community module on read_networks trigger", () => {
     const iterCtx: IterationContext = {
-      recentTools: [{ name: "read_indexes", args: {} }],
+      recentTools: [{ name: "read_networks", args: {} }],
       ctx: mockCtx(),
     };
     const result = resolveModules(iterCtx);
@@ -245,9 +245,9 @@ describe("resolveModules", () => {
     expect(result).toContain("### 10. Add or manage contacts manually");
   });
 
-  test("activates shared-context module on read_index_memberships trigger", () => {
+  test("activates shared-context module on read_network_memberships trigger", () => {
     const iterCtx: IterationContext = {
-      recentTools: [{ name: "read_index_memberships", args: {} }],
+      recentTools: [{ name: "read_network_memberships", args: {} }],
       ctx: mockCtx(),
     };
     const result = resolveModules(iterCtx);
@@ -467,9 +467,9 @@ describe("buildSystemContent snapshot identity", () => {
         { name: "update_intent", args: {} },                          // intent-management
         { name: "read_user_profiles", args: {} },                     // person-lookup
         { name: "scrape_url", args: {} },                             // url-scraping
-        { name: "read_indexes", args: {} },                           // community
+        { name: "read_networks", args: {} },                           // community
         { name: "add_contact", args: {} },                            // contacts
-        { name: "read_index_memberships", args: {} },                 // shared-context
+        { name: "read_network_memberships", args: {} },                 // shared-context
       ],
       currentMessage: "check @[Alice](user-1) and https://example.com", // mentions + url regex
       ctx,

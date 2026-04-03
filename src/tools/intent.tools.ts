@@ -40,7 +40,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
   const readIntents = defineTool({
     name: "read_intents",
     description:
-      "Reads intents (what people are looking for). No networkId: returns the user's own active intents. With networkId: returns all intents in that index; add userId to filter to one user. To find other members' intents, use read_index_memberships first, then read_intents per index.",
+      "Reads intents (what people are looking for). No networkId: returns the user's own active intents. With networkId: returns all intents in that network; add userId to filter to one user. To find other members' intents, use read_network_memberships first, then read_intents per network.",
     querySchema: z.object({
       networkId: z.string().optional().describe("Index UUID — filters intents to this index. Defaults to current index when scoped."),
       userId: z.string().optional().describe("User ID — filters to this user's intents. Combined with networkId: that user's intents in that index."),
@@ -375,7 +375,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
     description: "Links an intent to an index. Requires intentId and networkId. When chat is index-scoped, can only link to the scoped index.",
     querySchema: z.object({
       intentId: z.string().describe("Intent UUID from read_intents"),
-      networkId: z.string().optional().describe("Index UUID from read_indexes. Defaults to current index when scoped."),
+      networkId: z.string().optional().describe("Network UUID from read_networks. Defaults to current network when scoped."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);

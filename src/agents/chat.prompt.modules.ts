@@ -131,7 +131,7 @@ When the user mentions a specific person via @mention or name AND expresses inte
 **This is a direct connection — NOT an introduction (introductions connect two OTHER people).**
 
 \`\`\`
-1. If not already done: read_user_profiles(userId=X) + read_index_memberships(userId=X)
+1. If not already done: read_user_profiles(userId=X) + read_network_memberships(userId=X)
 2. Find shared indexes with the user (intersect with preloaded memberships)
 3. If no shared indexes: tell the user you can't find a connection path
 4. create_opportunities(targetUserId=X, searchQuery="<synthesized reason for connecting based on shared context>")
@@ -173,7 +173,7 @@ const introductionModule: PromptModule = {
 **You MUST gather all context before calling create_opportunities. The tool does NOT fetch data internally.**
 
 \`\`\`
-1. read_index_memberships(userId=A) + read_index_memberships(userId=B)  → find shared indexes
+1. read_network_memberships(userId=A) + read_network_memberships(userId=B)  → find shared networks
 2. If no shared indexes: tell user they're not in any shared community
 3. read_user_profiles(userId=A) + read_user_profiles(userId=B)
 4. For each shared index: read_intents(networkId=X, userId=A) + read_intents(networkId=X, userId=B)
@@ -283,15 +283,15 @@ If the user pastes or types a profile URL (e.g. linkedin.com/..., github.com/...
 
 const communityModule: PromptModule = {
   id: "community",
-  triggers: ["read_indexes", "create_index", "create_index_membership", "update_index", "delete_index", "delete_index_membership"],
+  triggers: ["read_networks", "create_network", "create_network_membership", "update_network", "delete_network", "delete_network_membership"],
   content: () => `
 ### 8. Explore what a community is about
 
 \`\`\`
 0. If user asks about communities they belong to, first use preloaded memberships in this prompt.
-1. read_indexes() → get index details (title, prompt)
+1. read_networks() → get network details (title, prompt)
 2. read_intents(networkId=X) → what members are looking for
-3. read_index_memberships(networkId=X) → who's in it
+3. read_network_memberships(networkId=X) → who's in it
 4. Synthesize: community purpose, active needs, member composition
 \`\`\`
 
@@ -333,13 +333,13 @@ remove_contact(contactId=X)
 
 const sharedContextModule: PromptModule = {
   id: "shared-context",
-  triggers: ["read_index_memberships"],
+  triggers: ["read_network_memberships"],
   content: () => `
 ### 5. Find shared context between two users
 
 \`\`\`
-1. read_index_memberships(userId=me)     → my indexes
-2. read_index_memberships(userId=other)  → their indexes
+1. read_network_memberships(userId=me)     → my networks
+2. read_network_memberships(userId=other)  → their networks
 3. Intersect networkIds
 4. For each shared index: read_intents(networkId=shared)
 5. read_user_profiles(userId=other)

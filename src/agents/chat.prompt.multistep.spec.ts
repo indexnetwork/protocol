@@ -234,7 +234,7 @@ describe("Multi-step: introduction flow with exclusion", () => {
 
     // Iteration 2: agent gathers context
     messages = withToolCall(messages, "read_user_profiles", { userId: "user-a" });
-    messages = withToolCall(messages, "read_index_memberships", { userId: "user-a" });
+    messages = withToolCall(messages, "read_network_memberships", { userId: "user-a" });
     const iter2 = iterCtxFrom(messages, ctx);
     const iter2Result = resolveModules(iter2);
     // person-lookup + shared-context active
