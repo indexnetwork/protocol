@@ -2,8 +2,11 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "rootDir": "..",
-    "lib": ["ES2020", "ESNext.AsyncIterable"],
-    "noEmit": true
+    "lib": ["es2020", "esnext.asynciterable"],
+    "noEmit": true,
+    "types": ["node", "bun"],
+    "typeRoots": ["../node_modules/@types", "../../../node_modules/@types"]
   },
-  "include": ["**/*", "../src/**/*"]
+  "include": ["**/*", "../src/**/*"],
+  "exclude": ["node_modules", "../node_modules", "../dist"]
 }

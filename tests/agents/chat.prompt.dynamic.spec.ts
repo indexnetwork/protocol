@@ -1,5 +1,5 @@
 /**
- * Chat Prompt Dynamic Modules: Smartest-driven behavioral tests.
+ * Chat Prompt Dynamic Modules: behavioral tests.
  *
  * Verifies that the dynamically assembled prompt (core + modules) produces
  * correct agent behavior for key scenarios:
@@ -21,21 +21,20 @@ import { config } from "dotenv";
 config({ path: ".env.test" });
 
 import { describe, test, expect, beforeAll } from "bun:test";
-import { z } from "zod";
 import { HumanMessage, type BaseMessage } from "@langchain/core/messages";
 
-import { runScenario, defineScenario, expectSmartest } from "../../smartest.js";
-import { ChatGraphFactory } from "../graphs/chat.graph.js";
-import type { Embedder } from "../interfaces/embedder.interface.js";
-import type { Scraper } from "../interfaces/scraper.interface.js";
+import { assertLLM } from "../support/llm-assert.js";
+import { ChatGraphFactory } from "../../src/graphs/chat.graph.js";
+import type { Embedder } from "../../src/interfaces/embedder.interface.js";
+import type { Scraper } from "../../src/interfaces/scraper.interface.js";
 import {
   createChatGraphMockDb,
   mockProfile,
   mockActiveIntent,
   createMockProtocolDeps,
-} from "../graphs/tests/chat.graph.mocks.js";
-import type { ChatSessionReader } from "../interfaces/chat-session.interface.js";
-import type { NetworkMembership } from "../interfaces/database.interface.js";
+} from "../../src/graphs/tests/chat.graph.mocks.js";
+import type { ChatSessionReader } from "../../src/interfaces/chat-session.interface.js";
+import type { NetworkMembership } from "../../src/interfaces/database.interface.js";
 
 /**
  * Checks if any AIMessage in the output messages array made a tool call with the given name.
@@ -73,14 +72,6 @@ function getToolCallArgs(
 
 const testUserId = "test-dynamic-prompt-user";
 
-const chatGraphOutputSchema = z.object({
-  messages: z.array(z.unknown()),
-  responseText: z.string().optional(),
-  iterationCount: z.number().optional(),
-  shouldContinue: z.boolean().optional(),
-  error: z.string().optional(),
-});
-
 const mockEmbedder: Embedder = {
   generate: async () => [],
   generateForDocuments: async () => [],
@@ -107,7 +98,7 @@ function completedUser(userId: string, nameOverride?: string) {
 const SHARED_INDEX_ID = "idx-shared-ai-builders";
 const SHARED_INDEX = { id: SHARED_INDEX_ID, title: "AI Builders" };
 
-/** Build an NetworkMembership for a user in the shared index. */
+/** Build a NetworkMembership for a user in the shared index. */
 function sharedMembership(extra?: Partial<NetworkMembership>): NetworkMembership {
   return {
     networkId: SHARED_INDEX_ID,
@@ -125,7 +116,7 @@ function sharedMembership(extra?: Partial<NetworkMembership>): NetworkMembership
 const mockChatSession: ChatSessionReader = { getSessionMessages: async () => [] };
 const mockProtocolDeps = createMockProtocolDeps();
 
-describe("Chat Prompt Dynamic Modules (Smartest)", () => {
+describe("Chat Prompt Dynamic Modules", () => {
   let factory: ChatGraphFactory;
 
   beforeAll(() => {
@@ -139,41 +130,16 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
     test("'find me a mentor in AI' calls create_opportunities, not create_intent", async () => {
       const compiledGraph = factory.createGraph();
 
-      const result = await runScenario(
-        defineScenario({
-          name: "dynamic-prompt-discovery-routing",
-          description:
-            "User says 'find me a mentor in AI'. The core prompt rule routes connection-seeking to create_opportunities, not create_intent. This validates the first iteration before any modules are loaded.",
-          fixtures: {
-            userId: testUserId,
-            message: "find me a mentor in AI",
-          },
-          sut: {
-            type: "graph",
-            factory: () => compiledGraph,
-            invoke: async (instance: unknown, resolvedInput: unknown) => {
-              const input = resolvedInput as { userId: string; message: string };
-              return await (instance as ReturnType<ChatGraphFactory["createGraph"]>).invoke({
-                userId: input.userId,
-                messages: [new HumanMessage(input.message)],
-              });
-            },
-            input: {
-              userId: "@fixtures.userId",
-              message: "@fixtures.message",
-            },
-          },
-          verification: {
-            schema: chatGraphOutputSchema,
-            criteria:
-              "Agent must have called create_opportunities tool (not create_intent). Response should present connections or state no matches found.",
-            llmVerify: true,
-          },
-        })
+      const output = await compiledGraph.invoke({
+        userId: testUserId,
+        messages: [new HumanMessage("find me a mentor in AI")],
+      });
+
+      await assertLLM(
+        output,
+        "Agent must have called create_opportunities tool (not create_intent). Response should present connections or state no matches found.",
       );
 
-      expectSmartest(result);
-      const output = result.output as { responseText?: string; messages?: unknown[] };
       expect(output.responseText).toBeDefined();
       expect(output.responseText!.length).toBeGreaterThan(0);
 
@@ -187,41 +153,16 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
     test("message with URL triggers scrape_url call", async () => {
       const compiledGraph = factory.createGraph();
 
-      const result = await runScenario(
-        defineScenario({
-          name: "dynamic-prompt-url-scraping",
-          description:
-            "User sends a message containing a URL. The regex trigger on the url-scraping module should match, and the agent should call scrape_url with the URL before responding.",
-          fixtures: {
-            userId: testUserId,
-            message: "check out https://example.com/article and tell me what it's about",
-          },
-          sut: {
-            type: "graph",
-            factory: () => compiledGraph,
-            invoke: async (instance: unknown, resolvedInput: unknown) => {
-              const input = resolvedInput as { userId: string; message: string };
-              return await (instance as ReturnType<ChatGraphFactory["createGraph"]>).invoke({
-                userId: input.userId,
-                messages: [new HumanMessage(input.message)],
-              });
-            },
-            input: {
-              userId: "@fixtures.userId",
-              message: "@fixtures.message",
-            },
-          },
-          verification: {
-            schema: chatGraphOutputSchema,
-            criteria:
-              "Agent must have called scrape_url tool with the URL. Response should summarize or reference the scraped content.",
-            llmVerify: true,
-          },
-        })
+      const output = await compiledGraph.invoke({
+        userId: testUserId,
+        messages: [new HumanMessage("check out https://example.com/article and tell me what it's about")],
+      });
+
+      await assertLLM(
+        output,
+        "Agent must have called scrape_url tool with the URL. Response should summarize or reference the scraped content.",
       );
 
-      expectSmartest(result);
-      const output = result.output as { responseText?: string; messages?: unknown[] };
       expect(output.responseText).toBeDefined();
       expect(output.responseText!.length).toBeGreaterThan(0);
 
@@ -243,41 +184,16 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
       const mentionFactory = new ChatGraphFactory(mockDatabase, mockEmbedder, mockScraper, mockChatSession, mockProtocolDeps);
       const compiledGraph = mentionFactory.createGraph();
 
-      const result = await runScenario(
-        defineScenario({
-          name: "dynamic-prompt-mention-handling",
-          description:
-            "User sends a message with @[Alice Smith](user-123) markup. The mentions module regex trigger should match, and the agent should extract the userId and call read_user_profiles to look up that user.",
-          fixtures: {
-            userId: testUserId,
-            message: "tell me about @[Alice Smith](user-123)",
-          },
-          sut: {
-            type: "graph",
-            factory: () => compiledGraph,
-            invoke: async (instance: unknown, resolvedInput: unknown) => {
-              const input = resolvedInput as { userId: string; message: string };
-              return await (instance as ReturnType<ChatGraphFactory["createGraph"]>).invoke({
-                userId: input.userId,
-                messages: [new HumanMessage(input.message)],
-              });
-            },
-            input: {
-              userId: "@fixtures.userId",
-              message: "@fixtures.message",
-            },
-          },
-          verification: {
-            schema: chatGraphOutputSchema,
-            criteria:
-              "Agent must have attempted to look up information about Alice (called read_user_profiles or similar tool). Response should mention Alice by name — either presenting information or acknowledging the lookup attempt.",
-            llmVerify: true,
-          },
-        })
+      const output = await compiledGraph.invoke({
+        userId: testUserId,
+        messages: [new HumanMessage("tell me about @[Alice Smith](user-123)")],
+      });
+
+      await assertLLM(
+        output,
+        "Agent must have attempted to look up information about Alice (called read_user_profiles or similar tool). Response should mention Alice by name — either presenting information or acknowledging the lookup attempt.",
       );
 
-      expectSmartest(result);
-      const output = result.output as { responseText?: string; messages?: unknown[] };
       expect(output.responseText).toBeDefined();
       expect(output.responseText!.length).toBeGreaterThan(0);
 
@@ -625,7 +541,6 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
         oppArgs?.introTargetUserId !== undefined;
       expect(isIntroduction).toBe(true);
 
-      // Agent should NOT have only used discovery-style (no partyUserIds/introTargetUserId)
       // If partyUserIds is set, verify it contains alice and bob
       if (oppArgs?.partyUserIds) {
         const parties = oppArgs.partyUserIds as string[];
