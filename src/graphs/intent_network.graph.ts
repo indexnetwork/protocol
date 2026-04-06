@@ -95,7 +95,7 @@ export class IntentNetworkGraphFactory {
             return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "Intent not found for networking." } };
           }
 
-          const indexContext = await this.database.getIndexMemberContext(networkId, intentForIndexing.userId);
+          const indexContext = await this.database.getNetworkMemberContext(networkId, intentForIndexing.userId);
           if (!indexContext) {
             // No prompts or not eligible - auto-assign
             await this.database.assignIntentToNetwork(intentId, networkId, 1.0);
@@ -276,7 +276,7 @@ export class IntentNetworkGraphFactory {
 
           // All intents or filtered by user
           if (!state.queryUserId) {
-            const intents = await this.database.getIndexIntentsForMember(networkId, state.userId, { limit: 50, offset: 0 });
+            const intents = await this.database.getNetworkIntentsForMember(networkId, state.userId, { limit: 50, offset: 0 });
             return {
               readResult: {
                 links: intents.map((i) => ({

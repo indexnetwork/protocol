@@ -114,13 +114,13 @@ const BARE_URL_REGEX = /(?<!\w:\/\/)(?<![/\w])(?:www\.)?[a-z0-9](?:[a-z0-9-]*[a-
 /** UUID v4 format: 8-4-4-4-12 hex chars (e.g. c2505011-2e45-426e-81dd-b9abb9b72023) */
 export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /**
- * Resolves an array of index IDs to their display titles.
- * Skips any IDs that don't resolve (deleted or invalid indexes).
+ * Resolves an array of network IDs to their display titles.
+ * Skips any IDs that don't resolve (deleted or invalid networks).
  */
-export async function resolveIndexNames(database, indexIds) {
-    if (indexIds.length === 0)
+export async function resolveIndexNames(database, networkIds) {
+    if (networkIds.length === 0)
         return [];
-    const results = await Promise.all(indexIds.map(id => database.getNetwork(id)));
+    const results = await Promise.all(networkIds.map(id => database.getNetwork(id)));
     return results.filter(Boolean).map(idx => idx.title);
 }
 /**

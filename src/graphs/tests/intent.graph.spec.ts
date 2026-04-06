@@ -45,7 +45,7 @@ const createMockDatabase = (): IntentGraphDatabase => {
     async isNetworkMember(_indexId: string, _userId: string): Promise<boolean> {
       return true;
     },
-    async getIndexIntentsForMember(_indexId: string, _requestingUserId: string, _options?: { limit?: number; offset?: number }) {
+    async getNetworkIntentsForMember(_indexId: string, _requestingUserId: string, _options?: { limit?: number; offset?: number }) {
       return intents.map(i => ({
         id: i.id,
         payload: i.payload,

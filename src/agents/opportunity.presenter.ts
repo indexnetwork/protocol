@@ -26,7 +26,7 @@ import { stripUuids, stripIntroducerMentions } from "../support/opportunity.sani
  */
 export type PresenterDatabase = Pick<
   ChatGraphCompositeDatabase,
-  "getProfile" | "getActiveIntents" | "getIndex"
+  "getProfile" | "getActiveIntents" | "getNetwork"
 >;
 
 const logger = protocolLogger("OpportunityPresenter");
@@ -493,7 +493,7 @@ export async function gatherPresenterContext(
   // For other roles: fetch viewer's profile + intents and other party profiles.
   const [viewerProfile, indexRecord, ...otherProfiles] = await Promise.all([
     database.getProfile(viewerId),
-    contextIndexId ? database.getIndex(contextIndexId) : Promise.resolve(null),
+    contextIndexId ? database.getNetwork(contextIndexId) : Promise.resolve(null),
     ...otherPartyIds.map((uid) => database.getProfile(uid)),
   ]);
 

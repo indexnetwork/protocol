@@ -119,7 +119,7 @@ describe("Chat Graph opportunity workflows", () => {
             : uid === testUserId
               ? { id: uid, name: "Test User", email: "" }
               : null,
-        getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "Test Index" } : null),
+        getNetwork: (id) => (id === testIndexId ? { id: testIndexId, title: "Test Index" } : null),
       });
       const result = await runOpportunityScenario(db, "What opportunities do I have?");
       expectSmartest(result);
@@ -159,7 +159,7 @@ describe("Chat Graph opportunity workflows", () => {
         activeIntents: () => [],
         intentsInIndexForMember: () => [],
         networkMemberships: () => [],
-        getIndex: () => null,
+        getNetwork: () => null,
       });
       const result = await runOpportunityScenario(
         db,
@@ -177,7 +177,7 @@ describe("Chat Graph opportunity workflows", () => {
 
     test("Find me opportunities with intents in index → create_opportunities path, coherent reply", async () => {
       const db = createChatGraphMockDb({
-        getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "Founders" } : null),
+        getNetwork: (id) => (id === testIndexId ? { id: testIndexId, title: "Founders" } : null),
         isNetworkMember: (id, uid) => id === testIndexId && uid === testUserId,
         activeIntents: (uid) =>
           uid === testUserId

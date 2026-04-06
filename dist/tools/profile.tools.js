@@ -56,7 +56,7 @@ export function createProfileTools(defineTool, deps) {
                     if (!callerIsMember) {
                         return error("You can only look up people in indexes you are a member of.");
                     }
-                    const members = await systemDb.getIndexMembers(searchIndexId);
+                    const members = await systemDb.getNetworkMembers(searchIndexId);
                     candidates = members.map((m) => ({ userId: m.userId, name: m.name, avatar: m.avatar ?? null }));
                 }
                 else {
@@ -114,7 +114,7 @@ export function createProfileTools(defineTool, deps) {
                     return error("You can only read profiles from indexes you are a member of.");
                 }
                 // Use systemDb for cross-user access within shared indexes
-                const members = await systemDb.getIndexMembers(effectiveIndexId);
+                const members = await systemDb.getNetworkMembers(effectiveIndexId);
                 const profiles = await Promise.all(members.map(async (member) => {
                     const profile = await systemDb.getProfile(member.userId);
                     return {
@@ -496,15 +496,15 @@ export function createProfileTools(defineTool, deps) {
                 .split(',')
                 .map(id => id.trim())
                 .filter(Boolean);
-            for (const indexId of autoJoinIds) {
+            for (const networkId of autoJoinIds) {
                 try {
-                    await database.addMemberToNetwork(indexId, context.userId, 'member');
+                    await database.addMemberToNetwork(networkId, context.userId, 'member');
                 }
                 catch (err) {
-                    logger.warn('Auto-join index failed (non-fatal)', { indexId, userId: context.userId, error: err instanceof Error ? err.message : String(err) });
+                    logger.warn('Auto-join network failed (non-fatal)', { networkId, userId: context.userId, error: err instanceof Error ? err.message : String(err) });
                 }
             }
-            logger.info("Onboarding completed", { userId: context.userId, autoJoinedIndexes: autoJoinIds.length });
+            logger.info("Onboarding completed", { userId: context.userId, autoJoinedNetworks: autoJoinIds.length });
             return success({ message: "Onboarding complete." });
         },
     });

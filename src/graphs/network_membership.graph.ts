@@ -39,7 +39,7 @@ export class NetworkMembershipGraphFactory {
         }
 
         try {
-          const indexRecord = await this.database.getIndexWithPermissions(state.networkId);
+          const indexRecord = await this.database.getNetworkWithPermissions(state.networkId);
           if (!indexRecord) {
             return { mutationResult: { success: false, error: "Index not found." } };
           }
@@ -121,7 +121,7 @@ export class NetworkMembershipGraphFactory {
             };
           }
 
-          const members = await this.database.getIndexMembersForMember(state.networkId, state.userId);
+          const members = await this.database.getNetworkMembersForMember(state.networkId, state.userId);
           return {
             readResult: {
               networkId: state.networkId,

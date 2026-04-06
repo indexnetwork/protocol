@@ -74,7 +74,7 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
           if (!callerIsMember) {
             return error("You can only look up people in indexes you are a member of.");
           }
-          const members = await systemDb.getIndexMembers(searchIndexId);
+          const members = await systemDb.getNetworkMembers(searchIndexId);
           candidates = members.map((m) => ({ userId: m.userId, name: m.name, avatar: m.avatar ?? null }));
         } else {
           // Search across all user's indexes
@@ -146,7 +146,7 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
         }
 
         // Use systemDb for cross-user access within shared indexes
-        const members = await systemDb.getIndexMembers(effectiveIndexId);
+        const members = await systemDb.getNetworkMembers(effectiveIndexId);
         const profiles = await Promise.all(
           members.map(async (member) => {
             const profile = await systemDb.getProfile(member.userId);

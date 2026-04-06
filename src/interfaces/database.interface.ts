@@ -653,12 +653,12 @@ export interface Database {
   /**
    * Get index by ID (id and title only). Used for opportunity presentation.
    */
-  getIndex(networkId: string): Promise<{ id: string; title: string } | null>;
+  getNetwork(networkId: string): Promise<{ id: string; title: string } | null>;
 
   /**
    * Get index by ID with permissions (e.g. joinPolicy). Used by chat tools for create_index_membership.
    */
-  getIndexWithPermissions(networkId: string): Promise<{ id: string; title: string; permissions: { joinPolicy: 'anyone' | 'invite_only' } } | null>;
+  getNetworkWithPermissions(networkId: string): Promise<{ id: string; title: string; permissions: { joinPolicy: 'anyone' | 'invite_only' } } | null>;
 
   /**
    * Associates an intent with one or more networks.
@@ -728,7 +728,7 @@ export interface Database {
    * Index + member prompts for a user in an index (only when member has autoAssign).
    * Returns null if user is not a member or autoAssign is false.
    */
-  getIndexMemberContext(
+  getNetworkMemberContext(
     networkId: string,
     userId: string
   ): Promise<{
@@ -819,7 +819,7 @@ export interface Database {
    * @returns Array of member details with intent counts
    * @throws Error if requestingUserId is not an owner
    */
-  getIndexMembersForOwner(
+  getNetworkMembersForOwner(
     networkId: string,
     requestingUserId: string
   ): Promise<IndexMemberDetails[]>;
@@ -827,14 +827,14 @@ export interface Database {
   /**
    * Get all members of an index with their details.
    * **MEMBER ONLY** - any member of the index can list members (not just owners).
-   * Returns same shape as getIndexMembersForOwner; email may be omitted for privacy.
+   * Returns same shape as getNetworkMembersForOwner; email may be omitted for privacy.
    *
    * @param networkId - The index to get members for
    * @param requestingUserId - The user requesting (must be a member of the index)
    * @returns Array of member details with intent counts
    * @throws Error if requestingUserId is not a member of the index
    */
-  getIndexMembersForMember(
+  getNetworkMembersForMember(
     networkId: string,
     requestingUserId: string
   ): Promise<IndexMemberDetails[]>;
@@ -858,7 +858,7 @@ export interface Database {
    * @returns Array of intent details with owner info
    * @throws Error if requestingUserId is not an owner
    */
-  getIndexIntentsForOwner(
+  getNetworkIntentsForOwner(
     networkId: string,
     requestingUserId: string,
     options?: { limit?: number; offset?: number }
@@ -874,7 +874,7 @@ export interface Database {
    * @returns Array of intent details with owner info
    * @throws Error if requestingUserId is not a member of the index
    */
-  getIndexIntentsForMember(
+  getNetworkIntentsForMember(
     networkId: string,
     requestingUserId: string,
     options?: { limit?: number; offset?: number }
@@ -945,7 +945,7 @@ export interface Database {
    * @param networkId - The index to count
    * @returns Number of members
    */
-  getIndexMemberCount(networkId: string): Promise<number>;
+  getNetworkMemberCount(networkId: string): Promise<number>;
 
   /**
    * Add a user as a member of a network.
@@ -1352,7 +1352,7 @@ export interface UserDatabase {
   getNetworkMembership(networkId: string): Promise<NetworkMembership | null>;
 
   /** Get index + member context for the authenticated user (for auto-assign). */
-  getIndexMemberContext(networkId: string): Promise<{
+  getNetworkMemberContext(networkId: string): Promise<{
     networkId: string;
     indexPrompt: string | null;
     memberPrompt: string | null;
@@ -1493,7 +1493,7 @@ export interface SystemDatabase {
   isIndexOwner(networkId: string, userId: string): Promise<boolean>;
 
   /** Get all members of an index (requires membership). */
-  getIndexMembers(networkId: string): Promise<IndexMemberDetails[]>;
+  getNetworkMembers(networkId: string): Promise<IndexMemberDetails[]>;
 
   /** Get all members across all indexes in scope (deduplicated). */
   getMembersFromScope(): Promise<{ userId: Id<'users'>; name: string; avatar: string | null }[]>;
@@ -1509,13 +1509,13 @@ export interface SystemDatabase {
   // ─────────────────────────────────────────────────────────────────────────────
 
   /** Get index info by ID (requires scope). */
-  getIndex(networkId: string): Promise<{ id: string; title: string } | null>;
+  getNetwork(networkId: string): Promise<{ id: string; title: string } | null>;
 
   /** Get index with permissions (requires scope). */
-  getIndexWithPermissions(networkId: string): Promise<{ id: string; title: string; permissions: { joinPolicy: 'anyone' | 'invite_only' } } | null>;
+  getNetworkWithPermissions(networkId: string): Promise<{ id: string; title: string; permissions: { joinPolicy: 'anyone' | 'invite_only' } } | null>;
 
   /** Get member count for an index (requires scope). */
-  getIndexMemberCount(networkId: string): Promise<number>;
+  getNetworkMemberCount(networkId: string): Promise<number>;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Opportunity Operations (cross-user within scope)
@@ -1649,10 +1649,10 @@ export type ChatGraphCompositeDatabase = Pick<
   | 'getUserIndexIds'
   | 'getNetworkMemberships'
   | 'getNetworkMembership'
-  | 'getIndex'
-  | 'getIndexWithPermissions'
+  | 'getNetwork'
+  | 'getNetworkWithPermissions'
   | 'getIntentForIndexing'
-  | 'getIndexMemberContext'
+  | 'getNetworkMemberContext'
   | 'isIntentAssignedToIndex'
   | 'assignIntentToNetwork'
   | 'unassignIntentFromIndex'
@@ -1664,17 +1664,17 @@ export type ChatGraphCompositeDatabase = Pick<
   | 'getOwnedIndexes'
   | 'isIndexOwner'
   | 'isNetworkMember'
-  | 'getIndexMembersForOwner'
-  | 'getIndexMembersForMember'
+  | 'getNetworkMembersForOwner'
+  | 'getNetworkMembersForMember'
   | 'getMembersFromUserIndexes'
-  | 'getIndexIntentsForOwner'
-  | 'getIndexIntentsForMember'
+  | 'getNetworkIntentsForOwner'
+  | 'getNetworkIntentsForMember'
   | 'updateIndexSettings'
   | 'softDeleteNetwork'
   | 'deleteProfile'
   | 'getProfileByUserId'
   | 'createNetwork'
-  | 'getIndexMemberCount'
+  | 'getNetworkMemberCount'
   | 'addMemberToNetwork'
   | 'removeMemberFromIndex'
 >;
@@ -1697,10 +1697,10 @@ export type OpportunityGraphDatabase = Pick<
   | 'getNetworkMemberships'
   | 'getActiveIntents'
   | 'getNetworkIdsForIntent'
-  | 'getIndex'
-  | 'getIndexMemberCount'
+  | 'getNetwork'
+  | 'getNetworkMemberCount'
   | 'getIntentIndexScores'
-  | 'getIndexMemberContext'
+  | 'getNetworkMemberContext'
   // Read/update/send modes
   | 'getOpportunity'
   | 'getOpportunitiesForUser'
@@ -1785,7 +1785,7 @@ export type OpportunityControllerDatabase = Pick<
   | 'isIndexOwner'
   | 'isNetworkMember'
   | 'getUser'
-  | 'getIndex'
+  | 'getNetwork'
   | 'getNetworkMemberships'
   | 'getProfile'
   | 'getActiveIntents'
@@ -1808,7 +1808,7 @@ export type IntentGraphDatabase = Pick<
   | 'archiveIntent'
   // Read mode (queryNode) requirements
   | 'isNetworkMember'
-  | 'getIndexIntentsForMember'
+  | 'getNetworkIntentsForMember'
   | 'getUser'
   // Profile check (prepNode gate for write operations)
   | 'getProfile'
@@ -1830,12 +1830,12 @@ export type NetworkGraphDatabase = Pick<
   | 'getPublicIndexesNotJoined'
   | 'isIndexOwner'
   | 'isNetworkMember'
-  | 'getIndex'
+  | 'getNetwork'
   | 'createNetwork'
   | 'addMemberToNetwork'
   | 'updateIndexSettings'
   | 'softDeleteNetwork'
-  | 'getIndexMemberCount'
+  | 'getNetworkMemberCount'
 >;
 
 /**
@@ -1848,7 +1848,7 @@ export type NetworkGraphDatabase = Pick<
 export type IntentNetworkGraphDatabase = Pick<
   Database,
   | 'getIntentForIndexing'
-  | 'getIndexMemberContext'
+  | 'getNetworkMemberContext'
   | 'isIntentAssignedToIndex'
   | 'assignIntentToNetwork'
   | 'unassignIntentFromIndex'
@@ -1856,7 +1856,7 @@ export type IntentNetworkGraphDatabase = Pick<
   | 'isNetworkMember'
   | 'isIndexOwner'
   | 'getNetworkIdsForIntent'
-  | 'getIndexIntentsForMember'
+  | 'getNetworkIntentsForMember'
   | 'getIntentsInIndexForMember'
 >;
 
@@ -1870,10 +1870,10 @@ export type NetworkMembershipGraphDatabase = Pick<
   Database,
   | 'isNetworkMember'
   | 'isIndexOwner'
-  | 'getIndexWithPermissions'
+  | 'getNetworkWithPermissions'
   | 'addMemberToNetwork'
   | 'removeMemberFromIndex'
-  | 'getIndexMembersForMember'
+  | 'getNetworkMembersForMember'
 >;
 
 /**
@@ -1899,6 +1899,6 @@ export type HomeGraphDatabase = Pick<
   | 'getOpportunity'
   | 'getProfile'
   | 'getActiveIntents'
-  | 'getIndex'
+  | 'getNetwork'
   | 'getUser'
 >;

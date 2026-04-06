@@ -683,7 +683,7 @@ export class IntentGraphFactory {
             // Index-scoped read
             if (!state.queryUserId) {
               // All intents in the index (any member can see)
-              const intents = await this.database.getIndexIntentsForMember(
+              const intents = await this.database.getNetworkIntentsForMember(
                 effectiveIndexId,
                 state.userId,
                 { limit: 50, offset: 0 }

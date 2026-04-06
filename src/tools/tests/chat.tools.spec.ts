@@ -44,7 +44,7 @@ mock.module("../../graphs/intent.graph", () => ({
               }
 
               if (!input.queryUserId) {
-                const intents = await db.getIndexIntentsForMember(effectiveIndexId, input.userId);
+                const intents = await db.getNetworkIntentsForMember(effectiveIndexId, input.userId);
                 return {
                   readResult: {
                     count: intents.length,
@@ -179,7 +179,7 @@ const testUserId = "test-user-id-for-tools";
 
 type MockOverrides = Partial<Pick<
   ChatGraphCompositeDatabase,
-  "getUser" | "getIndex" | "getOwnedIndexes" | "isIndexOwner" | "isNetworkMember" | "getIndexMembersForOwner" | "getIndexMembersForMember" | "getIndexIntentsForOwner" | "getNetworkMemberships" | "getNetworkMembership" | "getIndexIntentsForMember" | "getIndexWithPermissions" | "getOpportunity" | "updateOpportunityStatus" | "getActiveIntents" | "getIntentsInIndexForMember" | "getNetworkIdsForIntent" | "opportunityExistsBetweenActors" | "findOverlappingOpportunities" | "createOpportunity"
+  "getUser" | "getNetwork" | "getOwnedIndexes" | "isIndexOwner" | "isNetworkMember" | "getNetworkMembersForOwner" | "getNetworkMembersForMember" | "getNetworkIntentsForOwner" | "getNetworkMemberships" | "getNetworkMembership" | "getNetworkIntentsForMember" | "getNetworkWithPermissions" | "getOpportunity" | "updateOpportunityStatus" | "getActiveIntents" | "getIntentsInIndexForMember" | "getNetworkIdsForIntent" | "opportunityExistsBetweenActors" | "findOverlappingOpportunities" | "createOpportunity"
 >>;
 
 /**
@@ -200,7 +200,7 @@ function createMockDatabase(
     getActiveIntents: noopArray,
     getIntentsInIndexForMember: getIntentsInIndexForMemberImpl,
     getUser: async (uid: string) => ({ id: uid, name: "Test User", email: "test@example.com" }),
-    getIndex: async (networkId: string) => ({ id: networkId, title: "Test Index" }),
+    getNetwork: async (networkId: string) => ({ id: networkId, title: "Test Index" }),
     saveProfile: noop,
     createIntent: async () => ({ id: "", payload: "", summary: null, isIncognito: false, createdAt: new Date(), updatedAt: new Date(), userId: "" }),
     updateIntent: noopNull,
@@ -210,9 +210,9 @@ function createMockDatabase(
     getNetworkMemberships: noopArray,
     getPublicIndexesNotJoined: async () => ({ networks: [] }),
     getNetworkMembership: noopNull,
-    getIndexWithPermissions: async () => null,
+    getNetworkWithPermissions: async () => null,
     getIntentForIndexing: noopNull,
-    getIndexMemberContext: noopNull,
+    getNetworkMemberContext: noopNull,
     isIntentAssignedToIndex: noopBool,
     assignIntentToNetwork: noop,
     unassignIntentFromIndex: noop,
@@ -220,10 +220,10 @@ function createMockDatabase(
     getOwnedIndexes: noopArray,
     isIndexOwner: noopBool,
     isNetworkMember: noopBool,
-    getIndexMembersForOwner: noopArray,
-    getIndexMembersForMember: noopArray,
-    getIndexIntentsForOwner: noopArray,
-    getIndexIntentsForMember: noopArray,
+    getNetworkMembersForOwner: noopArray,
+    getNetworkMembersForMember: noopArray,
+    getNetworkIntentsForOwner: noopArray,
+    getNetworkIntentsForMember: noopArray,
     updateIndexSettings: async () => ({
       id: "",
       title: "",
@@ -237,7 +237,7 @@ function createMockDatabase(
     }),
     softDeleteNetwork: noop,
     deleteProfile: noop,
-    getIndexMemberCount: async () => 0,
+    getNetworkMemberCount: async () => 0,
     createNetwork: async () => ({ id: "", title: "", prompt: null, permissions: { joinPolicy: "invite_only" as const, invitationLink: null, allowGuestVibeCheck: false } }),
     addMemberToNetwork: async () => ({ success: true }),
     getMembersFromUserIndexes: async () => [],
@@ -288,7 +288,7 @@ const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | '
     getUserIndexIds: db.getUserIndexIds ?? (async () => []),
     getOwnedIndexes: db.getOwnedIndexes ?? (async () => []),
     getNetworkMembership: db.getNetworkMembership ?? (async () => null),
-    getIndexMemberContext: db.getIndexMemberContext ?? (async () => null),
+    getNetworkMemberContext: db.getNetworkMemberContext ?? (async () => null),
     createIndex: db.createIndex ?? (async () => ({ id: "", title: "" })),
     updateIndexSettings: db.updateIndexSettings ?? (async () => ({})),
     softDeleteNetwork: db.softDeleteNetwork ?? (async () => {}),
@@ -320,13 +320,13 @@ const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | '
     getUserIntentsInIndex: db.getIntentsInIndexForMember ?? (async () => []),
     getIntent: db.getIntent ?? (async () => null),
     findSimilarIntentsInScope: async () => [],
-    getIndexMembers: db.getIndexMembersForMember ?? (async () => []),
+    getNetworkMembers: db.getNetworkMembersForMember ?? (async () => []),
     getMembersFromScope: db.getMembersFromUserIndexes ?? (async () => []),
     addMemberToNetwork: db.addMemberToNetwork ?? (async () => ({ success: true })),
     removeMemberFromIndex: async () => {},
-    getIndex: db.getIndex ?? (async () => null),
-    getIndexWithPermissions: db.getIndexWithPermissions ?? (async () => null),
-    getIndexMemberCount: db.getIndexMemberCount ?? (async () => 0),
+    getNetwork: db.getNetwork ?? (async () => null),
+    getNetworkWithPermissions: db.getNetworkWithPermissions ?? (async () => null),
+    getNetworkMemberCount: db.getNetworkMemberCount ?? (async () => 0),
     createOpportunity: db.createOpportunity ?? (async () => null),
     createOpportunityAndExpireIds: db.createOpportunityAndExpireIds ?? (async () => null),
     getOpportunity: db.getOpportunity ?? (async () => null),
@@ -388,7 +388,7 @@ describe("read_intents tool", () => {
       return [];
     }, {
       isNetworkMember: async () => true,
-      getIndexIntentsForMember: async (_indexId, _requestingUserId) =>
+      getNetworkIntentsForMember: async (_indexId, _requestingUserId) =>
         _indexId === testIndexId ? indexIntentsForMember : [],
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
@@ -423,12 +423,12 @@ describe("read_intents tool", () => {
     expect(parsed.data.count).toBe(0);
   });
 
-  test("invoke with networkId and no userId calls getIndexIntentsForMember with networkId and requesting userId", async () => {
+  test("invoke with networkId and no userId calls getNetworkIntentsForMember with networkId and requesting userId", async () => {
     let capturedIndexId = "";
     let capturedRequestingUserId = "";
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
-      getIndexIntentsForMember: async (networkId, requestingUserId) => {
+      getNetworkIntentsForMember: async (networkId, requestingUserId) => {
         capturedIndexId = networkId;
         capturedRequestingUserId = requestingUserId;
         return [];
@@ -446,7 +446,7 @@ describe("read_intents tool", () => {
     let capturedIndex = "";
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
-      getIndexIntentsForMember: async (networkId) => {
+      getNetworkIntentsForMember: async (networkId) => {
         capturedIndex = networkId;
         return [{ id: "i1", payload: "In index", summary: "X", createdAt: new Date(), userId: testUserId, userName: "Test" }];
       },
@@ -483,12 +483,12 @@ describe("read_intents tool (index-scoped: owner vs member)", () => {
     { id: "mine-1", payload: "My intent in index", summary: "Mine", createdAt: new Date("2025-01-03") },
   ];
 
-  test("when userId is omitted, getIndexIntentsForMember is called and returns all intents in index (shared network)", async () => {
-    let getIndexIntentsForMemberCalled = false;
+  test("when userId is omitted, getNetworkIntentsForMember is called and returns all intents in index (shared network)", async () => {
+    let getNetworkIntentsForMemberCalled = false;
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
-      getIndexIntentsForMember: async (idx, uid) => {
-        getIndexIntentsForMemberCalled = true;
+      getNetworkIntentsForMember: async (idx, uid) => {
+        getNetworkIntentsForMemberCalled = true;
         expect(idx).toBe(networkId);
         expect(uid).toBe(testUserId);
         return allIndexIntents;
@@ -498,7 +498,7 @@ describe("read_intents tool (index-scoped: owner vs member)", () => {
     const tools = await createChatTools(context);
     const tool = tools.find((t: { name: string }) => t.name === "read_intents") as { invoke: (args: { networkId?: string; userId?: string }) => Promise<string> };
     const result = await tool.invoke({ networkId });
-    expect(getIndexIntentsForMemberCalled).toBe(true);
+    expect(getNetworkIntentsForMemberCalled).toBe(true);
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(parsed.data.count).toBe(2);
@@ -530,15 +530,15 @@ describe("read_intents tool (index-scoped: owner vs member)", () => {
     expect(parsed.data.intents[0]).toMatchObject({ id: "bob-1", description: "Bob intent" });
   });
 
-  test("when isNetworkMember and userId omitted, getIndexIntentsForMember is called (shared network: all intents)", async () => {
-    let getIndexIntentsForMemberCalled = false;
+  test("when isNetworkMember and userId omitted, getNetworkIntentsForMember is called (shared network: all intents)", async () => {
+    let getNetworkIntentsForMemberCalled = false;
     const allIntentsInIndex: IndexedIntentDetails[] = [
       { id: "mine-1", payload: "My intent in index", summary: "Mine", createdAt: new Date(), userId: testUserId, userName: "Test User" },
     ];
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
-      getIndexIntentsForMember: async (idx, requestingUserId) => {
-        getIndexIntentsForMemberCalled = true;
+      getNetworkIntentsForMember: async (idx, requestingUserId) => {
+        getNetworkIntentsForMemberCalled = true;
         expect(idx).toBe(networkId);
         expect(requestingUserId).toBe(testUserId);
         return allIntentsInIndex;
@@ -548,7 +548,7 @@ describe("read_intents tool (index-scoped: owner vs member)", () => {
     const tools = await createChatTools(context);
     const tool = tools.find((t: { name: string }) => t.name === "read_intents") as { invoke: (args: { networkId?: string }) => Promise<string> };
     const result = await tool.invoke({ networkId });
-    expect(getIndexIntentsForMemberCalled).toBe(true);
+    expect(getNetworkIntentsForMemberCalled).toBe(true);
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(parsed.data.count).toBe(1);
@@ -629,14 +629,14 @@ describe("read_intents tool (no networkId)", () => {
     expect(parsed.data.intents[0]).toMatchObject({ id: "g1", description: "Global intent A" });
   });
 
-  test("with context.networkId and no networkId arg calls getIndexIntentsForMember and returns index-scoped intents", async () => {
+  test("with context.networkId and no networkId arg calls getNetworkIntentsForMember and returns index-scoped intents", async () => {
     const networkId = testIndexId;
     const indexScopedWithUser: IndexedIntentDetails[] = indexScopedIntents.map((i) => ({ ...i, userId: testUserId, userName: "Test User" }));
-    let getIndexIntentsForMemberCalled = false;
+    let getNetworkIntentsForMemberCalled = false;
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
-      getIndexIntentsForMember: async (idxId, uid) => {
-        getIndexIntentsForMemberCalled = true;
+      getNetworkIntentsForMember: async (idxId, uid) => {
+        getNetworkIntentsForMemberCalled = true;
         expect(uid).toBe(testUserId);
         expect(idxId).toBe(networkId);
         return indexScopedWithUser;
@@ -646,7 +646,7 @@ describe("read_intents tool (no networkId)", () => {
     const tools = await createChatTools(context);
     const tool = tools.find((t: { name: string }) => t.name === "read_intents") as { invoke: (args: { networkId?: string }) => Promise<string> };
     const result = await tool.invoke({});
-    expect(getIndexIntentsForMemberCalled).toBe(true);
+    expect(getNetworkIntentsForMemberCalled).toBe(true);
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(parsed.data.count).toBe(1);
@@ -660,7 +660,7 @@ describe("read_intents tool (no networkId)", () => {
     ];
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
-      getIndexIntentsForMember: async () => indexIntents,
+      getNetworkIntentsForMember: async () => indexIntents,
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, networkId, ...mockProtocolDeps };
     const tools = await createChatTools(context);
@@ -722,7 +722,7 @@ describe("read_intents tool (no networkId)", () => {
     ];
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
-      getIndexIntentsForMember: async () => threeIntents,
+      getNetworkIntentsForMember: async () => threeIntents,
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
@@ -755,7 +755,7 @@ describe("read_network_memberships tool (list members)", () => {
   test("invoke with networkId returns success with members when member", async () => {
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
-      getIndexMembersForMember: async (networkId, uid) => {
+      getNetworkMembersForMember: async (networkId, uid) => {
         if (networkId === memberIndexId && uid === testUserId) return mockMembers;
         throw new Error("Access denied: Not a member of this index");
       },
@@ -1728,7 +1728,7 @@ describe("read_user_profiles tool (query parameter — name search)", () => {
       authUserId: testUserId,
       indexScope: [indexA, indexB],
       getMembersFromScope: async () => allMembers,
-      getIndexMembers: async (networkId: string) =>
+      getNetworkMembers: async (networkId: string) =>
         networkId === indexA
           ? allMembers.map((m) => ({ ...m, email: null, permissions: ["member"], memberPrompt: null, autoAssign: false, joinedAt: new Date(), intentCount: 0 }))
           : [],

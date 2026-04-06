@@ -40,7 +40,7 @@ function createContextDatabase(overrides?: Partial<ChatGraphCompositeDatabase>) 
         joinedAt: new Date("2026-01-01"),
       },
     ]),
-    getIndex: async (id: string) => ({ id, title: "AI Builders" }),
+    getNetwork: async (id: string) => ({ id, title: "AI Builders" }),
     getNetworkMembership: async (idxId: string, uid: string) =>
       idxId === networkId && uid === userId
         ? {
@@ -60,7 +60,7 @@ function createContextDatabase(overrides?: Partial<ChatGraphCompositeDatabase>) 
 
   return { ...base, ...overrides } as Pick<
     ChatGraphCompositeDatabase,
-    "getUser" | "getProfile" | "getNetworkMemberships" | "getNetworkMembership" | "getIndex" | "isNetworkMember" | "isIndexOwner"
+    "getUser" | "getProfile" | "getNetworkMemberships" | "getNetworkMembership" | "getNetwork" | "isNetworkMember" | "isIndexOwner"
   >;
 }
 
@@ -122,9 +122,9 @@ describe("resolveChatContext", () => {
     expect((err as ChatContextAccessError).code).toBe("USER_NOT_FOUND");
   });
 
-  test("throws ChatContextAccessError with 404 INDEX_NOT_FOUND when networkId provided and getIndex returns null", async () => {
+  test("throws ChatContextAccessError with 404 INDEX_NOT_FOUND when networkId provided and getNetwork returns null", async () => {
     const db = createContextDatabase({
-      getIndex: async () => null,
+      getNetwork: async () => null,
     });
 
     const err = await resolveChatContext({ database: db, userId, networkId }).catch((e: unknown) => e);

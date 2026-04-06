@@ -76,8 +76,8 @@ function createTraceMockGraph() {
           createdAt: new Date(),
         },
       ]),
-    getIndex: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
-    getIndexMemberCount: () => Promise.resolve(2),
+    getNetwork: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
+    getNetworkMemberCount: () => Promise.resolve(2),
     getNetworkIdsForIntent: () => Promise.resolve(['idx-1']),
     getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
     isNetworkMember: () => Promise.resolve(true),
@@ -87,7 +87,7 @@ function createTraceMockGraph() {
     updateOpportunityStatus: () => Promise.resolve(null),
     getIntent: () => Promise.resolve(null),
     getIntentIndexScores: async () => [],
-    getIndexMemberContext: async () => null,
+    getNetworkMemberContext: async () => null,
   };
 
   const mockEmbedder: Embedder = {

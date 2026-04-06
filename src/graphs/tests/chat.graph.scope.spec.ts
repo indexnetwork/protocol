@@ -116,7 +116,7 @@ describe("Chat Graph scope workflows", () => {
   describe("Index-scoped, member, no intents in index", () => {
     test("What are my intents here? → empty or no intents in this index", async () => {
       const db = createChatGraphMockDb({
-        getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "Test Index" } : null),
+        getNetwork: (id) => (id === testIndexId ? { id: testIndexId, title: "Test Index" } : null),
         isNetworkMember: (id, uid) => id === testIndexId && uid === testUserId,
         isIndexOwner: () => false,
         intentsInIndexForMember: () => [],
@@ -138,7 +138,7 @@ describe("Chat Graph scope workflows", () => {
         mockActiveIntent({ id: "ix-1", payload: "Looking for a mentor in AI" }),
       ];
       const db = createChatGraphMockDb({
-        getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "AI Network" } : null),
+        getNetwork: (id) => (id === testIndexId ? { id: testIndexId, title: "AI Network" } : null),
         isNetworkMember: (id, uid) => id === testIndexId && uid === testUserId,
         isIndexOwner: () => false,
         intentsInIndexForMember: (uid, networkId) =>
@@ -163,7 +163,7 @@ describe("Chat Graph scope workflows", () => {
         mockIndexedIntent({ id: "b1", payload: "Bob: Seeking mentor", userId: "u2", userName: "Bob" }),
       ];
       const db = createChatGraphMockDb({
-        getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "Founders" } : null),
+        getNetwork: (id) => (id === testIndexId ? { id: testIndexId, title: "Founders" } : null),
         isNetworkMember: (id, uid) => id === testIndexId && uid === testUserId,
         isIndexOwner: (id, uid) => id === testIndexId && uid === testUserId,
         indexIntentsForOwner: (networkId, _req) =>
@@ -184,7 +184,7 @@ describe("Chat Graph scope workflows", () => {
   describe("Index-scoped, not a member", () => {
     test("What are my intents here? → index not found or not a member", async () => {
       const db = createChatGraphMockDb({
-        getIndex: (id) => (id === testIndexId ? { id: testIndexId, title: "Private" } : null),
+        getNetwork: (id) => (id === testIndexId ? { id: testIndexId, title: "Private" } : null),
         isNetworkMember: () => false,
         isIndexOwner: () => false,
       });

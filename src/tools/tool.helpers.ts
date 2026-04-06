@@ -152,7 +152,7 @@ export class ChatContextAccessError extends Error {
 export async function resolveChatContext(params: {
   database: Pick<
     ChatGraphCompositeDatabase,
-    "getUser" | "getProfile" | "getNetworkMemberships" | "getNetworkMembership" | "getIndex" | "isIndexOwner" | "isNetworkMember"
+    "getUser" | "getProfile" | "getNetworkMemberships" | "getNetworkMembership" | "getNetwork" | "isIndexOwner" | "isNetworkMember"
   >;
   userId: string;
   networkId?: string;
@@ -189,7 +189,7 @@ export async function resolveChatContext(params: {
 
   if (networkId) {
     const [index, isMember, owner] = await Promise.all([
-      database.getIndex(networkId),
+      database.getNetwork(networkId),
       database.isNetworkMember(networkId, userId),
       database.isIndexOwner(networkId, userId),
     ]);
@@ -371,12 +371,12 @@ export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
  * Skips any IDs that don't resolve (deleted or invalid networks).
  */
 export async function resolveIndexNames(
-  database: { getIndex(id: string): Promise<{ id: string; title: string } | null> },
+  database: { getNetwork(id: string): Promise<{ id: string; title: string } | null> },
   networkIds: string[]
 ): Promise<string[]> {
   if (networkIds.length === 0) return [];
   const results = await Promise.all(
-    networkIds.map(id => database.getIndex(id))
+    networkIds.map(id => database.getNetwork(id))
   );
   return results.filter(Boolean).map(idx => idx!.title);
 }

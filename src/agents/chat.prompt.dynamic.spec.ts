@@ -380,7 +380,7 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
         isNetworkMember: (networkId: string, userId: string) =>
           networkId === SHARED_INDEX_ID &&
           (userId === testUserId || userId === "user-alice"),
-        getIndex: (networkId: string) =>
+        getNetwork: (networkId: string) =>
           networkId === SHARED_INDEX_ID ? SHARED_INDEX : null,
       });
       const mentionFactory = new ChatGraphFactory(
@@ -505,7 +505,7 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
             ];
           return [];
         },
-        getIndex: (networkId: string) => {
+        getNetwork: (networkId: string) => {
           if (networkId === SHARED_INDEX_ID) return SHARED_INDEX;
           if (networkId === "idx-personal")
             return { id: "idx-personal", title: "My Network" };
@@ -578,7 +578,7 @@ describe("Chat Prompt Dynamic Modules (Smartest)", () => {
         isNetworkMember: (networkId: string, userId: string) =>
           networkId === SHARED_INDEX_ID &&
           [testUserId, "user-alice", "user-bob"].includes(userId),
-        getIndex: (networkId: string) =>
+        getNetwork: (networkId: string) =>
           networkId === SHARED_INDEX_ID ? SHARED_INDEX : null,
         activeIntents: (userId: string) => {
           if (userId === "user-alice")

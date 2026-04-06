@@ -47,8 +47,8 @@ function createMockGraph(deps?: {
   getUserIndexIds?: () => Promise<Id<'networks'>[]>;
   getNetworkMemberships?: () => Promise<Array<{ networkId: string; networkTitle: string; indexPrompt: string | null; permissions: string[]; memberPrompt: string | null; autoAssign: boolean; isPersonal: boolean; joinedAt: Date }>>;
   getActiveIntents?: () => Promise<Array<{ id: Id<'intents'>; payload: string; summary: string | null; createdAt: Date }>>;
-  getIndex?: (id: string) => Promise<{ id: string; title: string } | null>;
-  getIndexMemberCount?: (id: string) => Promise<number>;
+  getNetwork?: (id: string) => Promise<{ id: string; title: string } | null>;
+  getNetworkMemberCount?: (id: string) => Promise<number>;
   getProfile?: Awaited<ReturnType<OpportunityGraphDatabase['getProfile']>>;
   evaluatorResult?: EvaluatedOpportunityWithActors[];
 }) {
@@ -86,8 +86,8 @@ function createMockGraph(deps?: {
             createdAt: new Date(),
           },
         ])),
-    getIndex: deps?.getIndex ?? (() => Promise.resolve({ id: 'idx-1', title: 'Test Index' })),
-    getIndexMemberCount: deps?.getIndexMemberCount ?? (() => Promise.resolve(2)),
+    getNetwork: deps?.getNetwork ?? (() => Promise.resolve({ id: 'idx-1', title: 'Test Index' })),
+    getNetworkMemberCount: deps?.getNetworkMemberCount ?? (() => Promise.resolve(2)),
     getNetworkIdsForIntent: () => Promise.resolve(['idx-1']),
     getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
     isNetworkMember: () => Promise.resolve(true),
@@ -97,7 +97,7 @@ function createMockGraph(deps?: {
     updateOpportunityStatus: () => Promise.resolve(null),
     getIntent: () => Promise.resolve(null),
     getIntentIndexScores: async () => [],
-    getIndexMemberContext: async () => null,
+    getNetworkMemberContext: async () => null,
   };
 
   const mockEmbedder: Embedder = {
@@ -178,8 +178,8 @@ function createMockGraphWithFnOverrides(deps?: {
               createdAt: new Date(),
             },
           ]),
-    getIndex: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
-    getIndexMemberCount: () => Promise.resolve(2),
+    getNetwork: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
+    getNetworkMemberCount: () => Promise.resolve(2),
     getNetworkIdsForIntent: () => Promise.resolve(['idx-1']),
     getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
     isNetworkMember: () => Promise.resolve(true),
@@ -189,7 +189,7 @@ function createMockGraphWithFnOverrides(deps?: {
     updateOpportunityStatus: () => Promise.resolve(null),
     getIntent: () => Promise.resolve(null),
     getIntentIndexScores: async () => [],
-    getIndexMemberContext: async () => null,
+    getNetworkMemberContext: async () => null,
   };
 
   const mockEmbedder: Embedder = {
@@ -267,11 +267,11 @@ describe('Opportunity Graph', () => {
   });
 
   describe('Scope node', () => {
-    test('when networkId provided and user is member, targetIndexes contains only that index', async () => {
+    test('when networkId provided and user is member, targetNetworks contains only that index', async () => {
       const { compiledGraph, mockDb } = createMockGraph({
         getUserIndexIds: () => Promise.resolve(['idx-1', 'idx-2'] as Id<'networks'>[]),
       });
-      const getIndexSpy = spyOn(mockDb, 'getIndex');
+      const getIndexSpy = spyOn(mockDb, 'getNetwork');
 
       await compiledGraph.invoke({
         userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
@@ -288,7 +288,7 @@ describe('Opportunity Graph', () => {
       const { compiledGraph, mockDb } = createMockGraph({
         getUserIndexIds: () => Promise.resolve(['idx-1', 'idx-2'] as Id<'networks'>[]),
       });
-      const getIndexSpy = spyOn(mockDb, 'getIndex');
+      const getIndexSpy = spyOn(mockDb, 'getNetwork');
 
       await compiledGraph.invoke({
         userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
@@ -358,8 +358,8 @@ describe('Opportunity Graph', () => {
     test('when same user appears via multiple indexes, evaluates them only once (deduped by userId)', async () => {
       const { compiledGraph, mockEmbedder } = createMockGraph({
         getUserIndexIds: () => Promise.resolve(['idx-1', 'idx-2'] as Id<'networks'>[]),
-        getIndex: (id: string) => Promise.resolve({ id, title: `Index ${id}` }),
-        getIndexMemberCount: () => Promise.resolve(5),
+        getNetwork: (id: string) => Promise.resolve({ id, title: `Index ${id}` }),
+        getNetworkMemberCount: () => Promise.resolve(5),
         evaluatorResult: [
           {
             reasoning: 'Bob is a great match.',
@@ -1441,8 +1441,8 @@ describe('Opportunity Graph', () => {
           }
           return [];
         },
-        getIndex: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
-        getIndexMemberCount: () => Promise.resolve(2),
+        getNetwork: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
+        getNetworkMemberCount: () => Promise.resolve(2),
         getNetworkIdsForIntent: () => Promise.resolve(['idx-1']),
         getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
         isNetworkMember: () => Promise.resolve(true),
@@ -1452,7 +1452,7 @@ describe('Opportunity Graph', () => {
         updateOpportunityStatus: () => Promise.resolve(null),
         getIntent: () => Promise.resolve(null),
             getIntentIndexScores: async () => [],
-        getIndexMemberContext: async () => null,
+        getNetworkMemberContext: async () => null,
       };
 
       const mockEmbedder: Embedder = {
@@ -1845,8 +1845,8 @@ describe('Opportunity Graph', () => {
         getActiveIntents: () => Promise.resolve([{
           id: 'intent-1' as Id<'intents'>, payload: 'Test intent', summary: null, createdAt: new Date(),
         }]),
-        getIndex: (id: string) => Promise.resolve({ id, title: `Index ${id}` }),
-        getIndexMemberCount: () => Promise.resolve(5),
+        getNetwork: (id: string) => Promise.resolve({ id, title: `Index ${id}` }),
+        getNetworkMemberCount: () => Promise.resolve(5),
         getNetworkIdsForIntent: () => Promise.resolve(['idx-1']),
         getUser: (_userId: string) => Promise.resolve({ id: _userId, name: 'Test User', email: 'test@example.com' }),
         isNetworkMember: () => Promise.resolve(true),
@@ -1856,7 +1856,7 @@ describe('Opportunity Graph', () => {
         updateOpportunityStatus: () => Promise.resolve(null),
         getIntent: () => Promise.resolve(null),
         getIntentIndexScores: async () => [],
-        getIndexMemberContext: async () => null,
+        getNetworkMemberContext: async () => null,
       };
 
       const mockEmbedder = {

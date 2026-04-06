@@ -40,7 +40,7 @@ export interface IndexedIntent {
 /**
  * Target index for search (from scope node)
  */
-export interface TargetIndex {
+export interface TargetNetwork {
     networkId: Id<'networks'>;
     title: string;
     memberCount: number;
@@ -164,7 +164,7 @@ export declare const OpportunityGraphState: import("@langchain/langgraph").Annot
     /** User's network memberships (from prep) */
     userNetworks: import("@langchain/langgraph").BaseChannel<Id<"networks">[], Id<"networks">[] | import("@langchain/langgraph").OverwriteValue<Id<"networks">[]>, unknown>;
     /** Target indexes to search within (from scope) */
-    targetIndexes: import("@langchain/langgraph").BaseChannel<TargetIndex[], TargetIndex[] | import("@langchain/langgraph").OverwriteValue<TargetIndex[]>, unknown>;
+    targetNetworks: import("@langchain/langgraph").BaseChannel<TargetNetwork[], TargetNetwork[] | import("@langchain/langgraph").OverwriteValue<TargetNetwork[]>, unknown>;
     /** Per-index relevancy scores for dedup tie-breaking. Background path: from intent_indexes. Chat path: transient from IntentIndexer. */
     indexRelevancyScores: import("@langchain/langgraph").BaseChannel<Record<string, number>, Record<string, number> | import("@langchain/langgraph").OverwriteValue<Record<string, number>>, unknown>;
     /** Whether discovery used intent (path A) or profile (path B/C). Used by persist for triggeredBy. */

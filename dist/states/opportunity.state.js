@@ -93,7 +93,7 @@ export const OpportunityGraphState = Annotation.Root({
         default: () => [],
     }),
     /** Target indexes to search within (from scope) */
-    targetIndexes: Annotation({
+    targetNetworks: Annotation({
         reducer: (curr, next) => next ?? curr,
         default: () => [],
     }),

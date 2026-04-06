@@ -189,7 +189,7 @@ export class NetworkGraphFactory {
             return { mutationResult: { success: false, error: "You can only delete networks you own." } };
           }
 
-          const count = await this.database.getIndexMemberCount(networkId);
+          const count = await this.database.getNetworkMemberCount(networkId);
           if (count > 1) {
             return { mutationResult: { success: false, error: "Cannot delete network with other members. Remove members first." } };
           }

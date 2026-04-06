@@ -203,15 +203,15 @@ export declare function needsClarification(params: {
 /** UUID v4 format: 8-4-4-4-12 hex chars (e.g. c2505011-2e45-426e-81dd-b9abb9b72023) */
 export declare const UUID_REGEX: RegExp;
 /**
- * Resolves an array of index IDs to their display titles.
- * Skips any IDs that don't resolve (deleted or invalid indexes).
+ * Resolves an array of network IDs to their display titles.
+ * Skips any IDs that don't resolve (deleted or invalid networks).
  */
 export declare function resolveIndexNames(database: {
     getNetwork(id: string): Promise<{
         id: string;
         title: string;
     } | null>;
-}, indexIds: string[]): Promise<string[]>;
+}, networkIds: string[]): Promise<string[]>;
 /**
  * Normalize a URL string: if it lacks a protocol, prepend "https://".
  * Returns the normalized URL or null if the result is not a valid URL.

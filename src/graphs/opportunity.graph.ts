@@ -19,7 +19,7 @@ import {
   OpportunityGraphState,
   type IndexedIntent,
   type SourceProfileData,
-  type TargetIndex,
+  type TargetNetwork,
   type CandidateMatch,
   type EvaluatedCandidate,
   type EvaluatedOpportunity,
@@ -298,7 +298,7 @@ export class OpportunityGraphFactory {
                 networkId: state.networkId,
               });
               return {
-                targetIndexes: [],
+                targetNetworks: [],
                 error: 'You are not a member of that network.',
               };
             }
@@ -309,10 +309,10 @@ export class OpportunityGraphFactory {
           }
 
           // Fetch index details
-          const targetIndexes: TargetIndex[] = await Promise.all(
+          const targetNetworks: TargetNetwork[] = await Promise.all(
             targetIndexIds.map(async (networkId) => {
-              const index = await this.database.getIndex(networkId);
-              const memberCount = await this.database.getIndexMemberCount(networkId);
+              const index = await this.database.getNetwork(networkId);
+              const memberCount = await this.database.getNetworkMemberCount(networkId);
               return {
                 networkId,
                 title: index?.title ?? 'Unknown',
@@ -322,8 +322,8 @@ export class OpportunityGraphFactory {
           );
 
           logger.verbose('[Graph:Scope] Scope determined', {
-            targetIndexesCount: targetIndexes.length,
-            indexes: targetIndexes.map(i => i.title),
+            targetIndexesCount: targetNetworks.length,
+            indexes: targetNetworks.map(i => i.title),
           });
 
           // ── Populate index relevancy scores for dedup tie-breaking ──
@@ -346,9 +346,9 @@ export class OpportunityGraphFactory {
             try {
               const indexer = new IntentIndexer();
               const scopeAgentTimings: DebugMetaAgent[] = [];
-              const scorableIndexes = targetIndexes.filter(ti => ti.title !== 'Unknown');
+              const scorableIndexes = targetNetworks.filter(ti => ti.title !== 'Unknown');
               const scoringPromises = scorableIndexes.map(async (ti) => {
-                const ctx = await this.database.getIndexMemberContext(ti.networkId, state.userId);
+                const ctx = await this.database.getNetworkMemberContext(ti.networkId, state.userId);
                 if (!ctx?.indexPrompt?.trim() && !ctx?.memberPrompt?.trim()) {
                   return { networkId: ti.networkId, score: 1.0 };
                 }
@@ -382,13 +382,13 @@ export class OpportunityGraphFactory {
               // Accumulate indexer timings into graph state
               if (scopeAgentTimings.length > 0) {
                 return {
-                  targetIndexes,
+                  targetNetworks,
                   indexRelevancyScores,
                   agentTimings: scopeAgentTimings,
                   trace: [{
                     node: "scope",
-                    detail: `Searching ${targetIndexes.length} index(es): ${targetIndexes.map(i => `${i.title} (${i.memberCount})`).join(', ')}`,
-                    data: { totalMembers: targetIndexes.reduce((sum, i) => sum + i.memberCount, 0) },
+                    detail: `Searching ${targetNetworks.length} index(es): ${targetNetworks.map(i => `${i.title} (${i.memberCount})`).join(', ')}`,
+                    data: { totalMembers: targetNetworks.reduce((sum, i) => sum + i.memberCount, 0) },
                   }],
                 };
               }
@@ -397,13 +397,13 @@ export class OpportunityGraphFactory {
             }
           }
 
-          const totalMembers = targetIndexes.reduce((sum, i) => sum + i.memberCount, 0);
+          const totalMembers = targetNetworks.reduce((sum, i) => sum + i.memberCount, 0);
           return {
-            targetIndexes,
+            targetNetworks,
             indexRelevancyScores,
             trace: [{
               node: "scope",
-              detail: `Searching ${targetIndexes.length} index(es): ${targetIndexes.map(i => `${i.title} (${i.memberCount})`).join(', ')}`,
+              detail: `Searching ${targetNetworks.length} index(es): ${targetNetworks.map(i => `${i.title} (${i.memberCount})`).join(', ')}`,
               data: { totalMembers },
             }],
           };
@@ -411,7 +411,7 @@ export class OpportunityGraphFactory {
           const errMsg = error instanceof Error ? error.message : String(error);
           logger.error('[Graph:Scope] Failed', { error });
           return {
-            targetIndexes: [],
+            targetNetworks: [],
             error: 'Failed to determine search scope.',
             trace: [{
               node: "scope_fatal",
@@ -425,7 +425,7 @@ export class OpportunityGraphFactory {
       (result) => {
         const r = result as Record<string, unknown>;
         if (r?.error) return `error: ${r.error}`;
-        const indexes = r?.targetIndexes as unknown[];
+        const indexes = r?.targetNetworks as unknown[];
         return indexes ? `${indexes.length} index(es) in scope` : undefined;
       },
     );
@@ -445,7 +445,7 @@ export class OpportunityGraphFactory {
           indexedIntentsCount: state.indexedIntents.length,
         });
 
-        const targetIndexIds = state.targetIndexes.map((t) => t.networkId);
+        const targetIndexIds = state.targetNetworks.map((t) => t.networkId);
 
         try {
           let resolvedIntentId: Id<'intents'> | undefined;
@@ -545,13 +545,13 @@ export class OpportunityGraphFactory {
         let discoveryHydeOutput: { lenses: Array<{ label: string; corpus: string }>; hydeDocuments: Record<string, { hydeText?: string }> } | undefined;
 
         logger.verbose('[Graph:Discovery] Starting semantic search', {
-          targetIndexesCount: state.targetIndexes.length,
+          targetIndexesCount: state.targetNetworks.length,
           discoverySource: state.discoverySource,
           searchQueryPreview: state.searchQuery?.trim().slice(0, 60) ?? '(none)',
         });
 
         try {
-          if (state.targetIndexes.length === 0) {
+          if (state.targetNetworks.length === 0) {
             logger.warn('[Graph:Discovery] No target indexes for search');
             return { candidates: [] };
           }
@@ -578,14 +578,14 @@ export class OpportunityGraphFactory {
             });
             const targetMemberships = await this.database.getNetworkMemberships(state.targetUserId);
             const targetUserIndexIds = targetMemberships.map(m => m.networkId);
-            const sharedIndexIds = state.targetIndexes
+            const sharedIndexIds = state.targetNetworks
               .filter(ti => targetUserIndexIds.includes(ti.networkId))
               .map(ti => ti.networkId);
 
             if (sharedIndexIds.length === 0) {
               logger.warn('[Graph:Discovery] Target user shares no indexes with discoverer', {
                 targetUserId: state.targetUserId,
-                discovererIndexes: state.targetIndexes.map(ti => ti.networkId),
+                discovererIndexes: state.targetNetworks.map(ti => ti.networkId),
               });
               return {
                 candidates: [],
@@ -740,7 +740,7 @@ export class OpportunityGraphFactory {
               // If we also have a profile vector, merge with profile-based results
               if (vector && vector.length > 0) {
                 const profileCandidates: CandidateMatch[] = [];
-                for (const targetIndex of state.targetIndexes) {
+                for (const targetIndex of state.targetNetworks) {
                   const results = await this.embedder.searchWithProfileEmbedding(vector, {
                     indexScope: [targetIndex.networkId],
                     excludeUserId: discoveryUserId,
@@ -796,7 +796,7 @@ export class OpportunityGraphFactory {
               return { candidates: [] };
             }
             const allCandidates: CandidateMatch[] = [];
-            for (const targetIndex of state.targetIndexes) {
+            for (const targetIndex of state.targetNetworks) {
               const results = await this.embedder.searchWithProfileEmbedding(vector, {
                 indexScope: [targetIndex.networkId],
                 excludeUserId: discoveryUserId,
@@ -938,7 +938,7 @@ export class OpportunityGraphFactory {
             }
             const all: CandidateMatch[] = [];
             await Promise.all(
-              state.targetIndexes.map(async (targetIndex) => {
+              state.targetNetworks.map(async (targetIndex) => {
                 const results = await self.embedder.searchWithHydeEmbeddings(lensEmbeddings, {
                   indexScope: [targetIndex.networkId],
                   excludeUserId: discoveryUserId,
@@ -1025,7 +1025,7 @@ export class OpportunityGraphFactory {
           }
           const allCandidates: CandidateMatch[] = [];
           await Promise.all(
-            state.targetIndexes.map(async (targetIndex) => {
+            state.targetNetworks.map(async (targetIndex) => {
               const results = await this.embedder.searchWithHydeEmbeddings(lensEmbeddings, {
                 indexScope: [targetIndex.networkId],
                 excludeUserId: discoveryUserId,
@@ -1722,7 +1722,7 @@ export class OpportunityGraphFactory {
         const indexContextMap = new Map<string, string>();
         await Promise.all(
           uniqueIndexIds.map(async (networkId) => {
-            const ctx = await this.database.getIndexMemberContext(networkId, discoveryUserId).catch(() => null);
+            const ctx = await this.database.getNetworkMemberContext(networkId, discoveryUserId).catch(() => null);
             const prompt = [ctx?.indexPrompt, ctx?.memberPrompt]
               .filter((v): v is string => !!v?.trim())
               .join('\n\n');
@@ -2487,7 +2487,7 @@ export class OpportunityGraphFactory {
               const counterpartActor = opp.actors.find((a: OpportunityActor) => a.userId !== state.userId);
               const actorIndexId = counterpartActor?.networkId ?? opp.actors[0]?.networkId;
               const [indexRecord, ...profileAndUserPairs] = await Promise.all([
-                actorIndexId ? this.database.getIndex(actorIndexId) : Promise.resolve(null),
+                actorIndexId ? this.database.getNetwork(actorIndexId) : Promise.resolve(null),
                 ...idsToResolve.map(async (uid: string) => {
                   const [profile, user] = await Promise.all([
                     this.database.getProfile(uid),
@@ -2738,7 +2738,7 @@ export class OpportunityGraphFactory {
      * After scope: check if we have target indexes.
      */
     const shouldContinueAfterScope = (state: typeof OpportunityGraphState.State): string => {
-      if (state.error || state.targetIndexes.length === 0) {
+      if (state.error || state.targetNetworks.length === 0) {
         logger.verbose('[Graph:Routing] No target indexes - ending early');
         return END;
       }

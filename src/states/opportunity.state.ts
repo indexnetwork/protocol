@@ -36,7 +36,7 @@ export interface IndexedIntent {
 /**
  * Target index for search (from scope node)
  */
-export interface TargetIndex {
+export interface TargetNetwork {
   networkId: Id<'networks'>;
   title: string;
   memberCount: number;
@@ -227,7 +227,7 @@ export const OpportunityGraphState = Annotation.Root({
   }),
   
   /** Target indexes to search within (from scope) */
-  targetIndexes: Annotation<TargetIndex[]>({
+  targetNetworks: Annotation<TargetNetwork[]>({
     reducer: (curr, next) => next ?? curr,
     default: () => [],
   }),

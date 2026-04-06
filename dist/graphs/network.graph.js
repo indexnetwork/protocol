@@ -102,7 +102,7 @@ export class NetworkGraphFactory {
                     createdIndexId = index.id;
                     const added = await this.database.addMemberToNetwork(index.id, state.userId, 'owner');
                     if (!added.success) {
-                        logger.error("addMemberToNetwork failed; cleaning up orphaned index", { networkId: index.id });
+                        logger.error("addMemberToNetwork failed; cleaning up orphaned network", { networkId: index.id });
                         try {
                             await this.database.softDeleteNetwork(index.id);
                         }
@@ -175,7 +175,7 @@ export class NetworkGraphFactory {
                     if (!isOwner) {
                         return { mutationResult: { success: false, error: "You can only delete networks you own." } };
                     }
-                    const count = await this.database.getIndexMemberCount(networkId);
+                    const count = await this.database.getNetworkMemberCount(networkId);
                     if (count > 1) {
                         return { mutationResult: { success: false, error: "Cannot delete network with other members. Remove members first." } };
                     }

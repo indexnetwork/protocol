@@ -34,7 +34,7 @@ import { requestContext } from "../support/request-context.js";
 
 const logger = protocolLogger('HomeGraph');
 
-/** Database must satisfy both HomeGraphDatabase and presenter context (getProfile, getActiveIntents, getIndex, getUser). */
+/** Database must satisfy both HomeGraphDatabase and presenter context (getProfile, getActiveIntents, getNetwork, getUser). */
 type HomeGraphDb = HomeGraphDatabase;
 
 export type HomeGraphInvokeInput = {

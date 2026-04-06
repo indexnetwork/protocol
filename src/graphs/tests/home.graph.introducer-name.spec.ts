@@ -36,7 +36,7 @@ function createMockDb(opportunities: Opportunity[]): HomeGraphDatabase {
     getOpportunity: () => Promise.resolve(null),
     getProfile: () => Promise.resolve(null),
     getActiveIntents: () => Promise.resolve([]),
-    getIndex: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
+    getNetwork: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
     getUser: (id: string) => Promise.resolve(USER_MAP[id] ?? { id, name: 'Unknown User', email: '', avatar: null }),
   };
 }

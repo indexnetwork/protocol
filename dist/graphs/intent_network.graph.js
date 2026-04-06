@@ -73,7 +73,7 @@ export class IntentNetworkGraphFactory {
                     if (!intentForIndexing) {
                         return { agentTimings: agentTimingsAccum, mutationResult: { success: false, error: "Intent not found for networking." } };
                     }
-                    const indexContext = await this.database.getIndexMemberContext(networkId, intentForIndexing.userId);
+                    const indexContext = await this.database.getNetworkMemberContext(networkId, intentForIndexing.userId);
                     if (!indexContext) {
                         // No prompts or not eligible - auto-assign
                         await this.database.assignIntentToNetwork(intentId, networkId, 1.0);
@@ -210,11 +210,11 @@ export class IntentNetworkGraphFactory {
                         if (intent.userId !== state.userId) {
                             return { readResult: { links: [], count: 0, mode: "networks_for_intent" }, error: "You can only list networks for your own intents." };
                         }
-                        const indexIds = await this.database.getNetworkIdsForIntent(intentId);
+                        const networkIds = await this.database.getNetworkIdsForIntent(intentId);
                         return {
                             readResult: {
-                                links: indexIds.map((id) => ({ intentId, networkId: id })),
-                                count: indexIds.length,
+                                links: networkIds.map((id) => ({ intentId, networkId: id })),
+                                count: networkIds.length,
                                 mode: "networks_for_intent",
                                 note: "To show network titles, use read_networks.",
                             },
@@ -239,7 +239,7 @@ export class IntentNetworkGraphFactory {
                     }
                     // All intents or filtered by user
                     if (!state.queryUserId) {
-                        const intents = await this.database.getIndexIntentsForMember(networkId, state.userId, { limit: 50, offset: 0 });
+                        const intents = await this.database.getNetworkIntentsForMember(networkId, state.userId, { limit: 50, offset: 0 });
                         return {
                             readResult: {
                                 links: intents.map((i) => ({
