@@ -4,7 +4,21 @@ config({ path: '.env.test' });
 
 import { ProfileGenerator } from "../profile.generator.js";
 import { beforeEach, describe, expect, it } from "bun:test";
-import { searchUser } from "../../../parallel/parallel.js";
+
+const FIXTURE_RESULTS = JSON.stringify([
+  {
+    title: "Seref Yarar – Index Network",
+    content: "Seref Yarar is the founder of Index Network, a privacy-preserving discovery protocol. Previously built tools for decentralized identity and Web3 infrastructure. Based in Istanbul, Turkey."
+  },
+  {
+    title: "serefyarar (Seref Yarar) · GitHub",
+    content: "serefyarar has 42 public repositories. Contributor to open-source projects in TypeScript, Solidity, and distributed systems. Interests include decentralized protocols, AI agents, and developer tooling."
+  },
+  {
+    title: "Seref Yarar on LinkedIn",
+    content: "Founder at Index Network. Former software engineer with experience in blockchain, distributed systems, and AI. Skills: TypeScript, Node.js, Solidity, LangChain, PostgreSQL."
+  }
+], null, 2);
 
 describe('Profile Generator', () => {
   let profileGenerator: ProfileGenerator;
@@ -14,33 +28,13 @@ describe('Profile Generator', () => {
   })
 
   it('should generate a profile', async () => {
-    let parallelResult;
-    try {
-      parallelResult = await searchUser({
-        objective: `
-        Find information about the person named Seref Yarar.
-        This is their LinkedIn profile page: https://www.linkedin.com/in/serefyarar/
-        This is their email address: seref@index.network
-        This is their GitHub profile page: https://github.com/serefyarar
-        This is their Twitter profile page: https://x.com/hyperseref
-      `,
-      });
-    } catch (e) {
-      console.error(e);
-      return;
-    }
-
-    try {
-      const result = await profileGenerator.invoke(JSON.stringify(parallelResult.results.map((r) => ({ title: r.title, content: r.excerpts.join('\n') })), null, 2));
-      expect(!!result.output.identity.bio).toBe(true);
-      expect(!!result.output.identity.location).toBe(true);
-      expect(!!result.output.identity.name).toBe(true);
-      expect(!!result.output.attributes.interests.length).toBe(true);
-      expect(!!result.output.attributes.skills.length).toBe(true);
-      expect(!!result.output.narrative.context).toBe(true);
-      expect(!!result.textToEmbed).toBe(true);
-    } catch (e) {
-      throw e;
-    }
+    const result = await profileGenerator.invoke(FIXTURE_RESULTS);
+    expect(!!result.output.identity.bio).toBe(true);
+    expect(!!result.output.identity.location).toBe(true);
+    expect(!!result.output.identity.name).toBe(true);
+    expect(!!result.output.attributes.interests.length).toBe(true);
+    expect(!!result.output.attributes.skills.length).toBe(true);
+    expect(!!result.output.narrative.context).toBe(true);
+    expect(!!result.textToEmbed).toBe(true);
   }, 60000);
 })
