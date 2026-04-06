@@ -605,8 +605,8 @@ export class ProfileGraphFactory {
     // ─────────────────────────────────────────────────────────
     const embedSaveProfileNode = async (state: typeof ProfileGraphState.State) => {
       return timed("ProfileGraph.embedSaveProfile", async () => {
-        if (!state.profile) {
-          logger.error("Profile missing in embed step");
+        if (!state.profile || !state.profile.identity) {
+          logger.error("Profile or identity missing in embed step");
           return {
             error: "Profile missing in embed step"
           };
@@ -668,8 +668,8 @@ export class ProfileGraphFactory {
     // ─────────────────────────────────────────────────────────
     const generateHydeNode = async (state: typeof ProfileGraphState.State) => {
       return timed("ProfileGraph.generateHyde", async () => {
-        if (!state.profile) {
-          logger.error("Profile missing for HyDE generation");
+        if (!state.profile || !state.profile.identity) {
+          logger.error("Profile or identity missing for HyDE generation");
           return {
             error: "Profile missing for HyDE generation"
           };
