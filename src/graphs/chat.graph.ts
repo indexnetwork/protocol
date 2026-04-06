@@ -1,5 +1,4 @@
-import { StateGraph, START, END, MemorySaver, type LangGraphRunnableConfig } from "@langchain/langgraph";
-import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import { StateGraph, START, END, BaseCheckpointSaver, type LangGraphRunnableConfig } from "@langchain/langgraph";
 import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { ChatGraphState } from "../states/chat.state.js";
 import { ChatAgent } from "../agents/chat.agent.js";
@@ -79,7 +78,7 @@ export class ChatGraphFactory {
    * @param checkpointer - Optional checkpointer (e.g., MemorySaver or PostgresSaver)
    * @returns Compiled StateGraph ready for streaming
    */
-  public createStreamingGraph(checkpointer?: MemorySaver | PostgresSaver) {
+  public createStreamingGraph(checkpointer?: BaseCheckpointSaver) {
     const graph = this.buildGraph();
     if (checkpointer) {
       return graph.compile({ checkpointer });
@@ -155,7 +154,7 @@ export class ChatGraphFactory {
       indexId?: string;
       prefillMessages?: Array<{ role: "assistant" | "user"; content: string }>;
     },
-    checkpointer?: MemorySaver | PostgresSaver,
+    checkpointer?: BaseCheckpointSaver,
     signal?: AbortSignal,
   ) {
     yield* this.streamingService.streamChatEventsWithContext(input, checkpointer, signal);
@@ -168,7 +167,7 @@ export class ChatGraphFactory {
   public async *streamChatEvents(
     input: { userId: string; messages: BaseMessage[] },
     sessionId: string,
-    checkpointer?: MemorySaver | PostgresSaver,
+    checkpointer?: BaseCheckpointSaver,
     signal?: AbortSignal,
   ) {
     yield* this.streamingService.streamChatEvents(input, sessionId, checkpointer, signal);

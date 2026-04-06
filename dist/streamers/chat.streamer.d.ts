@@ -1,6 +1,5 @@
 import { BaseMessage } from "@langchain/core/messages";
-import { MemorySaver } from "@langchain/langgraph";
-import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import { BaseCheckpointSaver } from "@langchain/langgraph";
 import type { ChatStreamEvent } from "../types/chat-streaming.types.js";
 /**
  * Top-level streaming service for Chat Graph events.
@@ -13,7 +12,7 @@ import type { ChatStreamEvent } from "../types/chat-streaming.types.js";
 export declare class ChatStreamer {
     private loadSessionContext;
     private createStreamingGraph;
-    constructor(loadSessionContext: (sessionId: string, maxMessages: number) => Promise<BaseMessage[]>, createStreamingGraph: (checkpointer?: MemorySaver | PostgresSaver) => any);
+    constructor(loadSessionContext: (sessionId: string, maxMessages: number) => Promise<BaseMessage[]>, createStreamingGraph: (checkpointer?: BaseCheckpointSaver) => any);
     /**
      * Streams chat events with full session context.
      * Loads previous conversation history and optionally uses a checkpointer
@@ -33,7 +32,7 @@ export declare class ChatStreamer {
             role: "assistant" | "user";
             content: string;
         }>;
-    }, checkpointer?: MemorySaver | PostgresSaver, signal?: AbortSignal): AsyncGenerator<ChatStreamEvent>;
+    }, checkpointer?: BaseCheckpointSaver, signal?: AbortSignal): AsyncGenerator<ChatStreamEvent>;
     /**
      * Streams chat events from the graph execution.
      *
@@ -51,6 +50,6 @@ export declare class ChatStreamer {
         userId: string;
         messages: BaseMessage[];
         indexId?: string;
-    }, sessionId: string, checkpointer?: MemorySaver | PostgresSaver, signal?: AbortSignal): AsyncGenerator<ChatStreamEvent>;
+    }, sessionId: string, checkpointer?: BaseCheckpointSaver, signal?: AbortSignal): AsyncGenerator<ChatStreamEvent>;
 }
 //# sourceMappingURL=chat.streamer.d.ts.map

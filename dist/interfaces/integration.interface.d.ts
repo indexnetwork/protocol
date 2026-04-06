@@ -1,10 +1,9 @@
-import type { StructuredToolInterface } from '@langchain/core/tools';
 /**
  * Session for interacting with an external integration platform.
  * Provides access to tools, OAuth authorization, and toolkit discovery.
  */
 export interface IntegrationSession {
-    tools(): Promise<StructuredToolInterface[]>;
+    tools(): Promise<unknown[]>;
     authorize(toolkit: string): Promise<{
         redirectUrl: string;
         waitForConnection(timeout?: number): Promise<unknown>;

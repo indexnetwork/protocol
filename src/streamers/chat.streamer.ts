@@ -1,6 +1,5 @@
 import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
-import { MemorySaver } from "@langchain/langgraph";
-import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import { BaseCheckpointSaver } from "@langchain/langgraph";
 import { protocolLogger } from "../support/protocol.logger.js";
 import type {
   ChatStreamEvent,
@@ -46,7 +45,7 @@ export class ChatStreamer {
       maxMessages: number,
     ) => Promise<BaseMessage[]>,
     private createStreamingGraph: (
-      checkpointer?: MemorySaver | PostgresSaver,
+      checkpointer?: BaseCheckpointSaver,
     ) => any,
   ) {}
 
@@ -68,7 +67,7 @@ export class ChatStreamer {
       indexId?: string;
       prefillMessages?: Array<{ role: "assistant" | "user"; content: string }>;
     },
-    checkpointer?: MemorySaver | PostgresSaver,
+    checkpointer?: BaseCheckpointSaver,
     signal?: AbortSignal,
   ): AsyncGenerator<ChatStreamEvent> {
     const {
@@ -146,7 +145,7 @@ export class ChatStreamer {
   public async *streamChatEvents(
     input: { userId: string; messages: BaseMessage[]; indexId?: string },
     sessionId: string,
-    checkpointer?: MemorySaver | PostgresSaver,
+    checkpointer?: BaseCheckpointSaver,
     signal?: AbortSignal,
   ): AsyncGenerator<ChatStreamEvent> {
     const graph = this.createStreamingGraph(checkpointer);

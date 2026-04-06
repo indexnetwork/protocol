@@ -1,5 +1,4 @@
-import { MemorySaver } from "@langchain/langgraph";
-import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import { BaseCheckpointSaver } from "@langchain/langgraph";
 import { BaseMessage } from "@langchain/core/messages";
 import type { ChatGraphCompositeDatabase } from "../interfaces/database.interface.js";
 import type { Embedder } from "../interfaces/embedder.interface.js";
@@ -155,7 +154,7 @@ export declare class ChatGraphFactory {
      * @param checkpointer - Optional checkpointer (e.g., MemorySaver or PostgresSaver)
      * @returns Compiled StateGraph ready for streaming
      */
-    createStreamingGraph(checkpointer?: MemorySaver | PostgresSaver): import("@langchain/langgraph").CompiledStateGraph<{
+    createStreamingGraph(checkpointer?: BaseCheckpointSaver): import("@langchain/langgraph").CompiledStateGraph<{
         userId: string;
         indexId: string | undefined;
         sessionId: string | undefined;
@@ -295,7 +294,7 @@ export declare class ChatGraphFactory {
             role: "assistant" | "user";
             content: string;
         }>;
-    }, checkpointer?: MemorySaver | PostgresSaver, signal?: AbortSignal): AsyncGenerator<import("../types/chat-streaming.types.js").ChatStreamEvent, void, any>;
+    }, checkpointer?: BaseCheckpointSaver, signal?: AbortSignal): AsyncGenerator<import("../types/chat-streaming.types.js").ChatStreamEvent, void, any>;
     /**
      * Streams chat events from the graph execution.
      * Delegates to ChatGraphStreamingService.
@@ -303,7 +302,7 @@ export declare class ChatGraphFactory {
     streamChatEvents(input: {
         userId: string;
         messages: BaseMessage[];
-    }, sessionId: string, checkpointer?: MemorySaver | PostgresSaver, signal?: AbortSignal): AsyncGenerator<import("../types/chat-streaming.types.js").ChatStreamEvent, void, any>;
+    }, sessionId: string, checkpointer?: BaseCheckpointSaver, signal?: AbortSignal): AsyncGenerator<import("../types/chat-streaming.types.js").ChatStreamEvent, void, any>;
     /**
      * Internal method to build the graph structure.
      * @returns Uncompiled StateGraph

@@ -17,6 +17,8 @@ export { ProfileGraphFactory } from "./graphs/profile.graph.js";
 // ─── Agents (used by the protocol app; advanced use for external consumers) ───
 export { ChatTitleGenerator } from "./agents/chat.title.generator.js";
 export { HydeGenerator } from "./agents/hyde.generator.js";
+export { SuggestionGenerator } from "./agents/suggestion.generator.js";
+export { generateInviteMessage } from "./agents/invite.generator.js";
 export { IntentIndexer } from "./agents/intent.indexer.js";
 export { LensInferrer } from "./agents/lens.inferrer.js";
 export { NegotiationInsightsGenerator } from "./agents/negotiation.insights.generator.js";
