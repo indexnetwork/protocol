@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ModelConfig } from "../agents/model.config";
 import type { ProfileDocument } from "../agents/profile.generator";
 import type {
   ChatGraphCompositeDatabase,
@@ -118,6 +119,8 @@ export interface ToolContext {
   createUserDatabase: (db: ChatGraphCompositeDatabase, userId: string) => UserDatabase;
   /** Factory for system-scoped database access. */
   createSystemDatabase: (db: ChatGraphCompositeDatabase, userId: string, indexScope: string[], embedder?: Embedder) => SystemDatabase;
+  /** Optional runtime LLM config. Pass to override env vars for API key, model, etc. */
+  modelConfig?: ModelConfig;
 }
 
 /**

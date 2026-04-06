@@ -14,6 +14,7 @@ import { NegotiationGraphFactory } from "../graphs/negotiation.graph";
 import { NegotiationProposer } from "../agents/negotiation.proposer";
 import { NegotiationResponder } from "../agents/negotiation.responder";
 import { protocolLogger } from "../support/protocol.logger";
+import { configureProtocol } from "../agents/model.config";
 
 import {
   type ToolContext,
@@ -52,6 +53,11 @@ export async function createChatTools(
   deps: ToolContext,
   preResolvedContext?: ResolvedToolContext
 ) {
+  // Apply model config so all agents created in this session use the right credentials.
+  if (deps.modelConfig) {
+    configureProtocol(deps.modelConfig);
+  }
+
   const { database, embedder, scraper } = deps;
 
   // ─── Resolve context from DB ───────────────────────────────────────────────
