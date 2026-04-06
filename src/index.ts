@@ -1,6 +1,7 @@
 // ─── Public API (recommended for external consumers) ──────────────────────────
 
-export { createChatTools, configureProtocol } from "./tools";
+export { createChatTools } from "./tools";
+export { configureProtocol } from "./agents/model.config";
 export type { ChatTools } from "./tools";
 export type { ModelConfig, ModelSettings } from "./agents/model.config";
 export type {

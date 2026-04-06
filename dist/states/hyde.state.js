@@ -1,0 +1,66 @@
+/**
+ * HyDE Graph state: cache-aware hypothetical document generation.
+ * Used by the HyDE graph for infer_lenses → check_cache → generate_missing → embed → cache_results.
+ */
+import { Annotation } from '@langchain/langgraph';
+/** State for the HyDE generation graph. */
+export const HydeGraphState = Annotation.Root({
+    // ─── Inputs ─────────────────────────────────────────────────────────────
+    /** Source type: intent, profile, or ad-hoc query. */
+    sourceType: (Annotation),
+    /** Source entity ID (e.g. intent ID, user ID). Omitted for ad-hoc query. */
+    sourceId: Annotation({
+        reducer: (curr, next) => next ?? curr,
+        default: () => undefined,
+    }),
+    /** Source text to generate HyDE from (intent payload, profile summary, or query). */
+    sourceText: (Annotation),
+    /** Optional profile context for lens inference (user's profile summary). */
+    profileContext: Annotation({
+        reducer: (curr, next) => next ?? curr,
+        default: () => undefined,
+    }),
+    /** Maximum number of lenses to infer (default 3). */
+    maxLenses: Annotation({
+        reducer: (curr, next) => next ?? curr,
+        default: () => 3,
+    }),
+    /** When true, skip cache/DB and regenerate all lenses. */
+    forceRegenerate: Annotation({
+        reducer: (curr, next) => next ?? curr,
+        default: () => false,
+    }),
+    // ─── Intermediate / output ─────────────────────────────────────────────
+    /** Inferred lenses from the LensInferrer agent. */
+    lenses: Annotation({
+        reducer: (curr, next) => next ?? curr,
+        default: () => [],
+    }),
+    /**
+     * HyDE documents per lens (from cache, DB, or newly generated).
+     * Keyed by lens label; values include hydeText and hydeEmbedding.
+     */
+    hydeDocuments: Annotation({
+        reducer: (curr, next) => (next ? { ...curr, ...next } : curr),
+        default: () => ({}),
+    }),
+    /**
+     * Final embeddings per lens (convenience output for search).
+     * Populated by embed node; used by opportunity graph.
+     */
+    hydeEmbeddings: Annotation({
+        reducer: (curr, next) => (next ? { ...curr, ...next } : curr),
+        default: () => ({}),
+    }),
+    /** Non-fatal error message. */
+    error: Annotation({
+        reducer: (curr, next) => next ?? curr,
+        default: () => undefined,
+    }),
+    /** Timing records for each agent invocation within this graph run. */
+    agentTimings: Annotation({
+        reducer: (acc, val) => [...acc, ...val],
+        default: () => [],
+    }),
+});
+//# sourceMappingURL=hyde.state.js.map
