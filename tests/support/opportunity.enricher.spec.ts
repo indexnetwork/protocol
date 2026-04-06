@@ -9,9 +9,9 @@ import { config } from 'dotenv';
 config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { enrichOrCreate } from '../opportunity.enricher.js';
-import type { CreateOpportunityData, Opportunity } from '../../interfaces/database.interface.js';
-import type { Embedder } from '../../interfaces/embedder.interface.js';
+import { enrichOrCreate } from '../../src/support/opportunity.enricher.js';
+import type { CreateOpportunityData, Opportunity } from '../../src/interfaces/database.interface.js';
+import type { Embedder } from '../../src/interfaces/embedder.interface.js';
 
 /**
  * Meaningful test data: intent IDs and domain-rich opportunity reasonings

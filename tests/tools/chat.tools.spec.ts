@@ -10,7 +10,7 @@ mock.module("../../../../queues/notification.queue", () => ({
   queueOpportunityNotification: async () =>
     ({ id: "mock-job" } as unknown as Awaited<ReturnType<typeof import("../../../../queues/notification.queue").queueOpportunityNotification>>),
 }));
-mock.module("../../graphs/intent.graph", () => ({
+mock.module("../../src/graphs/intent.graph", () => ({
   IntentGraphFactory: class {
     private database: ChatGraphCompositeDatabase;
     constructor(database: ChatGraphCompositeDatabase) {
@@ -163,17 +163,17 @@ let mockDiscoveryResult: {
   count: 0,
   message: "You need to join at least one index (community) to discover opportunities.",
 };
-mock.module("../../support/opportunity.discover", () => ({
+mock.module("../../src/support/opportunity.discover", () => ({
   runDiscoverFromQuery: async () => mockDiscoveryResult,
   continueDiscovery: async () => mockDiscoveryResult,
 }));
 
 import { describe, test, expect, beforeAll } from "bun:test";
-import { createChatTools, type ToolContext } from "..";
-import type { ChatGraphCompositeDatabase, Opportunity, SystemDatabase } from "../../interfaces/database.interface.js";
-import type { ActiveIntent, IndexMemberDetails, IndexedIntentDetails } from "../../interfaces/database.interface.js";
-import type { Embedder } from "../../interfaces/embedder.interface.js";
-import type { Scraper } from "../../interfaces/scraper.interface.js";
+import { createChatTools, type ToolContext } from "../../src/tools";
+import type { ChatGraphCompositeDatabase, Opportunity, SystemDatabase } from "../../src/interfaces/database.interface.js";
+import type { ActiveIntent, IndexMemberDetails, IndexedIntentDetails } from "../../src/interfaces/database.interface.js";
+import type { Embedder } from "../../src/interfaces/embedder.interface.js";
+import type { Scraper } from "../../src/interfaces/scraper.interface.js";
 
 const testUserId = "test-user-id-for-tools";
 

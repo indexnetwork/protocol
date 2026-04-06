@@ -8,7 +8,7 @@ import {
   canUserSeeOpportunity,
   isActionableForViewer,
   validateOpportunityActors,
-} from '../opportunity.utils.js';
+} from '../../src/support/opportunity.utils.js';
 
 describe('opportunity.utils', () => {
   describe('deriveRolesFromCorpus', () => {

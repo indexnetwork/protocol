@@ -3,8 +3,8 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { presentOpportunity } from '../opportunity.presentation.js';
-import type { Opportunity } from '../../interfaces/database.interface.js';
+import { presentOpportunity } from '../../src/support/opportunity.presentation.js';
+import type { Opportunity } from '../../src/interfaces/database.interface.js';
 
 describe('presentOpportunity', () => {
   const baseOpp: Opportunity = {

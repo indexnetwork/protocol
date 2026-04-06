@@ -2,7 +2,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { timed, setTimingCallback, Timed } from "../performance.js";
+import { timed, setTimingCallback, Timed } from "../../src/support/performance.js";
 
 beforeEach(() => {
   setTimingCallback(undefined);

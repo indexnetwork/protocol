@@ -6,7 +6,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, test, expect } from "bun:test";
-import { estimateTokenCount, truncateToTokenLimit } from "../chat.utils.js";
+import { estimateTokenCount, truncateToTokenLimit } from "../../src/support/chat.utils.js";
 import { HumanMessage } from "@langchain/core/messages";
 
 describe("chat.utils", () => {

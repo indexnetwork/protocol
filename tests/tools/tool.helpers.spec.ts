@@ -3,11 +3,11 @@ import { config } from "dotenv";
 config({ path: ".env.test" });
 
 import { describe, expect, test } from "bun:test";
-import type { ChatGraphCompositeDatabase } from "../../interfaces/database.interface.js";
+import type { ChatGraphCompositeDatabase } from "../../src/interfaces/database.interface.js";
 import {
   ChatContextAccessError,
   resolveChatContext,
-} from "../tool.helpers.js";
+} from "../../src/tools/tool.helpers.js";
 
 const userId = "00000000-0000-4000-8000-000000000111";
 const networkId = "00000000-0000-4000-8000-000000000222";

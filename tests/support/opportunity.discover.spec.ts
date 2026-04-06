@@ -6,8 +6,8 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, test, expect } from "bun:test";
-import { runDiscoverFromQuery } from "../opportunity.discover.js";
-import type { ChatGraphCompositeDatabase } from "../../interfaces/database.interface.js";
+import { runDiscoverFromQuery } from "../../src/support/opportunity.discover.js";
+import type { ChatGraphCompositeDatabase } from "../../src/interfaces/database.interface.js";
 
 describe("opportunity.discover", () => {
   const mockDatabase: ChatGraphCompositeDatabase = {

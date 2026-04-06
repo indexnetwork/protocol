@@ -18,7 +18,7 @@ import { describe, it, expect } from 'bun:test';
 import {
   selectByComposition,
   classifyOpportunity,
-} from '../opportunity.utils.js';
+} from '../../src/support/opportunity.utils.js';
 
 type TestOpp = {
   id: string;

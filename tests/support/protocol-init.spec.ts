@@ -73,7 +73,7 @@ mock.module("../../../../../protocol/src/lib/parallel/parallel", () => ({
   enrichUserProfile: mock(async () => ({})),
 }));
 
-import { createDefaultProtocolDeps } from "../../../../../protocol/src/protocol-init.js";
+import { createDefaultProtocolDeps } from "../../../../protocol/src/protocol-init.js";
 
 describe("createDefaultProtocolDeps()", () => {
   it("returns an object with all required ProtocolDeps fields", () => {

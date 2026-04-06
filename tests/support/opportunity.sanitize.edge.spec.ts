@@ -2,7 +2,7 @@ import { config } from "dotenv";
 config({ path: ".env.development", override: true });
 
 import { describe, expect, it } from "bun:test";
-import { stripIntroducerMentions } from "../opportunity.sanitize.js";
+import { stripIntroducerMentions } from "../../src/support/opportunity.sanitize.js";
 
 describe("stripIntroducerMentions - Edge Cases", () => {
   it("handles multiple introducer mentions in same text", () => {
