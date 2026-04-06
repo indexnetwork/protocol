@@ -179,7 +179,7 @@ const testUserId = "test-user-id-for-tools";
 
 type MockOverrides = Partial<Pick<
   ChatGraphCompositeDatabase,
-  "getUser" | "getIndex" | "getOwnedIndexes" | "isIndexOwner" | "isNetworkMember" | "getIndexMembersForOwner" | "getIndexMembersForMember" | "getIndexIntentsForOwner" | "getNetworkMemberships" | "getNetworkMembership" | "getIndexIntentsForMember" | "getIndexWithPermissions" | "getOpportunity" | "updateOpportunityStatus" | "getActiveIntents" | "getIntentsInIndexForMember" | "getIndexIdsForIntent" | "opportunityExistsBetweenActors" | "findOverlappingOpportunities" | "createOpportunity"
+  "getUser" | "getIndex" | "getOwnedIndexes" | "isIndexOwner" | "isNetworkMember" | "getIndexMembersForOwner" | "getIndexMembersForMember" | "getIndexIntentsForOwner" | "getNetworkMemberships" | "getNetworkMembership" | "getIndexIntentsForMember" | "getIndexWithPermissions" | "getOpportunity" | "updateOpportunityStatus" | "getActiveIntents" | "getIntentsInIndexForMember" | "getNetworkIdsForIntent" | "opportunityExistsBetweenActors" | "findOverlappingOpportunities" | "createOpportunity"
 >>;
 
 /**
@@ -216,7 +216,7 @@ function createMockDatabase(
     isIntentAssignedToIndex: noopBool,
     assignIntentToNetwork: noop,
     unassignIntentFromIndex: noop,
-    getIndexIdsForIntent: noopArray,
+    getNetworkIdsForIntent: noopArray,
     getOwnedIndexes: noopArray,
     isIndexOwner: noopBool,
     isNetworkMember: noopBool,
@@ -235,11 +235,11 @@ function createMockDatabase(
       memberCount: 0,
       intentCount: 0,
     }),
-    softDeleteIndex: noop,
+    softDeleteNetwork: noop,
     deleteProfile: noop,
     getIndexMemberCount: async () => 0,
     createNetwork: async () => ({ id: "", title: "", prompt: null, permissions: { joinPolicy: "invite_only" as const, invitationLink: null, allowGuestVibeCheck: false } }),
-    addMemberToIndex: async () => ({ success: true }),
+    addMemberToNetwork: async () => ({ success: true }),
     getMembersFromUserIndexes: async () => [],
     getOpportunity: noopNull,
     updateOpportunityStatus: noopNull,
@@ -291,7 +291,7 @@ const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | '
     getIndexMemberContext: db.getIndexMemberContext ?? (async () => null),
     createIndex: db.createIndex ?? (async () => ({ id: "", title: "" })),
     updateIndexSettings: db.updateIndexSettings ?? (async () => ({})),
-    softDeleteIndex: db.softDeleteIndex ?? (async () => {}),
+    softDeleteNetwork: db.softDeleteNetwork ?? (async () => {}),
     getPublicIndexesNotJoined: db.getPublicIndexesNotJoined ?? (async () => ({ indexes: [] })),
     joinPublicNetwork: db.joinPublicNetwork ?? (async () => {}),
     getOpportunitiesForUser: db.getOpportunitiesForUser ?? (async () => []),
@@ -299,10 +299,10 @@ const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | '
     updateOpportunityStatus: db.updateOpportunityStatus ?? (async () => null),
     findSimilarIntents: db.findSimilarIntents ?? (async () => []),
     getIntentForIndexing: db.getIntentForIndexing ?? (async () => null),
-    associateIntentWithIndexes: db.associateIntentWithIndexes ?? (async () => {}),
+    associateIntentWithNetworks: db.associateIntentWithNetworks ?? (async () => {}),
     assignIntentToNetwork: db.assignIntentToNetwork ?? (async () => {}),
     unassignIntentFromIndex: db.unassignIntentFromIndex ?? (async () => {}),
-    getIndexIdsForIntent: db.getIndexIdsForIntent ?? (async () => []),
+    getNetworkIdsForIntent: db.getNetworkIdsForIntent ?? (async () => []),
     isIntentAssignedToIndex: db.isIntentAssignedToIndex ?? (async () => false),
     getAcceptedOpportunitiesBetweenActors: db.getAcceptedOpportunitiesBetweenActors ?? (async () => []),
     acceptSiblingOpportunities: db.acceptSiblingOpportunities ?? (async () => {}),
@@ -322,7 +322,7 @@ const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | '
     findSimilarIntentsInScope: async () => [],
     getIndexMembers: db.getIndexMembersForMember ?? (async () => []),
     getMembersFromScope: db.getMembersFromUserIndexes ?? (async () => []),
-    addMemberToIndex: db.addMemberToIndex ?? (async () => ({ success: true })),
+    addMemberToNetwork: db.addMemberToNetwork ?? (async () => ({ success: true })),
     removeMemberFromIndex: async () => {},
     getIndex: db.getIndex ?? (async () => null),
     getIndexWithPermissions: db.getIndexWithPermissions ?? (async () => null),
@@ -979,7 +979,7 @@ describe("update_intent and delete_intent (Phase 3 index-scoping)", () => {
       return [];
     }, {
       isNetworkMember: async () => true,
-      getIndexIdsForIntent: async (intentId: string) => (intentId === intentInIndex.id ? [networkId] : []),
+      getNetworkIdsForIntent: async (intentId: string) => (intentId === intentInIndex.id ? [networkId] : []),
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, networkId, ...mockProtocolDeps };
     const tools = await createChatTools(context);
@@ -997,7 +997,7 @@ describe("update_intent and delete_intent (Phase 3 index-scoping)", () => {
       return [];
     }, {
       isNetworkMember: async () => true,
-      getIndexIdsForIntent: async (intentId: string) => (intentId === intentInIndex.id ? [networkId] : []),
+      getNetworkIdsForIntent: async (intentId: string) => (intentId === intentInIndex.id ? [networkId] : []),
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, networkId, ...mockProtocolDeps };
     const tools = await createChatTools(context);

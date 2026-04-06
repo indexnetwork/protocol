@@ -36,7 +36,7 @@ export async function resolveChatContext(params) {
     let indexName;
     if (networkId) {
         const [index, isMember, owner] = await Promise.all([
-            database.getIndex(networkId),
+            database.getNetwork(networkId),
             database.isNetworkMember(networkId, userId),
             database.isIndexOwner(networkId, userId),
         ]);
@@ -120,7 +120,7 @@ export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 export async function resolveIndexNames(database, indexIds) {
     if (indexIds.length === 0)
         return [];
-    const results = await Promise.all(indexIds.map(id => database.getIndex(id)));
+    const results = await Promise.all(indexIds.map(id => database.getNetwork(id)));
     return results.filter(Boolean).map(idx => idx.title);
 }
 /**

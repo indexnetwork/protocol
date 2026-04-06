@@ -119,7 +119,7 @@ export declare class ChatContextAccessError extends Error {
  * This preloads user identity, profile, index memberships, and scoped index role.
  */
 export declare function resolveChatContext(params: {
-    database: Pick<ChatGraphCompositeDatabase, "getUser" | "getProfile" | "getNetworkMemberships" | "getNetworkMembership" | "getIndex" | "isIndexOwner" | "isNetworkMember">;
+    database: Pick<ChatGraphCompositeDatabase, "getUser" | "getProfile" | "getNetworkMemberships" | "getNetworkMembership" | "getNetwork" | "isIndexOwner" | "isNetworkMember">;
     userId: string;
     networkId?: string;
     /** Chat session ID for draft opportunities (stored as context.conversationId). */
@@ -207,7 +207,7 @@ export declare const UUID_REGEX: RegExp;
  * Skips any IDs that don't resolve (deleted or invalid indexes).
  */
 export declare function resolveIndexNames(database: {
-    getIndex(id: string): Promise<{
+    getNetwork(id: string): Promise<{
         id: string;
         title: string;
     } | null>;

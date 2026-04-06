@@ -498,7 +498,7 @@ export function createProfileTools(defineTool, deps) {
                 .filter(Boolean);
             for (const indexId of autoJoinIds) {
                 try {
-                    await database.addMemberToIndex(indexId, context.userId, 'member');
+                    await database.addMemberToNetwork(indexId, context.userId, 'member');
                 }
                 catch (err) {
                     logger.warn('Auto-join index failed (non-fatal)', { indexId, userId: context.userId, error: err instanceof Error ? err.message : String(err) });

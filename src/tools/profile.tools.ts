@@ -548,15 +548,15 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
         .split(',')
         .map(id => id.trim())
         .filter(Boolean);
-      for (const indexId of autoJoinIds) {
+      for (const networkId of autoJoinIds) {
         try {
-          await database.addMemberToIndex(indexId, context.userId, 'member');
+          await database.addMemberToNetwork(networkId, context.userId, 'member');
         } catch (err) {
-          logger.warn('Auto-join index failed (non-fatal)', { indexId, userId: context.userId, error: err instanceof Error ? err.message : String(err) });
+          logger.warn('Auto-join network failed (non-fatal)', { networkId, userId: context.userId, error: err instanceof Error ? err.message : String(err) });
         }
       }
 
-      logger.info("Onboarding completed", { userId: context.userId, autoJoinedIndexes: autoJoinIds.length });
+      logger.info("Onboarding completed", { userId: context.userId, autoJoinedNetworks: autoJoinIds.length });
       return success({ message: "Onboarding complete." });
     },
   });

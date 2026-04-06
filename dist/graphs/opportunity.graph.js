@@ -209,7 +209,7 @@ export class OpportunityGraphFactory {
                     }
                     // Fetch index details
                     const targetIndexes = await Promise.all(targetIndexIds.map(async (networkId) => {
-                        const index = await this.database.getIndex(networkId);
+                        const index = await this.database.getNetwork(networkId);
                         const memberCount = await this.database.getIndexMemberCount(networkId);
                         return {
                             networkId,
@@ -340,7 +340,7 @@ export class OpportunityGraphFactory {
                 try {
                     let resolvedIntentId;
                     if (state.triggerIntentId) {
-                        const inIndex = await this.database.getIndexIdsForIntent(state.triggerIntentId);
+                        const inIndex = await this.database.getNetworkIdsForIntent(state.triggerIntentId);
                         const inTarget = inIndex.some((id) => targetIndexIds.includes(id));
                         resolvedIntentId = state.triggerIntentId;
                         const resolvedIntentInIndex = inTarget;
@@ -356,7 +356,7 @@ export class OpportunityGraphFactory {
                         const matched = state.indexedIntents.find((i) => i.payload?.toLowerCase().includes(q));
                         if (matched) {
                             resolvedIntentId = matched.intentId;
-                            const inIndex = await this.database.getIndexIdsForIntent(matched.intentId);
+                            const inIndex = await this.database.getNetworkIdsForIntent(matched.intentId);
                             const resolvedIntentInIndex = inIndex.some((id) => targetIndexIds.includes(id));
                             const discoverySource = resolvedIntentInIndex ? 'intent' : 'profile';
                             return {
@@ -482,7 +482,7 @@ export class OpportunityGraphFactory {
                         if (targetIntents.length > 0) {
                             // Build one candidate per intent per shared index it belongs to
                             for (const intent of targetIntents) {
-                                const intentIndexIds = await this.database.getIndexIdsForIntent(intent.id);
+                                const intentIndexIds = await this.database.getNetworkIdsForIntent(intent.id);
                                 const overlapping = sharedIndexIds.filter(id => intentIndexIds.includes(id));
                                 for (const networkId of overlapping) {
                                     directCandidates.push({
@@ -2215,7 +2215,7 @@ export class OpportunityGraphFactory {
                         const counterpartActor = opp.actors.find((a) => a.userId !== state.userId);
                         const actorIndexId = counterpartActor?.networkId ?? opp.actors[0]?.networkId;
                         const [indexRecord, ...profileAndUserPairs] = await Promise.all([
-                            actorIndexId ? this.database.getIndex(actorIndexId) : Promise.resolve(null),
+                            actorIndexId ? this.database.getNetwork(actorIndexId) : Promise.resolve(null),
                             ...idsToResolve.map(async (uid) => {
                                 const [profile, user] = await Promise.all([
                                     this.database.getProfile(uid),

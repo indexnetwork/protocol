@@ -367,16 +367,16 @@ const BARE_URL_REGEX = /(?<!\w:\/\/)(?<![/\w])(?:www\.)?[a-z0-9](?:[a-z0-9-]*[a-
 export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Resolves an array of index IDs to their display titles.
- * Skips any IDs that don't resolve (deleted or invalid indexes).
+ * Resolves an array of network IDs to their display titles.
+ * Skips any IDs that don't resolve (deleted or invalid networks).
  */
 export async function resolveIndexNames(
   database: { getIndex(id: string): Promise<{ id: string; title: string } | null> },
-  indexIds: string[]
+  networkIds: string[]
 ): Promise<string[]> {
-  if (indexIds.length === 0) return [];
+  if (networkIds.length === 0) return [];
   const results = await Promise.all(
-    indexIds.map(id => database.getIndex(id))
+    networkIds.map(id => database.getIndex(id))
   );
   return results.filter(Boolean).map(idx => idx!.title);
 }

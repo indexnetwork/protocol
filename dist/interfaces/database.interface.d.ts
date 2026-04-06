@@ -580,9 +580,9 @@ export interface Database {
      */
     getNetworkMembership(networkId: string, userId: string): Promise<NetworkMembership | null>;
     /**
-     * Get index by ID (id and title only). Used for opportunity presentation.
+     * Get network by ID (id and title only). Used for opportunity presentation.
      */
-    getIndex(networkId: string): Promise<{
+    getNetwork(networkId: string): Promise<{
         id: string;
         title: string;
     } | null>;
@@ -608,7 +608,7 @@ export interface Database {
      * await db.associateIntentWithIndexes(intentId, ['idx_1', 'idx_2']);
      * ```
      */
-    associateIntentWithIndexes(intentId: string, indexIds: string[]): Promise<void>;
+    associateIntentWithNetworks(intentId: string, indexIds: string[]): Promise<void>;
     /**
      * Finds semantically similar intents using vector search.
      * Used for deduplication during intent creation and discovery.
@@ -676,7 +676,7 @@ export interface Database {
     /**
      * Returns all index IDs that an intent is registered to.
      */
-    getIndexIdsForIntent(intentId: string): Promise<string[]>;
+    getNetworkIdsForIntent(intentId: string): Promise<string[]>;
     /**
      * Get indexes where the user has owner permissions.
      * Returns full index details with member and intent counts.
@@ -799,7 +799,7 @@ export interface Database {
      *
      * @param networkId - The index to soft-delete
      */
-    softDeleteIndex(networkId: string): Promise<void>;
+    softDeleteNetwork(networkId: string): Promise<void>;
     /**
      * Delete a user's profile (removes profile row).
      * Used after confirmation in chat tools.
@@ -855,7 +855,7 @@ export interface Database {
      * @param role - owner | admin | member
      * @returns success and optionally alreadyMember if they were already in the index
      */
-    addMemberToIndex(networkId: string, userId: string, role: 'owner' | 'admin' | 'member'): Promise<{
+    addMemberToNetwork(networkId: string, userId: string, role: 'owner' | 'admin' | 'member'): Promise<{
         success: boolean;
         alreadyMember?: boolean;
     }>;
@@ -1152,13 +1152,13 @@ export interface UserDatabase {
         sourceId: string | null;
     } | null>;
     /** Associate an intent with indexes. */
-    associateIntentWithIndexes(intentId: string, indexIds: string[]): Promise<void>;
+    associateIntentWithNetworks(intentId: string, indexIds: string[]): Promise<void>;
     /** Assign an intent to an index. */
     assignIntentToNetwork(intentId: string, networkId: string, relevancyScore?: number): Promise<void>;
     /** Unassign an intent from an index. */
     unassignIntentFromIndex(intentId: string, networkId: string): Promise<void>;
     /** Get index IDs for an intent. */
-    getIndexIdsForIntent(intentId: string): Promise<string[]>;
+    getNetworkIdsForIntent(intentId: string): Promise<string[]>;
     /** Check if intent is assigned to index. */
     isIntentAssignedToIndex(intentId: string, networkId: string): Promise<boolean>;
     /** Get all index memberships for the authenticated user. */
@@ -1197,7 +1197,7 @@ export interface UserDatabase {
     /** Update index settings (owner only). */
     updateIndexSettings(networkId: string, data: UpdateIndexSettingsData): Promise<OwnedIndex>;
     /** Soft-delete an index (owner only). */
-    softDeleteIndex(networkId: string): Promise<void>;
+    softDeleteNetwork(networkId: string): Promise<void>;
     /** Get public indexes (joinPolicy 'anyone') that the user has not joined. */
     getPublicIndexesNotJoined(): Promise<{
         networks: Array<{
@@ -1278,7 +1278,7 @@ export interface SystemDatabase {
         avatar: string | null;
     }[]>;
     /** Add a user to an index (requires ownership or 'anyone' policy). */
-    addMemberToIndex(networkId: string, userId: string, role: 'owner' | 'admin' | 'member'): Promise<{
+    addMemberToNetwork(networkId: string, userId: string, role: 'owner' | 'admin' | 'member'): Promise<{
         success: boolean;
         alreadyMember?: boolean;
     }>;
@@ -1288,8 +1288,8 @@ export interface SystemDatabase {
         wasOwner?: boolean;
         notMember?: boolean;
     }>;
-    /** Get index info by ID (requires scope). */
-    getIndex(networkId: string): Promise<{
+    /** Get network info by ID (requires scope). */
+    getNetwork(networkId: string): Promise<{
         id: string;
         title: string;
     } | null>;
@@ -1360,7 +1360,7 @@ export type ProfileGraphDatabase = Pick<Database, 'getProfile' | 'getUser' | 'up
  *
  * Access layer: Both UserDatabase + SystemDatabase (orchestrates all operations)
  */
-export type ChatGraphCompositeDatabase = Pick<Database, 'getProfile' | 'getActiveIntents' | 'getIntentsInIndexForMember' | 'getUser' | 'updateUser' | 'saveProfile' | 'softDeleteGhost' | 'createIntent' | 'updateIntent' | 'archiveIntent' | 'createOpportunity' | 'getOpportunity' | 'opportunityExistsBetweenActors' | 'getOpportunityBetweenActors' | 'findOverlappingOpportunities' | 'getOpportunitiesForUser' | 'updateOpportunityStatus' | 'getHydeDocument' | 'getHydeDocumentsForSource' | 'saveHydeDocument' | 'getIntent' | 'getPublicIndexesNotJoined' | 'getUserIndexIds' | 'getNetworkMemberships' | 'getNetworkMembership' | 'getIndex' | 'getIndexWithPermissions' | 'getIntentForIndexing' | 'getIndexMemberContext' | 'isIntentAssignedToIndex' | 'assignIntentToNetwork' | 'unassignIntentFromIndex' | 'getIndexIdsForIntent' | 'getIntentIndexScores' | 'getPersonalIndexesForContact' | 'getOwnedIndexes' | 'isIndexOwner' | 'isNetworkMember' | 'getIndexMembersForOwner' | 'getIndexMembersForMember' | 'getMembersFromUserIndexes' | 'getIndexIntentsForOwner' | 'getIndexIntentsForMember' | 'updateIndexSettings' | 'softDeleteIndex' | 'deleteProfile' | 'getProfileByUserId' | 'createNetwork' | 'getIndexMemberCount' | 'addMemberToIndex' | 'removeMemberFromIndex'>;
+export type ChatGraphCompositeDatabase = Pick<Database, 'getProfile' | 'getActiveIntents' | 'getIntentsInIndexForMember' | 'getUser' | 'updateUser' | 'saveProfile' | 'softDeleteGhost' | 'createIntent' | 'updateIntent' | 'archiveIntent' | 'createOpportunity' | 'getOpportunity' | 'opportunityExistsBetweenActors' | 'getOpportunityBetweenActors' | 'findOverlappingOpportunities' | 'getOpportunitiesForUser' | 'updateOpportunityStatus' | 'getHydeDocument' | 'getHydeDocumentsForSource' | 'saveHydeDocument' | 'getIntent' | 'getPublicIndexesNotJoined' | 'getUserIndexIds' | 'getNetworkMemberships' | 'getNetworkMembership' | 'getNetwork' | 'getIndexWithPermissions' | 'getIntentForIndexing' | 'getIndexMemberContext' | 'isIntentAssignedToIndex' | 'assignIntentToNetwork' | 'unassignIntentFromIndex' | 'getNetworkIdsForIntent' | 'getIntentIndexScores' | 'getPersonalIndexesForContact' | 'getOwnedIndexes' | 'isIndexOwner' | 'isNetworkMember' | 'getIndexMembersForOwner' | 'getIndexMembersForMember' | 'getMembersFromUserIndexes' | 'getIndexIntentsForOwner' | 'getIndexIntentsForMember' | 'updateIndexSettings' | 'softDeleteNetwork' | 'deleteProfile' | 'getProfileByUserId' | 'createNetwork' | 'getIndexMemberCount' | 'addMemberToNetwork' | 'removeMemberFromIndex'>;
 /**
  * Database interface for Opportunity Graph operations.
  * Includes prep/scope (index membership, intents, index details), persist (create, dedupe),
@@ -1368,7 +1368,7 @@ export type ChatGraphCompositeDatabase = Pick<Database, 'getProfile' | 'getActiv
  *
  * Access layer: SystemDatabase (cross-user opportunity operations)
  */
-export type OpportunityGraphDatabase = Pick<Database, 'getProfile' | 'createOpportunity' | 'opportunityExistsBetweenActors' | 'getOpportunityBetweenActors' | 'findOverlappingOpportunities' | 'getUserIndexIds' | 'getNetworkMemberships' | 'getActiveIntents' | 'getIndexIdsForIntent' | 'getIndex' | 'getIndexMemberCount' | 'getIntentIndexScores' | 'getIndexMemberContext' | 'getOpportunity' | 'getOpportunitiesForUser' | 'updateOpportunityStatus' | 'isNetworkMember' | 'isIndexOwner' | 'getUser' | 'getIntent'>;
+export type OpportunityGraphDatabase = Pick<Database, 'getProfile' | 'createOpportunity' | 'opportunityExistsBetweenActors' | 'getOpportunityBetweenActors' | 'findOverlappingOpportunities' | 'getUserIndexIds' | 'getNetworkMemberships' | 'getActiveIntents' | 'getNetworkIdsForIntent' | 'getNetwork' | 'getIndexMemberCount' | 'getIntentIndexScores' | 'getIndexMemberContext' | 'getOpportunity' | 'getOpportunitiesForUser' | 'updateOpportunityStatus' | 'isNetworkMember' | 'isIndexOwner' | 'getUser' | 'getIntent'>;
 /**
  * Database interface for the negotiation graph (A2A conversation/task/artifact persistence).
  *
@@ -1447,7 +1447,7 @@ export interface NegotiationDatabase {
  *
  * Access layer: Both UserDatabase + SystemDatabase (API handles auth)
  */
-export type OpportunityControllerDatabase = Pick<Database, 'getOpportunity' | 'getOpportunitiesForUser' | 'getOpportunitiesForNetwork' | 'resolveOpportunityId' | 'updateOpportunityStatus' | 'createOpportunity' | 'createOpportunityAndExpireIds' | 'opportunityExistsBetweenActors' | 'findOverlappingOpportunities' | 'getAcceptedOpportunitiesBetweenActors' | 'acceptSiblingOpportunities' | 'isIndexOwner' | 'isNetworkMember' | 'getUser' | 'getIndex' | 'getNetworkMemberships' | 'getProfile' | 'getActiveIntents' | 'upsertContactMembership'>;
+export type OpportunityControllerDatabase = Pick<Database, 'getOpportunity' | 'getOpportunitiesForUser' | 'getOpportunitiesForNetwork' | 'resolveOpportunityId' | 'updateOpportunityStatus' | 'createOpportunity' | 'createOpportunityAndExpireIds' | 'opportunityExistsBetweenActors' | 'findOverlappingOpportunities' | 'getAcceptedOpportunitiesBetweenActors' | 'acceptSiblingOpportunities' | 'isIndexOwner' | 'isNetworkMember' | 'getUser' | 'getNetwork' | 'getNetworkMemberships' | 'getProfile' | 'getActiveIntents' | 'upsertContactMembership'>;
 /**
  * Database interface narrowed for Intent Graph operations.
  * Provides state population (getActiveIntents), action execution (create/update/archive),
@@ -1462,7 +1462,7 @@ export type IntentGraphDatabase = Pick<Database, 'getActiveIntents' | 'getIntent
  *
  * Access layer: UserDatabase (CRUD on own indexes and memberships)
  */
-export type NetworkGraphDatabase = Pick<Database, 'getNetworkMemberships' | 'getOwnedIndexes' | 'getPublicIndexesNotJoined' | 'isIndexOwner' | 'isNetworkMember' | 'getIndex' | 'createNetwork' | 'addMemberToIndex' | 'updateIndexSettings' | 'softDeleteIndex' | 'getIndexMemberCount'>;
+export type NetworkGraphDatabase = Pick<Database, 'getNetworkMemberships' | 'getOwnedIndexes' | 'getPublicIndexesNotJoined' | 'isIndexOwner' | 'isNetworkMember' | 'getNetwork' | 'createNetwork' | 'addMemberToNetwork' | 'updateIndexSettings' | 'softDeleteNetwork' | 'getIndexMemberCount'>;
 /**
  * Database interface narrowed for Intent Index Graph operations.
  * Provides intent/index context and assignment for intent–index evaluation.
@@ -1470,14 +1470,14 @@ export type NetworkGraphDatabase = Pick<Database, 'getNetworkMemberships' | 'get
  *
  * Access layer: UserDatabase (own intent assignment) + SystemDatabase (index context)
  */
-export type IntentNetworkGraphDatabase = Pick<Database, 'getIntentForIndexing' | 'getIndexMemberContext' | 'isIntentAssignedToIndex' | 'assignIntentToNetwork' | 'unassignIntentFromIndex' | 'getIntent' | 'isNetworkMember' | 'isIndexOwner' | 'getIndexIdsForIntent' | 'getIndexIntentsForMember' | 'getIntentsInIndexForMember'>;
+export type IntentNetworkGraphDatabase = Pick<Database, 'getIntentForIndexing' | 'getIndexMemberContext' | 'isIntentAssignedToIndex' | 'assignIntentToNetwork' | 'unassignIntentFromIndex' | 'getIntent' | 'isNetworkMember' | 'isIndexOwner' | 'getNetworkIdsForIntent' | 'getIndexIntentsForMember' | 'getIntentsInIndexForMember'>;
 /**
  * Database interface narrowed for Index Membership Graph operations.
  * Handles CRUD for index memberships (add, list, remove members).
  *
  * Access layer: SystemDatabase (cross-user membership operations)
  */
-export type NetworkMembershipGraphDatabase = Pick<Database, 'isNetworkMember' | 'isIndexOwner' | 'getIndexWithPermissions' | 'addMemberToIndex' | 'removeMemberFromIndex' | 'getIndexMembersForMember'>;
+export type NetworkMembershipGraphDatabase = Pick<Database, 'isNetworkMember' | 'isIndexOwner' | 'getIndexWithPermissions' | 'addMemberToNetwork' | 'removeMemberFromIndex' | 'getIndexMembersForMember'>;
 /**
  * Database interface narrowed for HyDE Graph operations.
  * Provides HyDE document CRUD and intent lookup for refresh.
@@ -1491,5 +1491,5 @@ export type HydeGraphDatabase = Pick<Database, 'getHydeDocument' | 'getHydeDocum
  *
  * Access layer: UserDatabase (own opportunities and profile)
  */
-export type HomeGraphDatabase = Pick<Database, 'getOpportunitiesForUser' | 'getOpportunity' | 'getProfile' | 'getActiveIntents' | 'getIndex' | 'getUser'>;
+export type HomeGraphDatabase = Pick<Database, 'getOpportunitiesForUser' | 'getOpportunity' | 'getProfile' | 'getActiveIntents' | 'getNetwork' | 'getUser'>;
 //# sourceMappingURL=database.interface.d.ts.map

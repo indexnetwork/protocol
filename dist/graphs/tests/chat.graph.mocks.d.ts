@@ -37,7 +37,7 @@ export interface ChatGraphMockConfig {
     /** Network memberships for user. */
     networkMemberships?: (userId: string) => NetworkMembership[] | Promise<NetworkMembership[]>;
     /** Index by id (for scope validation). */
-    getIndex?: (networkId: string) => {
+    getNetwork?: (networkId: string) => {
         id: string;
         title: string;
     } | null | Promise<{

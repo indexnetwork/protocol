@@ -401,7 +401,7 @@ export async function gatherPresenterContext(database, opportunity, viewerId, di
     // For other roles: fetch viewer's profile + intents and other party profiles.
     const [viewerProfile, indexRecord, ...otherProfiles] = await Promise.all([
         database.getProfile(viewerId),
-        contextIndexId ? database.getIndex(contextIndexId) : Promise.resolve(null),
+        contextIndexId ? database.getNetwork(contextIndexId) : Promise.resolve(null),
         ...otherPartyIds.map((uid) => database.getProfile(uid)),
     ]);
     // Fetch intents: for introducer, fetch each party's intents; otherwise fetch viewer's intents.

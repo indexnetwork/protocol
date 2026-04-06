@@ -12,7 +12,7 @@ import type { HomeGraphDatabase } from '../interfaces/database.interface.js';
 import type { OpportunityCache } from '../interfaces/cache.interface.js';
 import { type HomeCardItem, type HomeSection, type HomeSectionProposal } from '../states/home.state.js';
 import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
-/** Database must satisfy both HomeGraphDatabase and presenter context (getProfile, getActiveIntents, getIndex, getUser). */
+/** Database must satisfy both HomeGraphDatabase and presenter context (getProfile, getActiveIntents, getNetwork, getUser). */
 type HomeGraphDb = HomeGraphDatabase;
 export type HomeGraphInvokeInput = {
     userId: string;

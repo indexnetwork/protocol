@@ -248,7 +248,7 @@ export function createChatGraphMockDb(
     isIntentAssignedToIndex: noopBool,
     assignIntentToNetwork: noop,
     unassignIntentFromIndex: noop,
-    getIndexIdsForIntent: noopArray,
+    getNetworkIdsForIntent: noopArray,
     getOwnedIndexes: async (userId: string) =>
       Promise.resolve(ownedIndexes(userId)).then((f) => (Array.isArray(f) ? f : [])),
     isIndexOwner: async (networkId: string, userId: string) =>
@@ -265,11 +265,11 @@ export function createChatGraphMockDb(
       ),
     getIndexIntentsForMember: async () => [],
     updateIndexSettings: async () => defaultOwnedIndex(),
-    softDeleteIndex: noop,
+    softDeleteNetwork: noop,
     deleteProfile: noop,
     createNetwork: async () => defaultOwnedIndex(),
     getIndexMemberCount: async () => 0,
-    addMemberToIndex: noop,
+    addMemberToNetwork: noop,
   } as unknown as ChatGraphCompositeDatabase;
 }
 

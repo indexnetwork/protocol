@@ -450,8 +450,8 @@ export class OpportunityGraphFactory {
         try {
           let resolvedIntentId: Id<'intents'> | undefined;
           if (state.triggerIntentId) {
-            const inIndex = await this.database.getIndexIdsForIntent(state.triggerIntentId);
-            const inTarget = inIndex.some((id) => targetIndexIds.includes(id as Id<'networks'>));
+            const inNetwork = await this.database.getNetworkIdsForIntent(state.triggerIntentId);
+            const inTarget = inNetwork.some((id) => targetIndexIds.includes(id as Id<'networks'>));
             resolvedIntentId = state.triggerIntentId;
             const resolvedIntentInIndex = inTarget;
             const discoverySource = resolvedIntentInIndex ? ('intent' as const) : ('profile' as const);
@@ -467,8 +467,8 @@ export class OpportunityGraphFactory {
             const matched = state.indexedIntents.find((i) => i.payload?.toLowerCase().includes(q));
             if (matched) {
               resolvedIntentId = matched.intentId;
-              const inIndex = await this.database.getIndexIdsForIntent(matched.intentId);
-              const resolvedIntentInIndex = inIndex.some((id) => targetIndexIds.includes(id as Id<'networks'>));
+              const inNetwork = await this.database.getNetworkIdsForIntent(matched.intentId);
+              const resolvedIntentInIndex = inNetwork.some((id) => targetIndexIds.includes(id as Id<'networks'>));
               const discoverySource = resolvedIntentInIndex ? ('intent' as const) : ('profile' as const);
               return {
                 resolvedTriggerIntentId: resolvedIntentId,
@@ -604,8 +604,8 @@ export class OpportunityGraphFactory {
             if (targetIntents.length > 0) {
               // Build one candidate per intent per shared index it belongs to
               for (const intent of targetIntents) {
-                const intentIndexIds = await this.database.getIndexIdsForIntent(intent.id);
-                const overlapping = sharedIndexIds.filter(id => intentIndexIds.includes(id));
+                const intentNetworkIds = await this.database.getNetworkIdsForIntent(intent.id);
+                const overlapping = sharedIndexIds.filter(id => intentNetworkIds.includes(id));
                 for (const networkId of overlapping) {
                   directCandidates.push({
                     candidateUserId: state.targetUserId,

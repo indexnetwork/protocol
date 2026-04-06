@@ -275,7 +275,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       // Strict scope enforcement: when chat is index-scoped, verify intent is linked to that index
       if (context.networkId) {
         const db = deps.userDb;
-        const intentNetworks = await db.getIndexIdsForIntent(intentId);
+        const intentNetworks = await db.getNetworkIdsForIntent(intentId);
         if (!intentNetworks.includes(context.networkId)) {
           return error(
             `This chat is scoped to ${context.indexName ?? 'this index'}. You can only update intents linked to this community.`
@@ -335,7 +335,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       // Strict scope enforcement: when chat is index-scoped, verify intent is linked to that index
       if (context.networkId) {
         const db = deps.userDb;
-        const intentNetworks = await db.getIndexIdsForIntent(intentId);
+        const intentNetworks = await db.getNetworkIdsForIntent(intentId);
         if (!intentNetworks.includes(context.networkId)) {
           return error(
             `This chat is scoped to ${context.indexName ?? 'this index'}. You can only delete intents linked to this community.`

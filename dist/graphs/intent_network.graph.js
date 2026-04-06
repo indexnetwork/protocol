@@ -210,7 +210,7 @@ export class IntentNetworkGraphFactory {
                         if (intent.userId !== state.userId) {
                             return { readResult: { links: [], count: 0, mode: "networks_for_intent" }, error: "You can only list networks for your own intents." };
                         }
-                        const indexIds = await this.database.getIndexIdsForIntent(intentId);
+                        const indexIds = await this.database.getNetworkIdsForIntent(intentId);
                         return {
                             readResult: {
                                 links: indexIds.map((id) => ({ intentId, networkId: id })),

@@ -112,10 +112,10 @@ export class NetworkGraphFactory {
           });
           createdIndexId = index.id;
 
-          const added = await this.database.addMemberToIndex(index.id, state.userId, 'owner');
+          const added = await this.database.addMemberToNetwork(index.id, state.userId, 'owner');
           if (!added.success) {
-            logger.error("addMemberToIndex failed; cleaning up orphaned index", { networkId: index.id });
-            try { await this.database.softDeleteIndex(index.id); } catch {}
+            logger.error("addMemberToNetwork failed; cleaning up orphaned network", { networkId: index.id });
+            try { await this.database.softDeleteNetwork(index.id); } catch {}
             return { mutationResult: { success: false, error: "Failed to set you as owner. Network was not created." } };
           }
 
@@ -130,7 +130,7 @@ export class NetworkGraphFactory {
         } catch (err) {
           logger.error("Create index failed", { error: err });
           if (createdIndexId) {
-            try { await this.database.softDeleteIndex(createdIndexId); } catch {}
+            try { await this.database.softDeleteNetwork(createdIndexId); } catch {}
           }
           return { mutationResult: { success: false, error: "Failed to create network." } };
         }
@@ -194,7 +194,7 @@ export class NetworkGraphFactory {
             return { mutationResult: { success: false, error: "Cannot delete network with other members. Remove members first." } };
           }
 
-          await this.database.softDeleteIndex(networkId);
+          await this.database.softDeleteNetwork(networkId);
 
           return {
             mutationResult: {

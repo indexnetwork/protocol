@@ -50,7 +50,7 @@ export class NetworkMembershipGraphFactory {
                                 },
                             };
                         }
-                        const result = await this.database.addMemberToIndex(state.networkId, state.targetUserId, 'member');
+                        const result = await this.database.addMemberToNetwork(state.networkId, state.targetUserId, 'member');
                         if (result.alreadyMember) {
                             return { mutationResult: { success: true, message: "You are already a member of this index." } };
                         }
@@ -67,7 +67,7 @@ export class NetworkMembershipGraphFactory {
                             return { mutationResult: { success: false, error: "Only the index owner can add members when the index is invite-only." } };
                         }
                     }
-                    const result = await this.database.addMemberToIndex(state.networkId, state.targetUserId, 'member');
+                    const result = await this.database.addMemberToNetwork(state.networkId, state.targetUserId, 'member');
                     if (result.alreadyMember) {
                         return { mutationResult: { success: true, message: "That user is already a member of this index." } };
                     }

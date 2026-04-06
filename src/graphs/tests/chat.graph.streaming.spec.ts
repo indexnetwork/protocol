@@ -53,7 +53,7 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
     isIntentAssignedToIndex: noopBool,
     assignIntentToNetwork: noop,
     unassignIntentFromIndex: noop,
-    getIndexIdsForIntent: noopArray,
+    getNetworkIdsForIntent: noopArray,
     getOwnedIndexes: noopArray,
     isIndexOwner: noopBool,
     isNetworkMember: async () => true,
@@ -73,7 +73,7 @@ function createMockDatabase(): ChatGraphCompositeDatabase {
         memberCount: 0,
         intentCount: 0,
       }) as any,
-    softDeleteIndex: noop,
+    softDeleteNetwork: noop,
     deleteProfile: noop,
     updateOpportunityStatus: noopNull,
   } as unknown as ChatGraphCompositeDatabase;

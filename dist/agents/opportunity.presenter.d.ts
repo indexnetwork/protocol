@@ -13,7 +13,7 @@ import type { ChatGraphCompositeDatabase } from "../interfaces/database.interfac
  * Minimal database interface required by gatherPresenterContext.
  * Any database adapter that implements these three methods can be passed.
  */
-export type PresenterDatabase = Pick<ChatGraphCompositeDatabase, "getProfile" | "getActiveIntents" | "getIndex">;
+export type PresenterDatabase = Pick<ChatGraphCompositeDatabase, "getProfile" | "getActiveIntents" | "getNetwork">;
 declare const PresentationSchema: z.ZodObject<{
     headline: z.ZodString;
     personalizedSummary: z.ZodString;

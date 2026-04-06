@@ -98,7 +98,7 @@ export function createChatGraphMockDb(config = {}) {
     const indexIntentsForOwner = config.indexIntentsForOwner ?? (() => []);
     const opportunitiesForUser = config.opportunitiesForUser ?? (() => []);
     const networkMemberships = config.networkMemberships ?? (() => []);
-    const getIndex = config.getIndex ?? (() => null);
+    const getNetwork = config.getNetwork ?? (() => null);
     const isNetworkMember = config.isNetworkMember ?? (() => false);
     const isIndexOwner = config.isIndexOwner ?? (() => false);
     const getUser = config.getUser ??
@@ -134,9 +134,9 @@ export function createChatGraphMockDb(config = {}) {
             return Array.isArray(memberships) ? memberships.map((m) => m.networkId) : [];
         },
         getNetworkMemberships: async (userId) => Promise.resolve(networkMemberships(userId)).then((f) => (Array.isArray(f) ? f : [])),
-        getIndex: async (networkId) => Promise.resolve(getIndex(networkId)),
+        getNetwork: async (networkId) => Promise.resolve(getNetwork(networkId)),
         getNetworkMembership: async (networkId, userId) => {
-            const index = await Promise.resolve(getIndex(networkId));
+            const index = await Promise.resolve(getNetwork(networkId));
             if (!index)
                 return null;
             const member = await Promise.resolve(isNetworkMember(networkId, userId));
@@ -159,7 +159,7 @@ export function createChatGraphMockDb(config = {}) {
         isIntentAssignedToIndex: noopBool,
         assignIntentToNetwork: noop,
         unassignIntentFromIndex: noop,
-        getIndexIdsForIntent: noopArray,
+        getNetworkIdsForIntent: noopArray,
         getOwnedIndexes: async (userId) => Promise.resolve(ownedIndexes(userId)).then((f) => (Array.isArray(f) ? f : [])),
         isIndexOwner: async (networkId, userId) => Promise.resolve(isIndexOwner(networkId, userId)),
         isNetworkMember: async (networkId, userId) => Promise.resolve(isNetworkMember(networkId, userId)),
@@ -170,11 +170,11 @@ export function createChatGraphMockDb(config = {}) {
         getIndexIntentsForOwner: async (networkId, requestingUserId, opts) => Promise.resolve(indexIntentsForOwner(networkId, requestingUserId)).then((f) => Array.isArray(f) ? f : []),
         getIndexIntentsForMember: async () => [],
         updateIndexSettings: async () => defaultOwnedIndex(),
-        softDeleteIndex: noop,
+        softDeleteNetwork: noop,
         deleteProfile: noop,
         createNetwork: async () => defaultOwnedIndex(),
         getIndexMemberCount: async () => 0,
-        addMemberToIndex: noop,
+        addMemberToNetwork: noop,
     };
 }
 // ═══════════════════════════════════════════════════════════════════════════════

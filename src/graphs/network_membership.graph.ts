@@ -58,7 +58,7 @@ export class NetworkMembershipGraphFactory {
               };
             }
 
-            const result = await this.database.addMemberToIndex(state.networkId, state.targetUserId, 'member');
+            const result = await this.database.addMemberToNetwork(state.networkId, state.targetUserId, 'member');
             if (result.alreadyMember) {
               return { mutationResult: { success: true, message: "You are already a member of this index." } };
             }
@@ -79,7 +79,7 @@ export class NetworkMembershipGraphFactory {
             }
           }
 
-          const result = await this.database.addMemberToIndex(state.networkId, state.targetUserId, 'member');
+          const result = await this.database.addMemberToNetwork(state.networkId, state.targetUserId, 'member');
           if (result.alreadyMember) {
             return { mutationResult: { success: true, message: "That user is already a member of this index." } };
           }

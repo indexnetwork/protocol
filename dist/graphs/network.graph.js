@@ -100,11 +100,11 @@ export class NetworkGraphFactory {
                         joinPolicy: state.createInput.joinPolicy,
                     });
                     createdIndexId = index.id;
-                    const added = await this.database.addMemberToIndex(index.id, state.userId, 'owner');
+                    const added = await this.database.addMemberToNetwork(index.id, state.userId, 'owner');
                     if (!added.success) {
-                        logger.error("addMemberToIndex failed; cleaning up orphaned index", { networkId: index.id });
+                        logger.error("addMemberToNetwork failed; cleaning up orphaned index", { networkId: index.id });
                         try {
-                            await this.database.softDeleteIndex(index.id);
+                            await this.database.softDeleteNetwork(index.id);
                         }
                         catch { }
                         return { mutationResult: { success: false, error: "Failed to set you as owner. Network was not created." } };
@@ -122,7 +122,7 @@ export class NetworkGraphFactory {
                     logger.error("Create index failed", { error: err });
                     if (createdIndexId) {
                         try {
-                            await this.database.softDeleteIndex(createdIndexId);
+                            await this.database.softDeleteNetwork(createdIndexId);
                         }
                         catch { }
                     }
@@ -179,7 +179,7 @@ export class NetworkGraphFactory {
                     if (count > 1) {
                         return { mutationResult: { success: false, error: "Cannot delete network with other members. Remove members first." } };
                     }
-                    await this.database.softDeleteIndex(networkId);
+                    await this.database.softDeleteNetwork(networkId);
                     return {
                         mutationResult: {
                             success: true,
