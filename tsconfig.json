@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -15,6 +15,6 @@
     "emitDecoratorMetadata": true,
     "types": ["node"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "tests/**/*"],
   "exclude": ["**/*.spec.ts", "**/*.test.ts", "node_modules", "dist"]
 }
