@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { protocolLogger } from "../support/protocol.logger";
-import { requestContext } from "../support/request-context";
-import { success, error, UUID_REGEX } from "./tool.helpers";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { requestContext } from "../support/request-context.js";
+import { success, error, UUID_REGEX } from "./tool.helpers.js";
 const logger = protocolLogger("ChatTools:Intent");
 /**
  * Sanitize JSON string for use inside a markdown code fence (```). Escapes backticks

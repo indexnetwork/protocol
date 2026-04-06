@@ -2,7 +2,7 @@ import { config } from "dotenv";
 config({ path: ".env.development", override: true });
 
 import { describe, expect, it, mock } from "bun:test";
-import { OpportunityPresenter, type HomeCardPresenterInput } from "../opportunity.presenter";
+import { OpportunityPresenter, type HomeCardPresenterInput } from "../opportunity.presenter.js";
 
 /** Test-only type to override the private invokeWithTimeout method via index access. */
 type PresenterWithInvokeOverride = {

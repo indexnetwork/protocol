@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { success, error } from './tool.helpers';
-import { requestContext } from "../support/request-context";
-import { log } from '../support/log';
+import { success, error } from './tool.helpers.js';
+import { requestContext } from "../support/request-context.js";
+import { log } from '../support/log.js';
 const logger = log.lib.from('integration.tools');
 /**
  * Creates integration tools for the chat agent.

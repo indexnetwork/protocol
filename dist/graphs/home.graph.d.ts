@@ -8,10 +8,10 @@
  * Uses OpportunityPresenter for card text and an LLM to categorize cards into dynamic sections
  * with titles and Lucide icon names. Caches presenter and categorizer results via OpportunityCache.
  */
-import type { HomeGraphDatabase } from '../interfaces/database.interface';
-import type { OpportunityCache } from '../interfaces/cache.interface';
-import { type HomeCardItem, type HomeSection, type HomeSectionProposal } from '../states/home.state';
-import type { DebugMetaAgent } from '../types/chat-streaming.types';
+import type { HomeGraphDatabase } from '../interfaces/database.interface.js';
+import type { OpportunityCache } from '../interfaces/cache.interface.js';
+import { type HomeCardItem, type HomeSection, type HomeSectionProposal } from '../states/home.state.js';
+import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
 /** Database must satisfy both HomeGraphDatabase and presenter context (getProfile, getActiveIntents, getIndex, getUser). */
 type HomeGraphDb = HomeGraphDatabase;
 export type HomeGraphInvokeInput = {
@@ -43,12 +43,12 @@ export declare class HomeGraphFactory {
         indexId: string | undefined;
         limit: number;
         noCache: boolean;
-        opportunities: import("..").Opportunity[];
+        opportunities: import("../interfaces/database.interface.js").Opportunity[];
         cards: HomeCardItem[];
         sectionProposals: HomeSectionProposal[];
         sections: HomeSection[];
         cachedCards: Map<string, HomeCardItem>;
-        uncachedOpportunities: import("..").Opportunity[];
+        uncachedOpportunities: import("../interfaces/database.interface.js").Opportunity[];
         categoryCacheHit: boolean;
         error: string | undefined;
         meta: {
@@ -61,12 +61,12 @@ export declare class HomeGraphFactory {
         indexId?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
         limit?: number | import("@langchain/langgraph").OverwriteValue<number> | undefined;
         noCache?: boolean | import("@langchain/langgraph").OverwriteValue<boolean> | undefined;
-        opportunities?: import("..").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("..").Opportunity[]> | undefined;
+        opportunities?: import("../interfaces/database.interface.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../interfaces/database.interface.js").Opportunity[]> | undefined;
         cards?: HomeCardItem[] | import("@langchain/langgraph").OverwriteValue<HomeCardItem[]> | undefined;
         sectionProposals?: HomeSectionProposal[] | import("@langchain/langgraph").OverwriteValue<HomeSectionProposal[]> | undefined;
         sections?: HomeSection[] | import("@langchain/langgraph").OverwriteValue<HomeSection[]> | undefined;
         cachedCards?: Map<string, HomeCardItem> | import("@langchain/langgraph").OverwriteValue<Map<string, HomeCardItem>> | undefined;
-        uncachedOpportunities?: import("..").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("..").Opportunity[]> | undefined;
+        uncachedOpportunities?: import("../interfaces/database.interface.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../interfaces/database.interface.js").Opportunity[]> | undefined;
         categoryCacheHit?: boolean | import("@langchain/langgraph").OverwriteValue<boolean> | undefined;
         error?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
         meta?: {
@@ -82,12 +82,12 @@ export declare class HomeGraphFactory {
         indexId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         limit: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         noCache: import("@langchain/langgraph").BaseChannel<boolean, boolean | import("@langchain/langgraph").OverwriteValue<boolean>, unknown>;
-        opportunities: import("@langchain/langgraph").BaseChannel<import("..").Opportunity[], import("..").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("..").Opportunity[]>, unknown>;
+        opportunities: import("@langchain/langgraph").BaseChannel<import("../interfaces/database.interface.js").Opportunity[], import("../interfaces/database.interface.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../interfaces/database.interface.js").Opportunity[]>, unknown>;
         cards: import("@langchain/langgraph").BaseChannel<HomeCardItem[], HomeCardItem[] | import("@langchain/langgraph").OverwriteValue<HomeCardItem[]>, unknown>;
         sectionProposals: import("@langchain/langgraph").BaseChannel<HomeSectionProposal[], HomeSectionProposal[] | import("@langchain/langgraph").OverwriteValue<HomeSectionProposal[]>, unknown>;
         sections: import("@langchain/langgraph").BaseChannel<HomeSection[], HomeSection[] | import("@langchain/langgraph").OverwriteValue<HomeSection[]>, unknown>;
         cachedCards: import("@langchain/langgraph").BaseChannel<Map<string, HomeCardItem>, Map<string, HomeCardItem> | import("@langchain/langgraph").OverwriteValue<Map<string, HomeCardItem>>, unknown>;
-        uncachedOpportunities: import("@langchain/langgraph").BaseChannel<import("..").Opportunity[], import("..").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("..").Opportunity[]>, unknown>;
+        uncachedOpportunities: import("@langchain/langgraph").BaseChannel<import("../interfaces/database.interface.js").Opportunity[], import("../interfaces/database.interface.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../interfaces/database.interface.js").Opportunity[]>, unknown>;
         categoryCacheHit: import("@langchain/langgraph").BaseChannel<boolean, boolean | import("@langchain/langgraph").OverwriteValue<boolean>, unknown>;
         error: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         meta: import("@langchain/langgraph").BaseChannel<{
@@ -106,12 +106,12 @@ export declare class HomeGraphFactory {
         indexId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         limit: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         noCache: import("@langchain/langgraph").BaseChannel<boolean, boolean | import("@langchain/langgraph").OverwriteValue<boolean>, unknown>;
-        opportunities: import("@langchain/langgraph").BaseChannel<import("..").Opportunity[], import("..").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("..").Opportunity[]>, unknown>;
+        opportunities: import("@langchain/langgraph").BaseChannel<import("../interfaces/database.interface.js").Opportunity[], import("../interfaces/database.interface.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../interfaces/database.interface.js").Opportunity[]>, unknown>;
         cards: import("@langchain/langgraph").BaseChannel<HomeCardItem[], HomeCardItem[] | import("@langchain/langgraph").OverwriteValue<HomeCardItem[]>, unknown>;
         sectionProposals: import("@langchain/langgraph").BaseChannel<HomeSectionProposal[], HomeSectionProposal[] | import("@langchain/langgraph").OverwriteValue<HomeSectionProposal[]>, unknown>;
         sections: import("@langchain/langgraph").BaseChannel<HomeSection[], HomeSection[] | import("@langchain/langgraph").OverwriteValue<HomeSection[]>, unknown>;
         cachedCards: import("@langchain/langgraph").BaseChannel<Map<string, HomeCardItem>, Map<string, HomeCardItem> | import("@langchain/langgraph").OverwriteValue<Map<string, HomeCardItem>>, unknown>;
-        uncachedOpportunities: import("@langchain/langgraph").BaseChannel<import("..").Opportunity[], import("..").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("..").Opportunity[]>, unknown>;
+        uncachedOpportunities: import("@langchain/langgraph").BaseChannel<import("../interfaces/database.interface.js").Opportunity[], import("../interfaces/database.interface.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../interfaces/database.interface.js").Opportunity[]>, unknown>;
         categoryCacheHit: import("@langchain/langgraph").BaseChannel<boolean, boolean | import("@langchain/langgraph").OverwriteValue<boolean>, unknown>;
         error: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         meta: import("@langchain/langgraph").BaseChannel<{
@@ -130,7 +130,7 @@ export declare class HomeGraphFactory {
             error: string;
             opportunities?: undefined;
         } | {
-            opportunities: import("..").Opportunity[];
+            opportunities: import("../interfaces/database.interface.js").Opportunity[];
             error?: undefined;
         } | {
             error: string;
@@ -138,7 +138,7 @@ export declare class HomeGraphFactory {
         };
         checkPresenterCache: {
             cachedCards: Map<any, any>;
-            uncachedOpportunities: import("..").Opportunity[];
+            uncachedOpportunities: import("../interfaces/database.interface.js").Opportunity[];
         };
         generateCardText: {
             cards: HomeCardItem[];

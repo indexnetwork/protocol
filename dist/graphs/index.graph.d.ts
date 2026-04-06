@@ -1,4 +1,4 @@
-import { IndexGraphDatabase } from "../interfaces/database.interface";
+import { IndexGraphDatabase } from "../interfaces/database.interface.js";
 /**
  * Factory class to build and compile the Index (CRUD) Graph.
  *

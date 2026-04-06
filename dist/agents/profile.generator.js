@@ -10,10 +10,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod/v4";
-import { protocolLogger } from "../support/protocol.logger";
+import { protocolLogger } from "../support/protocol.logger.js";
 import { config } from "dotenv";
-import { Timed } from "../support/performance";
-import { createModel } from "./model.config";
+import { Timed } from "../support/performance.js";
+import { createModel } from "./model.config.js";
 config({ path: '.env.development', override: true });
 const logger = protocolLogger("ProfileGenerator");
 const model = createModel("profileGenerator");

@@ -6,7 +6,7 @@
  * HyDE discovery for each, creating latent introducer opportunities that
  * the user (as introducer) must approve before parties see them.
  */
-import { protocolLogger } from './protocol.logger';
+import { protocolLogger } from './protocol.logger.js';
 const logger = protocolLogger('IntroducerDiscovery');
 /** Maximum contacts to evaluate per maintenance cycle. */
 export const MAX_CONTACTS_PER_CYCLE = 5;

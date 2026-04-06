@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-import type { ExecutionResult, VerifiedIntent } from "../states/intent.state";
-import { protocolLogger } from "../support/protocol.logger";
-import { requestContext } from "../support/request-context";
+import type { ExecutionResult, VerifiedIntent } from "../states/intent.state.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { requestContext } from "../support/request-context.js";
 
-import type { DefineTool, ToolDeps } from "./tool.helpers";
-import { success, error, UUID_REGEX } from "./tool.helpers";
+import type { DefineTool, ToolDeps } from "./tool.helpers.js";
+import { success, error, UUID_REGEX } from "./tool.helpers.js";
 
 const logger = protocolLogger("ChatTools:Intent");
 

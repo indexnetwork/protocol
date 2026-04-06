@@ -1,6 +1,6 @@
-import type { IntentIndexGraphDatabase } from "../interfaces/database.interface";
-import type { DebugMetaAgent } from "../types/chat-streaming.types";
-import { type IntentForIndexing, type IndexMemberContext, type AssignmentResult } from "../states/intent_index.state";
+import type { IntentIndexGraphDatabase } from "../interfaces/database.interface.js";
+import type { DebugMetaAgent } from "../types/chat-streaming.types.js";
+import { type IntentForIndexing, type IndexMemberContext, type AssignmentResult } from "../states/intent_index.state.js";
 /**
  * Factory class to build and compile the Intent Index Graph.
  *

@@ -1,4 +1,4 @@
-import { ProfileDocument } from '../agents/profile.generator';
+import { ProfileDocument } from '../agents/profile.generator.js';
 
 // ─── Inlined types (previously imported from outside the protocol lib) ───────
 

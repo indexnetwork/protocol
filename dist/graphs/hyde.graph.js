@@ -6,11 +6,11 @@
  */
 import { StateGraph, START, END } from '@langchain/langgraph';
 import { createHash } from 'crypto';
-import { HydeGraphState } from '../states/hyde.state';
-import { HYDE_DEFAULT_CACHE_TTL } from '../agents/hyde.strategies';
-import { protocolLogger } from '../support/protocol.logger';
-import { timed } from '../support/performance';
-import { requestContext } from "../support/request-context";
+import { HydeGraphState } from '../states/hyde.state.js';
+import { HYDE_DEFAULT_CACHE_TTL } from '../agents/hyde.strategies.js';
+import { protocolLogger } from '../support/protocol.logger.js';
+import { timed } from '../support/performance.js';
+import { requestContext } from "../support/request-context.js";
 const logger = protocolLogger("HyDEGraphFactory");
 /** Hash a lens label (+ optional corpus) to a short key for cache/DB indexing. */
 function lensHash(label, corpus) {

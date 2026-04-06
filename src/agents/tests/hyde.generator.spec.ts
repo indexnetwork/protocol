@@ -7,7 +7,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it, beforeAll } from 'bun:test';
-import { HydeGenerator, type HydeGenerateInput } from '../hyde.generator';
+import { HydeGenerator, type HydeGenerateInput } from '../hyde.generator.js';
 
 describe('HydeGenerator', () => {
   let generator: HydeGenerator;

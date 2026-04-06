@@ -1,15 +1,15 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod/v4";
-import { protocolLogger } from "../support/protocol.logger";
-import { ProfileDocument } from "./profile.generator";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { ProfileDocument } from "./profile.generator.js";
 /**
  * Config
  */
 import { config } from "dotenv";
 config({ path: '.env.development', override: true });
-import { Timed } from "../support/performance";
-import { createModel } from "./model.config";
+import { Timed } from "../support/performance.js";
+import { createModel } from "./model.config.js";
 
 const logger = protocolLogger("HyDEGenerator");
 

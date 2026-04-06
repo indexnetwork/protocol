@@ -31,8 +31,8 @@ let sanitizeFn = defaultSanitize;
  *
  * @example
  * ```ts
- * import { log, sanitizeForLog } from "./lib/log";
- * import { setLoggerFactory } from "./lib/protocol/support/log";
+ * import { log, sanitizeForLog } from "./lib/log.js";
+ * import { setLoggerFactory } from "./lib/protocol/support/log.js";
  *
  * setLoggerFactory(
  *   (context, source) => log.withContext(context as LogContext, source),

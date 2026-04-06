@@ -170,10 +170,10 @@ mock.module("../../support/opportunity.discover", () => ({
 
 import { describe, test, expect, beforeAll } from "bun:test";
 import { createChatTools, type ToolContext } from "..";
-import type { ChatGraphCompositeDatabase, Opportunity, SystemDatabase } from "../../interfaces/database.interface";
-import type { ActiveIntent, IndexMemberDetails, IndexedIntentDetails } from "../../interfaces/database.interface";
-import type { Embedder } from "../../interfaces/embedder.interface";
-import type { Scraper } from "../../interfaces/scraper.interface";
+import type { ChatGraphCompositeDatabase, Opportunity, SystemDatabase } from "../../interfaces/database.interface.js";
+import type { ActiveIntent, IndexMemberDetails, IndexedIntentDetails } from "../../interfaces/database.interface.js";
+import type { Embedder } from "../../interfaces/embedder.interface.js";
+import type { Scraper } from "../../interfaces/scraper.interface.js";
 
 const testUserId = "test-user-id-for-tools";
 

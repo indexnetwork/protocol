@@ -1,7 +1,7 @@
 import { BaseMessage } from "@langchain/core/messages";
-import { InferredIntent } from "../agents/intent.inferrer";
-import { SemanticVerifierOutput } from "../agents/intent.verifier";
-import type { DebugMetaAgent } from '../types/chat-streaming.types';
+import { InferredIntent } from "../agents/intent.inferrer.js";
+import { SemanticVerifierOutput } from "../agents/intent.verifier.js";
+import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
 /**
  * Extended InferredIntent that includes verification results.
  * We attach the verification output directly to the intent object
@@ -118,7 +118,7 @@ export declare const IntentGraphState: import("@langchain/langgraph").Annotation
     /**
      * Final actions to be performed on the DB (Create, Update, Expire).
      */
-    actions: import("@langchain/langgraph").BaseChannel<import("../agents/intent.reconciler").NormalizedIntentAction[], import("../agents/intent.reconciler").NormalizedIntentAction[] | import("@langchain/langgraph").OverwriteValue<import("../agents/intent.reconciler").NormalizedIntentAction[]>, unknown>;
+    actions: import("@langchain/langgraph").BaseChannel<import("../agents/intent.reconciler.js").NormalizedIntentAction[], import("../agents/intent.reconciler.js").NormalizedIntentAction[] | import("@langchain/langgraph").OverwriteValue<import("../agents/intent.reconciler.js").NormalizedIntentAction[]>, unknown>;
     /**
      * Results of executing actions against the database.
      * Populated by executorNode after actions are persisted.

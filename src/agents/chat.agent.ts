@@ -10,24 +10,24 @@ import {
   createChatTools,
   type ToolContext,
   type ResolvedToolContext,
-} from "../tools";
-import { resolveChatContext } from "../tools/tool.helpers";
-import { ITERATION_NUDGE, buildSystemContent } from "./chat.prompt";
+} from "../tools/index.js";
+import { resolveChatContext } from "../tools/tool.helpers.js";
+import { ITERATION_NUDGE, buildSystemContent } from "./chat.prompt.js";
 import {
   extractRecentToolCalls,
   type IterationContext,
-} from "./chat.prompt.modules";
-import { protocolLogger } from "../support/protocol.logger";
-import { createModel } from "./model.config";
-import { sanitizeForDebugMeta } from "../support/debug-meta.sanitizer";
-import type { DebugMetaToolCall } from "../types/chat-streaming.types";
-import { Timed } from "../support/performance";
-import { requestContext } from "../support/request-context";
+} from "./chat.prompt.modules.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { createModel } from "./model.config.js";
+import { sanitizeForDebugMeta } from "../support/debug-meta.sanitizer.js";
+import type { DebugMetaToolCall } from "../types/chat-streaming.types.js";
+import { Timed } from "../support/performance.js";
+import { requestContext } from "../support/request-context.js";
 
 const logger = protocolLogger("ChatAgent");
 
 // Re-export for external consumers
-export { ITERATION_NUDGE } from "./chat.prompt";
+export { ITERATION_NUDGE } from "./chat.prompt.js";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES

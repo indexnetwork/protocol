@@ -1,39 +1,39 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import type { HydeGraphDatabase } from "../interfaces/database.interface";
-import { IntentGraphFactory } from "../graphs/intent.graph";
-import { ProfileGraphFactory } from "../graphs/profile.graph";
-import { OpportunityGraphFactory } from "../graphs/opportunity.graph";
-import { HydeGraphFactory } from "../graphs/hyde.graph";
-import { HydeGenerator } from "../agents/hyde.generator";
-import { LensInferrer } from "../agents/lens.inferrer";
-import { IndexGraphFactory } from "../graphs/index.graph";
-import { IndexMembershipGraphFactory } from "../graphs/index_membership.graph";
-import { IntentIndexGraphFactory } from "../graphs/intent_index.graph";
-import { NegotiationGraphFactory } from "../graphs/negotiation.graph";
-import { NegotiationProposer } from "../agents/negotiation.proposer";
-import { NegotiationResponder } from "../agents/negotiation.responder";
-import { protocolLogger } from "../support/protocol.logger";
-import { configureProtocol } from "../agents/model.config";
+import type { HydeGraphDatabase } from "../interfaces/database.interface.js";
+import { IntentGraphFactory } from "../graphs/intent.graph.js";
+import { ProfileGraphFactory } from "../graphs/profile.graph.js";
+import { OpportunityGraphFactory } from "../graphs/opportunity.graph.js";
+import { HydeGraphFactory } from "../graphs/hyde.graph.js";
+import { HydeGenerator } from "../agents/hyde.generator.js";
+import { LensInferrer } from "../agents/lens.inferrer.js";
+import { IndexGraphFactory } from "../graphs/index.graph.js";
+import { IndexMembershipGraphFactory } from "../graphs/index_membership.graph.js";
+import { IntentIndexGraphFactory } from "../graphs/intent_index.graph.js";
+import { NegotiationGraphFactory } from "../graphs/negotiation.graph.js";
+import { NegotiationProposer } from "../agents/negotiation.proposer.js";
+import { NegotiationResponder } from "../agents/negotiation.responder.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { configureProtocol } from "../agents/model.config.js";
 
 import {
   type ToolContext,
   type ResolvedToolContext,
   type ToolDeps,
   resolveChatContext,
-} from "./tool.helpers";
-import { error } from "./tool.helpers";
-import { createProfileTools } from "./profile.tools";
-import { createIntentTools } from "./intent.tools";
-import { createIndexTools } from "./index.tools";
-import { createOpportunityTools } from "./opportunity.tools";
-import { createUtilityTools } from "./utility.tools";
-import { createIntegrationTools } from "./integration.tools";
-import { createContactTools } from "./contact.tools";
+} from "./tool.helpers.js";
+import { error } from "./tool.helpers.js";
+import { createProfileTools } from "./profile.tools.js";
+import { createIntentTools } from "./intent.tools.js";
+import { createIndexTools } from "./index.tools.js";
+import { createOpportunityTools } from "./opportunity.tools.js";
+import { createUtilityTools } from "./utility.tools.js";
+import { createIntegrationTools } from "./integration.tools.js";
+import { createContactTools } from "./contact.tools.js";
 
 // Re-export types for consumers
-export type { ToolContext, ResolvedToolContext, ProtocolDeps } from "./tool.helpers";
-export type { ToolDeps } from "./tool.helpers";
+export type { ToolContext, ResolvedToolContext, ProtocolDeps } from "./tool.helpers.js";
+export type { ToolDeps } from "./tool.helpers.js";
 
 const logger = protocolLogger("ChatTools");
 

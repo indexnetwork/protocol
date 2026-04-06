@@ -1,9 +1,9 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { IntentIndexer } from "../agents/intent.indexer";
-import { protocolLogger } from "../support/protocol.logger";
-import { timed } from "../support/performance";
-import { requestContext } from "../support/request-context";
-import { IntentIndexGraphState, } from "../states/intent_index.state";
+import { IntentIndexer } from "../agents/intent.indexer.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { timed } from "../support/performance.js";
+import { requestContext } from "../support/request-context.js";
+import { IntentIndexGraphState, } from "../states/intent_index.state.js";
 const logger = protocolLogger("IntentIndexGraphFactory");
 const QUALIFICATION_THRESHOLD = 0.7;
 /**

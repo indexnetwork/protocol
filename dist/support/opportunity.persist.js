@@ -2,8 +2,8 @@
  * Shared persist phase for opportunity creation: enrichOrCreate → create (or create+expire) → optional chat injection.
  * Used by the opportunity graph persist node and by the manual opportunity service for consistency.
  */
-import { enrichOrCreate } from './opportunity.enricher';
-import { protocolLogger } from './protocol.logger';
+import { enrichOrCreate } from './opportunity.enricher.js';
+import { protocolLogger } from './protocol.logger.js';
 const logger = protocolLogger('OpportunityPersist');
 /**
  * Persist one or more opportunities: enrich (merge overlapping), create, expire replaced, optional chat injection.

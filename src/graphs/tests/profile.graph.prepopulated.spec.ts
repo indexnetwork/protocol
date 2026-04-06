@@ -2,10 +2,10 @@ import { config } from 'dotenv';
 config({ path: '.env.development', override: true });
 
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { ProfileGraphFactory } from '../profile.graph';
-import type { ProfileGraphDatabase } from '../../interfaces/database.interface';
-import type { Embedder } from '../../interfaces/embedder.interface';
-import type { Scraper } from '../../interfaces/scraper.interface';
+import { ProfileGraphFactory } from '../profile.graph.js';
+import type { ProfileGraphDatabase } from '../../interfaces/database.interface.js';
+import type { Embedder } from '../../interfaces/embedder.interface.js';
+import type { Scraper } from '../../interfaces/scraper.interface.js';
 
 /**
  * Tests for the pre-populated profile path in ProfileGraph.

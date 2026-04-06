@@ -1,4 +1,4 @@
-import type { ChatSuggestion } from "../types/chat-streaming.types";
+import type { ChatSuggestion } from "../types/chat-streaming.types.js";
 export interface SuggestionGeneratorInput {
     /** Last few messages (user and assistant) to derive context */
     messages: Array<{

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { requestContext } from "../support/request-context";
-import { success, error, UUID_REGEX } from "./tool.helpers";
+import { requestContext } from "../support/request-context.js";
+import { success, error, UUID_REGEX } from "./tool.helpers.js";
 export function createIndexTools(defineTool, deps) {
     const { graphs, userDb, systemDb } = deps;
     const readIndexes = defineTool({

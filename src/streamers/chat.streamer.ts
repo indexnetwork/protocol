@@ -1,11 +1,11 @@
 import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { MemorySaver } from "@langchain/langgraph";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { protocolLogger } from "../support/protocol.logger";
+import { protocolLogger } from "../support/protocol.logger.js";
 import type {
   ChatStreamEvent,
   DebugMetaToolCall,
-} from "../types/chat-streaming.types";
+} from "../types/chat-streaming.types.js";
 import {
   createAgentEndEvent,
   createAgentStartEvent,
@@ -22,8 +22,8 @@ import {
   createStatusEvent,
   createTokenEvent,
   createToolActivityEvent,
-} from "../types/chat-streaming.types";
-import type { AgentStreamEvent } from "../agents/chat.agent";
+} from "../types/chat-streaming.types.js";
+import type { AgentStreamEvent } from "../agents/chat.agent.js";
 
 const logger = protocolLogger("ChatStreamer");
 

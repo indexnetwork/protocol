@@ -1,5 +1,5 @@
-import { createTokenEvent, createErrorEvent, } from "../types/chat-streaming.types";
-import { protocolLogger } from "../support/protocol.logger";
+import { createTokenEvent, createErrorEvent, } from "../types/chat-streaming.types.js";
+import { protocolLogger } from "../support/protocol.logger.js";
 const logger = protocolLogger("ResponseStreamer");
 // ══════════════════════════════════════════════════════════════════════════════
 // RESPONSE STREAMER

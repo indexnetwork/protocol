@@ -4,7 +4,7 @@
  * withCallLogging. All protocol code should log inputs at call start and
  * outputs (or summary) + duration at end.
  */
-import { log, sanitizeForLog } from "./log";
+import { log, sanitizeForLog } from "./log.js";
 /** Create a protocol logger for a given source (e.g. "ChatTools", "DiscoverNodes"). */
 export function protocolLogger(source) {
     return log.protocol.from(source);

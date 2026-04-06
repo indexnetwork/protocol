@@ -2,7 +2,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, it, expect, spyOn, beforeEach, afterEach } from "bun:test";
-import { log, setLoggerFactory, sanitizeForLog, type LoggerWithSource } from "../log";
+import { log, setLoggerFactory, sanitizeForLog, type LoggerWithSource } from "../log.js";
 
 // Default factory reference — used to reset state between tests
 function defaultFactory(_context: string, source: string): LoggerWithSource {

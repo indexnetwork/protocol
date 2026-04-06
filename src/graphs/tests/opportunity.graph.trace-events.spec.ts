@@ -16,12 +16,12 @@ import { resolve } from "path";
 config({ path: resolve(import.meta.dir, '../../../../..', '.env.test') });
 
 import { describe, test, expect } from 'bun:test';
-import { OpportunityGraphFactory, type OpportunityEvaluatorLike } from '../opportunity.graph';
-import type { Id } from '../../../../types/common.types';
-import type { OpportunityGraphDatabase } from '../../interfaces/database.interface';
-import type { Embedder } from '../../interfaces/embedder.interface';
-import type { EvaluatedOpportunityWithActors } from '../../agents/opportunity.evaluator';
-import { requestContext } from '../../../request-context';
+import { OpportunityGraphFactory, type OpportunityEvaluatorLike } from '../opportunity.graph.js';
+import type { Id } from '../../../../types/common.types.js';
+import type { OpportunityGraphDatabase } from '../../interfaces/database.interface.js';
+import type { Embedder } from '../../interfaces/embedder.interface.js';
+import type { EvaluatedOpportunityWithActors } from '../../agents/opportunity.evaluator.js';
+import { requestContext } from '../../../request-context.js';
 
 const dummyEmbedding = new Array(2000).fill(0.1);
 

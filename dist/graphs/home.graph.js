@@ -10,15 +10,15 @@
  */
 import { createHash } from 'crypto';
 import { StateGraph, START, END } from '@langchain/langgraph';
-import { HomeGraphState, } from '../states/home.state';
-import { OpportunityPresenter, gatherPresenterContext } from '../agents/opportunity.presenter';
-import { HomeCategorizerAgent } from '../agents/home.categorizer';
-import { canUserSeeOpportunity, isActionableForViewer, selectByComposition } from '../support/opportunity.utils';
-import { resolveHomeSectionIcon } from '../support/lucide.icon-catalog';
-import { getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from '../support/opportunity.constants';
-import { protocolLogger } from '../support/protocol.logger';
-import { timed } from '../support/performance';
-import { requestContext } from "../support/request-context";
+import { HomeGraphState, } from '../states/home.state.js';
+import { OpportunityPresenter, gatherPresenterContext } from '../agents/opportunity.presenter.js';
+import { HomeCategorizerAgent } from '../agents/home.categorizer.js';
+import { canUserSeeOpportunity, isActionableForViewer, selectByComposition } from '../support/opportunity.utils.js';
+import { resolveHomeSectionIcon } from '../support/lucide.icon-catalog.js';
+import { getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from '../support/opportunity.constants.js';
+import { protocolLogger } from '../support/protocol.logger.js';
+import { timed } from '../support/performance.js';
+import { requestContext } from "../support/request-context.js";
 const logger = protocolLogger('HomeGraph');
 const MAX_ITEMS_PER_SECTION = 20;
 const PRESENTATION_CONCURRENCY = 50;

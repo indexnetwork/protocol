@@ -12,16 +12,16 @@
  * Constructor injects Database, Embedder, and compiled HyDE graph.
  */
 import { StateGraph, START, END } from '@langchain/langgraph';
-import { OpportunityGraphState, } from '../states/opportunity.state';
-import { OpportunityEvaluator, } from '../agents/opportunity.evaluator';
-import { IntentIndexer } from '../agents/intent.indexer';
-import { getModelName } from '../agents/model.config';
-import { validateOpportunityActors } from '../support/opportunity.utils';
-import { persistOpportunities } from '../support/opportunity.persist';
-import { negotiateCandidates } from "./negotiation.graph";
-import { protocolLogger, withCallLogging } from '../support/protocol.logger';
-import { timed } from '../support/performance';
-import { requestContext } from "../support/request-context";
+import { OpportunityGraphState, } from '../states/opportunity.state.js';
+import { OpportunityEvaluator, } from '../agents/opportunity.evaluator.js';
+import { IntentIndexer } from '../agents/intent.indexer.js';
+import { getModelName } from '../agents/model.config.js';
+import { validateOpportunityActors } from '../support/opportunity.utils.js';
+import { persistOpportunities } from '../support/opportunity.persist.js';
+import { negotiateCandidates } from "./negotiation.graph.js";
+import { protocolLogger, withCallLogging } from '../support/protocol.logger.js';
+import { timed } from '../support/performance.js';
+import { requestContext } from "../support/request-context.js";
 const logger = protocolLogger('OpportunityGraph');
 /**
  * Builds a compact text summary of the discoverer's profile and active intents

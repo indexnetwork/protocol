@@ -1,4 +1,4 @@
-export type { Lens, HydeTargetCorpus } from '../agents/lens.inferrer';
+export type { Lens, HydeTargetCorpus } from '../agents/lens.inferrer.js';
 /** A single lens embedding ready for search. */
 export interface LensEmbedding {
     /** Free-text lens label (e.g. "crypto infrastructure VC"). */

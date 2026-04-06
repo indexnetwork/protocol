@@ -1,4 +1,4 @@
-import type { DefineTool, ToolDeps } from './tool.helpers';
+import type { DefineTool, ToolDeps } from './tool.helpers.js';
 /**
  * Creates integration tools for the chat agent.
  *

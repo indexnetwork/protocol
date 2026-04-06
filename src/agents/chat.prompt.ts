@@ -1,7 +1,7 @@
-import type { ResolvedToolContext } from "../tools";
+import type { ResolvedToolContext } from "../tools/index.js";
 
-import { resolveModules } from "./chat.prompt.modules";
-import type { IterationContext } from "./chat.prompt.modules";
+import { resolveModules } from "./chat.prompt.modules.js";
+import type { IterationContext } from "./chat.prompt.modules.js";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROTOCOL SYSTEM PROMPT — DUMB TOOLS + SMART ORCHESTRATOR

@@ -7,11 +7,11 @@
  *                                          └─ [skip rediscovery] ─────────────→ introducerDiscovery → logMaintenance → END
  */
 import { StateGraph, START, END } from '@langchain/langgraph';
-import { MaintenanceGraphState } from '../states/maintenance.state';
-import { computeFeedHealth } from '../support/feed.health';
-import { canUserSeeOpportunity, classifyOpportunity, isActionableForViewer, FEED_SOFT_TARGETS } from '../support/opportunity.utils';
-import { shouldRunIntroducerDiscovery, runIntroducerDiscovery, } from '../support/introducer.discovery';
-import { protocolLogger } from '../support/protocol.logger';
+import { MaintenanceGraphState } from '../states/maintenance.state.js';
+import { computeFeedHealth } from '../support/feed.health.js';
+import { canUserSeeOpportunity, classifyOpportunity, isActionableForViewer, FEED_SOFT_TARGETS } from '../support/opportunity.utils.js';
+import { shouldRunIntroducerDiscovery, runIntroducerDiscovery, } from '../support/introducer.discovery.js';
+import { protocolLogger } from '../support/protocol.logger.js';
 const logger = protocolLogger('MaintenanceGraph');
 const FRESHNESS_WINDOW_MS = 12 * 60 * 60 * 1000; // 12 hours
 /**

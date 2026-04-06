@@ -11,9 +11,9 @@ import { config } from "dotenv";
 config({ path: ".env.test" });
 
 import { describe, test, expect } from "bun:test";
-import { runDiscoverFromQuery } from "../opportunity.discover";
-import type { FormattedDiscoveryCandidate } from "../opportunity.discover";
-import type { ChatGraphCompositeDatabase } from "../../interfaces/database.interface";
+import { runDiscoverFromQuery } from "../opportunity.discover.js";
+import type { FormattedDiscoveryCandidate } from "../opportunity.discover.js";
+import type { ChatGraphCompositeDatabase } from "../../interfaces/database.interface.js";
 
 const mockDatabase: ChatGraphCompositeDatabase = {
   getProfile: async () => null,

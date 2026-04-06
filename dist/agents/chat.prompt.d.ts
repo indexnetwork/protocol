@@ -1,5 +1,5 @@
-import type { ResolvedToolContext } from "../tools";
-import type { IterationContext } from "./chat.prompt.modules";
+import type { ResolvedToolContext } from "../tools/index.js";
+import type { IterationContext } from "./chat.prompt.modules.js";
 /**
  * Nudge message injected after SOFT_ITERATION_LIMIT iterations.
  */

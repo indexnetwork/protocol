@@ -3,9 +3,9 @@
  * Use createChatGraphMockDb(config) to get a full ChatGraphCompositeDatabase
  * with controllable profile, intents, index membership, and opportunities.
  */
-import type { ChatGraphCompositeDatabase, ActiveIntent, IndexedIntentDetails, IndexMembership, OwnedIndex, UserRecord, Opportunity, OpportunityStatus } from "../../interfaces/database.interface";
-import type { ChatSessionReader } from "../../interfaces/chat-session.interface";
-import type { ProtocolDeps } from "../../tools/tool.helpers";
+import type { ChatGraphCompositeDatabase, ActiveIntent, IndexedIntentDetails, IndexMembership, OwnedIndex, UserRecord, Opportunity, OpportunityStatus } from "../../interfaces/database.interface.js";
+import type { ChatSessionReader } from "../../interfaces/chat-session.interface.js";
+import type { ProtocolDeps } from "../../tools/tool.helpers.js";
 export interface MockProfileFixture {
     id: string;
     userId: string;

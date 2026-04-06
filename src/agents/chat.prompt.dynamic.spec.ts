@@ -24,18 +24,18 @@ import { describe, test, expect, beforeAll } from "bun:test";
 import { z } from "zod";
 import { HumanMessage, type BaseMessage } from "@langchain/core/messages";
 
-import { runScenario, defineScenario, expectSmartest } from "../../smartest";
-import { ChatGraphFactory } from "../graphs/chat.graph";
-import type { Embedder } from "../interfaces/embedder.interface";
-import type { Scraper } from "../interfaces/scraper.interface";
+import { runScenario, defineScenario, expectSmartest } from "../../smartest.js";
+import { ChatGraphFactory } from "../graphs/chat.graph.js";
+import type { Embedder } from "../interfaces/embedder.interface.js";
+import type { Scraper } from "../interfaces/scraper.interface.js";
 import {
   createChatGraphMockDb,
   mockProfile,
   mockActiveIntent,
   createMockProtocolDeps,
-} from "../graphs/tests/chat.graph.mocks";
-import type { ChatSessionReader } from "../interfaces/chat-session.interface";
-import type { IndexMembership } from "../interfaces/database.interface";
+} from "../graphs/tests/chat.graph.mocks.js";
+import type { ChatSessionReader } from "../interfaces/chat-session.interface.js";
+import type { IndexMembership } from "../interfaces/database.interface.js";
 
 /**
  * Checks if any AIMessage in the output messages array made a tool call with the given name.

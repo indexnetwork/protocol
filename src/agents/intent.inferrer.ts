@@ -1,9 +1,9 @@
 import { HumanMessage, SystemMessage, BaseMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { protocolLogger } from "../support/protocol.logger";
-import { Timed } from "../support/performance";
-import { createModel } from "./model.config";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { Timed } from "../support/performance.js";
+import { createModel } from "./model.config.js";
 
 const logger = protocolLogger("ExplicitIntentInferrer");
 

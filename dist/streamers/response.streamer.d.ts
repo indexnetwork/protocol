@@ -1,4 +1,4 @@
-import type { ChatStreamEvent } from "../types/chat-streaming.types";
+import type { ChatStreamEvent } from "../types/chat-streaming.types.js";
 /**
  * Streams the final response from the chat agent.
  *

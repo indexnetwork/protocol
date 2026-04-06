@@ -1,4 +1,4 @@
-import type { IndexMembershipGraphDatabase } from "../interfaces/database.interface";
+import type { IndexMembershipGraphDatabase } from "../interfaces/database.interface.js";
 /**
  * Factory class to build and compile the Index Membership Graph.
  *

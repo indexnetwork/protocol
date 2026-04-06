@@ -2,9 +2,9 @@
 import { config } from "dotenv";
 config({ path: '.env.test' });
 
-import { ProfileGenerator } from "../profile.generator";
+import { ProfileGenerator } from "../profile.generator.js";
 import { beforeEach, describe, expect, it } from "bun:test";
-import { searchUser } from "../../../parallel/parallel";
+import { searchUser } from "../../../parallel/parallel.js";
 
 describe('Profile Generator', () => {
   let profileGenerator: ProfileGenerator;

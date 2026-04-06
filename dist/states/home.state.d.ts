@@ -1,5 +1,5 @@
-import type { Opportunity } from '../interfaces/database.interface';
-import type { DebugMetaAgent } from '../types/chat-streaming.types';
+import type { Opportunity } from '../interfaces/database.interface.js';
+import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
 /**
  * Home view card item: one opportunity with full presenter-driven display contract.
  */

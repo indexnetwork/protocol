@@ -1,4 +1,4 @@
-import type { DebugMetaAgent } from '../types/chat-streaming.types';
+import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
 /**
  * Intent payload and metadata loaded for index evaluation.
  * (Migrated from the old index.graph.state.ts)

@@ -10,13 +10,13 @@ config({ path: '.env.test' });
 
 import { describe, expect, it, beforeAll, spyOn, afterEach } from "bun:test";
 import { HumanMessage } from "@langchain/core/messages";
-import { ChatGraphFactory } from "../chat.graph";
-import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../interfaces/database.interface";
-import type { Embedder } from "../../interfaces/embedder.interface";
-import type { Scraper } from "../../interfaces/scraper.interface";
-import type { ChatSessionReader } from "../../interfaces/chat-session.interface";
-import { createMockProtocolDeps } from "./chat.graph.mocks";
-import type { ChatStreamEvent } from "../../types/chat-streaming.types";
+import { ChatGraphFactory } from "../chat.graph.js";
+import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../interfaces/database.interface.js";
+import type { Embedder } from "../../interfaces/embedder.interface.js";
+import type { Scraper } from "../../interfaces/scraper.interface.js";
+import type { ChatSessionReader } from "../../interfaces/chat-session.interface.js";
+import { createMockProtocolDeps } from "./chat.graph.mocks.js";
+import type { ChatStreamEvent } from "../../types/chat-streaming.types.js";
 
 const testUserId = "test-chat-stream-user";
 const testSessionId = "test-session-stream";

@@ -1,9 +1,9 @@
 import { Annotation } from "@langchain/langgraph";
-import type { Id } from '../interfaces/database.interface';
-import type { OpportunityStatus, Opportunity } from '../interfaces/database.interface';
-import type { Lens } from '../interfaces/embedder.interface';
-import type { EvaluatorEntity } from '../agents/opportunity.evaluator';
-import type { DebugMetaAgent } from '../types/chat-streaming.types';
+import type { Id } from '../interfaces/database.interface.js';
+import type { OpportunityStatus, Opportunity } from '../interfaces/database.interface.js';
+import type { Lens } from '../interfaces/embedder.interface.js';
+import type { EvaluatorEntity } from '../agents/opportunity.evaluator.js';
+import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
 
 /**
  * Opportunity Graph State (Linear Multi-Step Workflow)

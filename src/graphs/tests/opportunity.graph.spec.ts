@@ -8,16 +8,16 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, test, expect, spyOn } from 'bun:test';
-import { OpportunityGraphFactory, type OpportunityEvaluatorLike } from '../opportunity.graph';
-import type { Id } from '../../../../types/common.types';
+import { OpportunityGraphFactory, type OpportunityEvaluatorLike } from '../opportunity.graph.js';
+import type { Id } from '../../../../types/common.types.js';
 import type {
   OpportunityGraphDatabase,
   OpportunityActor,
   Opportunity,
-} from '../../interfaces/database.interface';
-import type { Embedder } from '../../interfaces/embedder.interface';
-import type { EvaluatedOpportunityWithActors } from '../../agents/opportunity.evaluator';
-import type { ProfileDocument } from '../../agents/profile.generator';
+} from '../../interfaces/database.interface.js';
+import type { Embedder } from '../../interfaces/embedder.interface.js';
+import type { EvaluatedOpportunityWithActors } from '../../agents/opportunity.evaluator.js';
+import type { ProfileDocument } from '../../agents/profile.generator.js';
 
 type OpportunityGraphInvokeInput = Parameters<ReturnType<OpportunityGraphFactory['createGraph']>['invoke']>[0];
 type OpportunityGraphInvokeResult = Awaited<ReturnType<ReturnType<OpportunityGraphFactory['createGraph']>['invoke']>>;

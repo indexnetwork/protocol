@@ -7,17 +7,17 @@
 
 import { StateGraph, START, END } from '@langchain/langgraph';
 import { createHash } from 'crypto';
-import { HydeGraphState, type HydeDocumentState } from '../states/hyde.state';
-import { LensInferrer } from '../agents/lens.inferrer';
-import { HydeGenerator } from '../agents/hyde.generator';
-import type { HydeGraphDatabase } from '../interfaces/database.interface';
-import type { EmbeddingGenerator } from '../interfaces/embedder.interface';
-import type { HydeCache } from '../interfaces/cache.interface';
-import { HYDE_DEFAULT_CACHE_TTL } from '../agents/hyde.strategies';
-import { protocolLogger } from '../support/protocol.logger';
-import { timed } from '../support/performance';
-import { requestContext } from "../support/request-context";
-import type { DebugMetaAgent } from '../types/chat-streaming.types';
+import { HydeGraphState, type HydeDocumentState } from '../states/hyde.state.js';
+import { LensInferrer } from '../agents/lens.inferrer.js';
+import { HydeGenerator } from '../agents/hyde.generator.js';
+import type { HydeGraphDatabase } from '../interfaces/database.interface.js';
+import type { EmbeddingGenerator } from '../interfaces/embedder.interface.js';
+import type { HydeCache } from '../interfaces/cache.interface.js';
+import { HYDE_DEFAULT_CACHE_TTL } from '../agents/hyde.strategies.js';
+import { protocolLogger } from '../support/protocol.logger.js';
+import { timed } from '../support/performance.js';
+import { requestContext } from "../support/request-context.js";
+import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
 
 const logger = protocolLogger("HyDEGraphFactory");
 

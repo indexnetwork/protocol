@@ -1,6 +1,6 @@
 import { Annotation } from "@langchain/langgraph";
-import { ProfileDocument } from "../agents/profile.generator";
-import type { DebugMetaAgent } from '../types/chat-streaming.types';
+import { ProfileDocument } from "../agents/profile.generator.js";
+import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
 
 /**
  * The Graph State for Profile Generation.

@@ -1,11 +1,11 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { IntentGraphState } from "../states/intent.state";
-import { ExplicitIntentInferrer } from "../agents/intent.inferrer";
-import { SemanticVerifier } from "../agents/intent.verifier";
-import { IntentReconciler } from "../agents/intent.reconciler";
-import { protocolLogger } from "../support/protocol.logger";
-import { timed } from "../support/performance";
-import { requestContext } from "../support/request-context";
+import { IntentGraphState } from "../states/intent.state.js";
+import { ExplicitIntentInferrer } from "../agents/intent.inferrer.js";
+import { SemanticVerifier } from "../agents/intent.verifier.js";
+import { IntentReconciler } from "../agents/intent.reconciler.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { timed } from "../support/performance.js";
+import { requestContext } from "../support/request-context.js";
 const logger = protocolLogger("IntentGraphFactory");
 const MAX_PERMISSIBLE_ENTROPY = 0.75;
 const MIN_CLEAR_INTENT_SCORE = 40;

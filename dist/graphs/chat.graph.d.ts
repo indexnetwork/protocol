@@ -1,11 +1,11 @@
 import { MemorySaver } from "@langchain/langgraph";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { BaseMessage } from "@langchain/core/messages";
-import type { ChatGraphCompositeDatabase } from "../interfaces/database.interface";
-import type { Embedder } from "../interfaces/embedder.interface";
-import type { Scraper } from "../interfaces/scraper.interface";
-import type { ChatSessionReader } from "../interfaces/chat-session.interface";
-import type { ProtocolDeps } from "../tools/tool.helpers";
+import type { ChatGraphCompositeDatabase } from "../interfaces/database.interface.js";
+import type { Embedder } from "../interfaces/embedder.interface.js";
+import type { Scraper } from "../interfaces/scraper.interface.js";
+import type { ChatSessionReader } from "../interfaces/chat-session.interface.js";
+import type { ProtocolDeps } from "../tools/tool.helpers.js";
 /**
  * Factory class to build and compile the Chat Graph.
  *
@@ -45,10 +45,10 @@ export declare class ChatGraphFactory {
         debugMeta: {
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined;
-        routingDecision: import("../states/chat.state").RoutingDecision | undefined;
-        subgraphResults: import("../states/chat.state").SubgraphResults | undefined;
+        routingDecision: import("../states/chat.state.js").RoutingDecision | undefined;
+        subgraphResults: import("../states/chat.state.js").SubgraphResults | undefined;
         userProfile: unknown;
     }, {
         userId?: string | undefined;
@@ -62,14 +62,14 @@ export declare class ChatGraphFactory {
         debugMeta?: {
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | import("@langchain/langgraph").OverwriteValue<{
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined> | undefined;
-        routingDecision?: import("../states/chat.state").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").RoutingDecision | undefined> | undefined;
-        subgraphResults?: import("../states/chat.state").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").SubgraphResults | undefined> | undefined;
+        routingDecision?: import("../states/chat.state.js").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").RoutingDecision | undefined> | undefined;
+        subgraphResults?: import("../states/chat.state.js").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").SubgraphResults | undefined> | undefined;
         userProfile?: unknown;
     }, "__start__" | "agent_loop", {
         userId: {
@@ -87,18 +87,18 @@ export declare class ChatGraphFactory {
         debugMeta: import("@langchain/langgraph").BaseChannel<{
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined, {
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | import("@langchain/langgraph").OverwriteValue<{
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined> | undefined, unknown>;
-        routingDecision: import("@langchain/langgraph").BaseChannel<import("../states/chat.state").RoutingDecision | undefined, import("../states/chat.state").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").RoutingDecision | undefined> | undefined, unknown>;
-        subgraphResults: import("@langchain/langgraph").BaseChannel<import("../states/chat.state").SubgraphResults | undefined, import("../states/chat.state").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").SubgraphResults | undefined> | undefined, unknown>;
+        routingDecision: import("@langchain/langgraph").BaseChannel<import("../states/chat.state.js").RoutingDecision | undefined, import("../states/chat.state.js").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").RoutingDecision | undefined> | undefined, unknown>;
+        subgraphResults: import("@langchain/langgraph").BaseChannel<import("../states/chat.state.js").SubgraphResults | undefined, import("../states/chat.state.js").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").SubgraphResults | undefined> | undefined, unknown>;
         userProfile: import("@langchain/langgraph").BaseChannel<unknown, unknown, unknown>;
     }, {
         userId: {
@@ -116,18 +116,18 @@ export declare class ChatGraphFactory {
         debugMeta: import("@langchain/langgraph").BaseChannel<{
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined, {
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | import("@langchain/langgraph").OverwriteValue<{
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined> | undefined, unknown>;
-        routingDecision: import("@langchain/langgraph").BaseChannel<import("../states/chat.state").RoutingDecision | undefined, import("../states/chat.state").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").RoutingDecision | undefined> | undefined, unknown>;
-        subgraphResults: import("@langchain/langgraph").BaseChannel<import("../states/chat.state").SubgraphResults | undefined, import("../states/chat.state").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").SubgraphResults | undefined> | undefined, unknown>;
+        routingDecision: import("@langchain/langgraph").BaseChannel<import("../states/chat.state.js").RoutingDecision | undefined, import("../states/chat.state.js").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").RoutingDecision | undefined> | undefined, unknown>;
+        subgraphResults: import("@langchain/langgraph").BaseChannel<import("../states/chat.state.js").SubgraphResults | undefined, import("../states/chat.state.js").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").SubgraphResults | undefined> | undefined, unknown>;
         userProfile: import("@langchain/langgraph").BaseChannel<unknown, unknown, unknown>;
     }, import("@langchain/langgraph").StateDefinition, {
         agent_loop: {
@@ -138,7 +138,7 @@ export declare class ChatGraphFactory {
             debugMeta: {
                 graph: string;
                 iterations: number;
-                tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+                tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
             };
             error?: undefined;
         } | {
@@ -167,10 +167,10 @@ export declare class ChatGraphFactory {
         debugMeta: {
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined;
-        routingDecision: import("../states/chat.state").RoutingDecision | undefined;
-        subgraphResults: import("../states/chat.state").SubgraphResults | undefined;
+        routingDecision: import("../states/chat.state.js").RoutingDecision | undefined;
+        subgraphResults: import("../states/chat.state.js").SubgraphResults | undefined;
         userProfile: unknown;
     }, {
         userId?: string | undefined;
@@ -184,14 +184,14 @@ export declare class ChatGraphFactory {
         debugMeta?: {
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | import("@langchain/langgraph").OverwriteValue<{
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined> | undefined;
-        routingDecision?: import("../states/chat.state").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").RoutingDecision | undefined> | undefined;
-        subgraphResults?: import("../states/chat.state").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").SubgraphResults | undefined> | undefined;
+        routingDecision?: import("../states/chat.state.js").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").RoutingDecision | undefined> | undefined;
+        subgraphResults?: import("../states/chat.state.js").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").SubgraphResults | undefined> | undefined;
         userProfile?: unknown;
     }, "__start__" | "agent_loop", {
         userId: {
@@ -209,18 +209,18 @@ export declare class ChatGraphFactory {
         debugMeta: import("@langchain/langgraph").BaseChannel<{
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined, {
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | import("@langchain/langgraph").OverwriteValue<{
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined> | undefined, unknown>;
-        routingDecision: import("@langchain/langgraph").BaseChannel<import("../states/chat.state").RoutingDecision | undefined, import("../states/chat.state").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").RoutingDecision | undefined> | undefined, unknown>;
-        subgraphResults: import("@langchain/langgraph").BaseChannel<import("../states/chat.state").SubgraphResults | undefined, import("../states/chat.state").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").SubgraphResults | undefined> | undefined, unknown>;
+        routingDecision: import("@langchain/langgraph").BaseChannel<import("../states/chat.state.js").RoutingDecision | undefined, import("../states/chat.state.js").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").RoutingDecision | undefined> | undefined, unknown>;
+        subgraphResults: import("@langchain/langgraph").BaseChannel<import("../states/chat.state.js").SubgraphResults | undefined, import("../states/chat.state.js").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").SubgraphResults | undefined> | undefined, unknown>;
         userProfile: import("@langchain/langgraph").BaseChannel<unknown, unknown, unknown>;
     }, {
         userId: {
@@ -238,18 +238,18 @@ export declare class ChatGraphFactory {
         debugMeta: import("@langchain/langgraph").BaseChannel<{
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined, {
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | import("@langchain/langgraph").OverwriteValue<{
             graph: string;
             iterations: number;
-            tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+            tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
         } | undefined> | undefined, unknown>;
-        routingDecision: import("@langchain/langgraph").BaseChannel<import("../states/chat.state").RoutingDecision | undefined, import("../states/chat.state").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").RoutingDecision | undefined> | undefined, unknown>;
-        subgraphResults: import("@langchain/langgraph").BaseChannel<import("../states/chat.state").SubgraphResults | undefined, import("../states/chat.state").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state").SubgraphResults | undefined> | undefined, unknown>;
+        routingDecision: import("@langchain/langgraph").BaseChannel<import("../states/chat.state.js").RoutingDecision | undefined, import("../states/chat.state.js").RoutingDecision | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").RoutingDecision | undefined> | undefined, unknown>;
+        subgraphResults: import("@langchain/langgraph").BaseChannel<import("../states/chat.state.js").SubgraphResults | undefined, import("../states/chat.state.js").SubgraphResults | import("@langchain/langgraph").OverwriteValue<import("../states/chat.state.js").SubgraphResults | undefined> | undefined, unknown>;
         userProfile: import("@langchain/langgraph").BaseChannel<unknown, unknown, unknown>;
     }, import("@langchain/langgraph").StateDefinition, {
         agent_loop: {
@@ -260,7 +260,7 @@ export declare class ChatGraphFactory {
             debugMeta: {
                 graph: string;
                 iterations: number;
-                tools: import("../types/chat-streaming.types").DebugMetaToolCall[];
+                tools: import("../types/chat-streaming.types.js").DebugMetaToolCall[];
             };
             error?: undefined;
         } | {
@@ -295,7 +295,7 @@ export declare class ChatGraphFactory {
             role: "assistant" | "user";
             content: string;
         }>;
-    }, checkpointer?: MemorySaver | PostgresSaver, signal?: AbortSignal): AsyncGenerator<import("../types/chat-streaming.types").ChatStreamEvent, void, any>;
+    }, checkpointer?: MemorySaver | PostgresSaver, signal?: AbortSignal): AsyncGenerator<import("../types/chat-streaming.types.js").ChatStreamEvent, void, any>;
     /**
      * Streams chat events from the graph execution.
      * Delegates to ChatGraphStreamingService.
@@ -303,7 +303,7 @@ export declare class ChatGraphFactory {
     streamChatEvents(input: {
         userId: string;
         messages: BaseMessage[];
-    }, sessionId: string, checkpointer?: MemorySaver | PostgresSaver, signal?: AbortSignal): AsyncGenerator<import("../types/chat-streaming.types").ChatStreamEvent, void, any>;
+    }, sessionId: string, checkpointer?: MemorySaver | PostgresSaver, signal?: AbortSignal): AsyncGenerator<import("../types/chat-streaming.types.js").ChatStreamEvent, void, any>;
     /**
      * Internal method to build the graph structure.
      * @returns Uncompiled StateGraph

@@ -12,11 +12,11 @@ import { z } from 'zod';
 import { config } from 'dotenv';
 config({ path: '.env.development' });
 
-import type { HomeSectionProposal } from '../states/home.state';
-import { getIconNamesForPrompt, DEFAULT_HOME_SECTION_ICON } from '../support/lucide.icon-catalog';
-import { protocolLogger } from '../support/protocol.logger';
-import { Timed } from "../support/performance";
-import { createModel } from "./model.config";
+import type { HomeSectionProposal } from '../states/home.state.js';
+import { getIconNamesForPrompt, DEFAULT_HOME_SECTION_ICON } from '../support/lucide.icon-catalog.js';
+import { protocolLogger } from '../support/protocol.logger.js';
+import { Timed } from "../support/performance.js";
+import { createModel } from "./model.config.js";
 
 const logger = protocolLogger('HomeCategorizer');
 

@@ -1,7 +1,7 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { protocolLogger } from "../support/protocol.logger";
-import { timed } from "../support/performance";
-import { IndexGraphState } from "../states/index.state";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { timed } from "../support/performance.js";
+import { IndexGraphState } from "../states/index.state.js";
 const logger = protocolLogger("IndexGraphFactory");
 /**
  * Factory class to build and compile the Index (CRUD) Graph.

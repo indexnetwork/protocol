@@ -5,11 +5,11 @@ import { config } from 'dotenv';
 config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { HomeGraphFactory, stripLeadingNarratorName } from '../home.graph';
-import type { HomeGraphDatabase } from '../../interfaces/database.interface';
-import type { Opportunity } from '../../interfaces/database.interface';
-import type { OpportunityCache } from '../../interfaces/cache.interface';
-import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON, getIconNamesForPrompt } from '../../support/lucide.icon-catalog';
+import { HomeGraphFactory, stripLeadingNarratorName } from '../home.graph.js';
+import type { HomeGraphDatabase } from '../../interfaces/database.interface.js';
+import type { Opportunity } from '../../interfaces/database.interface.js';
+import type { OpportunityCache } from '../../interfaces/cache.interface.js';
+import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON, getIconNamesForPrompt } from '../../support/lucide.icon-catalog.js';
 
 function createMockCache(): OpportunityCache {
   const store = new Map<string, unknown>();

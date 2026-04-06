@@ -1,6 +1,6 @@
-import { type TraceEmitter } from "../support/request-context";
-import type { NegotiationDatabase } from "../interfaces/database.interface";
-import { type NegotiationTurn, type NegotiationOutcome, type UserNegotiationContext, type SeedAssessment, type NegotiationGraphLike } from "../states/negotiation.state";
+import { type TraceEmitter } from "../support/request-context.js";
+import type { NegotiationDatabase } from "../interfaces/database.interface.js";
+import { type NegotiationTurn, type NegotiationOutcome, type UserNegotiationContext, type SeedAssessment, type NegotiationGraphLike } from "../states/negotiation.state.js";
 interface NegotiationAgentLike {
     invoke(input: {
         ownUser: UserNegotiationContext;
@@ -32,7 +32,7 @@ export declare class NegotiationGraphFactory {
         seedAssessment: SeedAssessment;
         conversationId: string;
         taskId: string;
-        messages: import("../states/negotiation.state").NegotiationMessage[];
+        messages: import("../states/negotiation.state.js").NegotiationMessage[];
         turnCount: number;
         maxTurns: number;
         currentSpeaker: "source" | "candidate";
@@ -72,7 +72,7 @@ export declare class NegotiationGraphFactory {
         seedAssessment?: SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment> | undefined;
         conversationId?: string | import("@langchain/langgraph").OverwriteValue<string> | undefined;
         taskId?: string | import("@langchain/langgraph").OverwriteValue<string> | undefined;
-        messages?: import("../states/negotiation.state").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state").NegotiationMessage[]> | undefined;
+        messages?: import("../states/negotiation.state.js").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state.js").NegotiationMessage[]> | undefined;
         turnCount?: number | import("@langchain/langgraph").OverwriteValue<number> | undefined;
         maxTurns?: number | import("@langchain/langgraph").OverwriteValue<number> | undefined;
         currentSpeaker?: "source" | "candidate" | import("@langchain/langgraph").OverwriteValue<"source" | "candidate"> | undefined;
@@ -135,7 +135,7 @@ export declare class NegotiationGraphFactory {
         seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
         conversationId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
         taskId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
-        messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state").NegotiationMessage[], import("../states/negotiation.state").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state").NegotiationMessage[]>, unknown>;
+        messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state.js").NegotiationMessage[], import("../states/negotiation.state.js").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state.js").NegotiationMessage[]>, unknown>;
         turnCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         maxTurns: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         currentSpeaker: import("@langchain/langgraph").BaseChannel<"source" | "candidate", "source" | "candidate" | import("@langchain/langgraph").OverwriteValue<"source" | "candidate">, unknown>;
@@ -218,7 +218,7 @@ export declare class NegotiationGraphFactory {
         seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
         conversationId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
         taskId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
-        messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state").NegotiationMessage[], import("../states/negotiation.state").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state").NegotiationMessage[]>, unknown>;
+        messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state.js").NegotiationMessage[], import("../states/negotiation.state.js").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state.js").NegotiationMessage[]>, unknown>;
         turnCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         maxTurns: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         currentSpeaker: import("@langchain/langgraph").BaseChannel<"source" | "candidate", "source" | "candidate" | import("@langchain/langgraph").OverwriteValue<"source" | "candidate">, unknown>;
@@ -315,7 +315,7 @@ export declare class NegotiationGraphFactory {
             seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
             conversationId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
             taskId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
-            messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state").NegotiationMessage[], import("../states/negotiation.state").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state").NegotiationMessage[]>, unknown>;
+            messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state.js").NegotiationMessage[], import("../states/negotiation.state.js").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state.js").NegotiationMessage[]>, unknown>;
             turnCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
             maxTurns: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
             currentSpeaker: import("@langchain/langgraph").BaseChannel<"source" | "candidate", "source" | "candidate" | import("@langchain/langgraph").OverwriteValue<"source" | "candidate">, unknown>;
@@ -450,7 +450,7 @@ export declare function createDefaultNegotiationGraph(deps: {
     seedAssessment: SeedAssessment;
     conversationId: string;
     taskId: string;
-    messages: import("../states/negotiation.state").NegotiationMessage[];
+    messages: import("../states/negotiation.state.js").NegotiationMessage[];
     turnCount: number;
     maxTurns: number;
     currentSpeaker: "source" | "candidate";
@@ -490,7 +490,7 @@ export declare function createDefaultNegotiationGraph(deps: {
     seedAssessment?: SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment> | undefined;
     conversationId?: string | import("@langchain/langgraph").OverwriteValue<string> | undefined;
     taskId?: string | import("@langchain/langgraph").OverwriteValue<string> | undefined;
-    messages?: import("../states/negotiation.state").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state").NegotiationMessage[]> | undefined;
+    messages?: import("../states/negotiation.state.js").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state.js").NegotiationMessage[]> | undefined;
     turnCount?: number | import("@langchain/langgraph").OverwriteValue<number> | undefined;
     maxTurns?: number | import("@langchain/langgraph").OverwriteValue<number> | undefined;
     currentSpeaker?: "source" | "candidate" | import("@langchain/langgraph").OverwriteValue<"source" | "candidate"> | undefined;
@@ -553,7 +553,7 @@ export declare function createDefaultNegotiationGraph(deps: {
     seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
     conversationId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
     taskId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
-    messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state").NegotiationMessage[], import("../states/negotiation.state").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state").NegotiationMessage[]>, unknown>;
+    messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state.js").NegotiationMessage[], import("../states/negotiation.state.js").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state.js").NegotiationMessage[]>, unknown>;
     turnCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
     maxTurns: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
     currentSpeaker: import("@langchain/langgraph").BaseChannel<"source" | "candidate", "source" | "candidate" | import("@langchain/langgraph").OverwriteValue<"source" | "candidate">, unknown>;
@@ -636,7 +636,7 @@ export declare function createDefaultNegotiationGraph(deps: {
     seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
     conversationId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
     taskId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
-    messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state").NegotiationMessage[], import("../states/negotiation.state").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state").NegotiationMessage[]>, unknown>;
+    messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state.js").NegotiationMessage[], import("../states/negotiation.state.js").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state.js").NegotiationMessage[]>, unknown>;
     turnCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
     maxTurns: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
     currentSpeaker: import("@langchain/langgraph").BaseChannel<"source" | "candidate", "source" | "candidate" | import("@langchain/langgraph").OverwriteValue<"source" | "candidate">, unknown>;
@@ -733,7 +733,7 @@ export declare function createDefaultNegotiationGraph(deps: {
         seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
         conversationId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
         taskId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
-        messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state").NegotiationMessage[], import("../states/negotiation.state").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state").NegotiationMessage[]>, unknown>;
+        messages: import("@langchain/langgraph").BaseChannel<import("../states/negotiation.state.js").NegotiationMessage[], import("../states/negotiation.state.js").NegotiationMessage[] | import("@langchain/langgraph").OverwriteValue<import("../states/negotiation.state.js").NegotiationMessage[]>, unknown>;
         turnCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         maxTurns: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         currentSpeaker: import("@langchain/langgraph").BaseChannel<"source" | "candidate", "source" | "candidate" | import("@langchain/langgraph").OverwriteValue<"source" | "candidate">, unknown>;

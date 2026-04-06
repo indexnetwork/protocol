@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { success, error, normalizeUrl } from "./tool.helpers";
+import { success, error, normalizeUrl } from "./tool.helpers.js";
 export function createUtilityTools(defineTool, deps) {
     const { scraper } = deps;
     const scrapeUrl = defineTool({

@@ -1,5 +1,5 @@
-import type { DefineTool, ToolDeps } from "./tool.helpers";
-import type { Opportunity } from "../interfaces/database.interface";
+import type { DefineTool, ToolDeps } from "./tool.helpers.js";
+import type { Opportunity } from "../interfaces/database.interface.js";
 /**
  * Build minimal opportunity card data for chat without calling the LLM presenter.
  * Uses only required fields from the opportunity record and counterpart name/avatar

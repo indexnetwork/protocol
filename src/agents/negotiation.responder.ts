@@ -1,5 +1,5 @@
-import { createModel } from "./model.config";
-import { NegotiationTurnSchema, type NegotiationTurn, type UserNegotiationContext, type SeedAssessment } from "../states/negotiation.state";
+import { createModel } from "./model.config.js";
+import { NegotiationTurnSchema, type NegotiationTurn, type UserNegotiationContext, type SeedAssessment } from "../states/negotiation.state.js";
 
 const SYSTEM_PROMPT = `You are a negotiation agent representing your user in an opportunity matching system.
 Your role is to EVALUATE proposals and PROTECT your user from poor matches.

@@ -1,10 +1,10 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
 
-import { IndexGraphDatabase } from "../interfaces/database.interface";
-import { protocolLogger } from "../support/protocol.logger";
-import { timed } from "../support/performance";
+import { IndexGraphDatabase } from "../interfaces/database.interface.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { timed } from "../support/performance.js";
 
-import { IndexGraphState } from "../states/index.state";
+import { IndexGraphState } from "../states/index.state.js";
 
 const logger = protocolLogger("IndexGraphFactory");
 

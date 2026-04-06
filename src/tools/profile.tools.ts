@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-import { requestContext } from "../support/request-context";
+import { requestContext } from "../support/request-context.js";
 
-import type { DefineTool, ToolDeps } from "./tool.helpers";
-import { success, error, needsClarification, UUID_REGEX } from "./tool.helpers";
-import { protocolLogger } from "../support/protocol.logger";
-import type { EnrichmentResult, ProfileEnricher } from "../interfaces/enrichment.interface";
+import type { DefineTool, ToolDeps } from "./tool.helpers.js";
+import { success, error, needsClarification, UUID_REGEX } from "./tool.helpers.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import type { EnrichmentResult, ProfileEnricher } from "../interfaces/enrichment.interface.js";
 
 const logger = protocolLogger("ChatTools:Profile");
 

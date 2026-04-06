@@ -1,8 +1,8 @@
-import { VerifiedIntent, ExecutionResult } from "../states/intent.state";
-import { IntentGraphDatabase } from "../interfaces/database.interface";
-import type { EmbeddingGenerator } from "../interfaces/embedder.interface";
-import type { IntentGraphQueue } from "../interfaces/queue.interface";
-import type { DebugMetaAgent } from "../types/chat-streaming.types";
+import { VerifiedIntent, ExecutionResult } from "../states/intent.state.js";
+import { IntentGraphDatabase } from "../interfaces/database.interface.js";
+import type { EmbeddingGenerator } from "../interfaces/embedder.interface.js";
+import type { IntentGraphQueue } from "../interfaces/queue.interface.js";
+import type { DebugMetaAgent } from "../types/chat-streaming.types.js";
 /**
  * Factory class to build and compile the Intent Processing Graph.
  */
@@ -27,7 +27,7 @@ export declare class IntentGraphFactory {
             description: string;
         }[];
         verifiedIntents: VerifiedIntent[];
-        actions: import("../agents/intent.reconciler").NormalizedIntentAction[];
+        actions: import("../agents/intent.reconciler.js").NormalizedIntentAction[];
         executionResults: ExecutionResult[];
         error: string | undefined;
         trace: {
@@ -72,7 +72,7 @@ export declare class IntentGraphFactory {
             description: string;
         }[]> | undefined;
         verifiedIntents?: VerifiedIntent[] | import("@langchain/langgraph").OverwriteValue<VerifiedIntent[]> | undefined;
-        actions?: import("../agents/intent.reconciler").NormalizedIntentAction[] | import("@langchain/langgraph").OverwriteValue<import("../agents/intent.reconciler").NormalizedIntentAction[]> | undefined;
+        actions?: import("../agents/intent.reconciler.js").NormalizedIntentAction[] | import("@langchain/langgraph").OverwriteValue<import("../agents/intent.reconciler.js").NormalizedIntentAction[]> | undefined;
         executionResults?: ExecutionResult[] | import("@langchain/langgraph").OverwriteValue<ExecutionResult[]> | undefined;
         error?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
         trace?: {
@@ -150,7 +150,7 @@ export declare class IntentGraphFactory {
             description: string;
         }[]>, unknown>;
         verifiedIntents: import("@langchain/langgraph").BaseChannel<VerifiedIntent[], VerifiedIntent[] | import("@langchain/langgraph").OverwriteValue<VerifiedIntent[]>, unknown>;
-        actions: import("@langchain/langgraph").BaseChannel<import("../agents/intent.reconciler").NormalizedIntentAction[], import("../agents/intent.reconciler").NormalizedIntentAction[] | import("@langchain/langgraph").OverwriteValue<import("../agents/intent.reconciler").NormalizedIntentAction[]>, unknown>;
+        actions: import("@langchain/langgraph").BaseChannel<import("../agents/intent.reconciler.js").NormalizedIntentAction[], import("../agents/intent.reconciler.js").NormalizedIntentAction[] | import("@langchain/langgraph").OverwriteValue<import("../agents/intent.reconciler.js").NormalizedIntentAction[]>, unknown>;
         executionResults: import("@langchain/langgraph").BaseChannel<ExecutionResult[], ExecutionResult[] | import("@langchain/langgraph").OverwriteValue<ExecutionResult[]>, unknown>;
         error: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         trace: import("@langchain/langgraph").BaseChannel<{
@@ -244,7 +244,7 @@ export declare class IntentGraphFactory {
             description: string;
         }[]>, unknown>;
         verifiedIntents: import("@langchain/langgraph").BaseChannel<VerifiedIntent[], VerifiedIntent[] | import("@langchain/langgraph").OverwriteValue<VerifiedIntent[]>, unknown>;
-        actions: import("@langchain/langgraph").BaseChannel<import("../agents/intent.reconciler").NormalizedIntentAction[], import("../agents/intent.reconciler").NormalizedIntentAction[] | import("@langchain/langgraph").OverwriteValue<import("../agents/intent.reconciler").NormalizedIntentAction[]>, unknown>;
+        actions: import("@langchain/langgraph").BaseChannel<import("../agents/intent.reconciler.js").NormalizedIntentAction[], import("../agents/intent.reconciler.js").NormalizedIntentAction[] | import("@langchain/langgraph").OverwriteValue<import("../agents/intent.reconciler.js").NormalizedIntentAction[]>, unknown>;
         executionResults: import("@langchain/langgraph").BaseChannel<ExecutionResult[], ExecutionResult[] | import("@langchain/langgraph").OverwriteValue<ExecutionResult[]>, unknown>;
         error: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         trace: import("@langchain/langgraph").BaseChannel<{
@@ -425,7 +425,7 @@ export declare class IntentGraphFactory {
                 description: string;
             }[]>, unknown>;
             verifiedIntents: import("@langchain/langgraph").BaseChannel<VerifiedIntent[], VerifiedIntent[] | import("@langchain/langgraph").OverwriteValue<VerifiedIntent[]>, unknown>;
-            actions: import("@langchain/langgraph").BaseChannel<import("../agents/intent.reconciler").NormalizedIntentAction[], import("../agents/intent.reconciler").NormalizedIntentAction[] | import("@langchain/langgraph").OverwriteValue<import("../agents/intent.reconciler").NormalizedIntentAction[]>, unknown>;
+            actions: import("@langchain/langgraph").BaseChannel<import("../agents/intent.reconciler.js").NormalizedIntentAction[], import("../agents/intent.reconciler.js").NormalizedIntentAction[] | import("@langchain/langgraph").OverwriteValue<import("../agents/intent.reconciler.js").NormalizedIntentAction[]>, unknown>;
             executionResults: import("@langchain/langgraph").BaseChannel<ExecutionResult[], ExecutionResult[] | import("@langchain/langgraph").OverwriteValue<ExecutionResult[]>, unknown>;
             error: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
             trace: import("@langchain/langgraph").BaseChannel<{

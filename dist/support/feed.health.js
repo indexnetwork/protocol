@@ -1,4 +1,4 @@
-import { FEED_SOFT_TARGETS } from './opportunity.utils';
+import { FEED_SOFT_TARGETS } from './opportunity.utils.js';
 const WEIGHT_COMPOSITION = 0.4;
 const WEIGHT_FRESHNESS = 0.3;
 const WEIGHT_EXPIRATION = 0.3;

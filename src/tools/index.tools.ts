@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-import { requestContext } from "../support/request-context";
+import { requestContext } from "../support/request-context.js";
 
-import type { DefineTool, ToolDeps } from "./tool.helpers";
-import { success, error, UUID_REGEX } from "./tool.helpers";
+import type { DefineTool, ToolDeps } from "./tool.helpers.js";
+import { success, error, UUID_REGEX } from "./tool.helpers.js";
 
 export function createIndexTools(defineTool: DefineTool, deps: ToolDeps) {
   const { graphs, userDb, systemDb } = deps;

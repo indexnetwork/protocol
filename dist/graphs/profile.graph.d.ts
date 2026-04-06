@@ -1,9 +1,9 @@
-import { ProfileDocument } from "../agents/profile.generator";
-import { ProfileGraphDatabase } from "../interfaces/database.interface";
-import { Embedder } from "../interfaces/embedder.interface";
-import { Scraper } from "../interfaces/scraper.interface";
-import type { ProfileEnricher } from "../interfaces/enrichment.interface";
-import type { DebugMetaAgent } from "../types/chat-streaming.types";
+import { ProfileDocument } from "../agents/profile.generator.js";
+import { ProfileGraphDatabase } from "../interfaces/database.interface.js";
+import { Embedder } from "../interfaces/embedder.interface.js";
+import { Scraper } from "../interfaces/scraper.interface.js";
+import type { ProfileEnricher } from "../interfaces/enrichment.interface.js";
+import type { DebugMetaAgent } from "../types/chat-streaming.types.js";
 /**
  * Factory class to build and compile the Profile Generation Graph.
  *

@@ -2,9 +2,9 @@
  * Shared persist phase for opportunity creation: enrichOrCreate → create (or create+expire) → optional chat injection.
  * Used by the opportunity graph persist node and by the manual opportunity service for consistency.
  */
-import type { CreateOpportunityData, Opportunity, OpportunityStatus } from '../interfaces/database.interface';
-import type { Embedder } from '../interfaces/embedder.interface';
-import type { EnricherDatabase } from './opportunity.enricher';
+import type { CreateOpportunityData, Opportunity, OpportunityStatus } from '../interfaces/database.interface.js';
+import type { Embedder } from '../interfaces/embedder.interface.js';
+import type { EnricherDatabase } from './opportunity.enricher.js';
 export type PersistOpportunityDatabase = EnricherDatabase & {
     createOpportunity(data: CreateOpportunityData): Promise<Opportunity>;
     updateOpportunityStatus(id: string, status: OpportunityStatus): Promise<void | Opportunity | null>;

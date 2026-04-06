@@ -17,11 +17,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import { Timed } from "../support/performance";
-import { protocolLogger } from "../support/protocol.logger";
-import { createModel } from "./model.config";
-import { viewerCentricCardSummary } from "../support/opportunity.card-text";
-import { stripUuids, stripIntroducerMentions } from "../support/opportunity.sanitize";
+import { Timed } from "../support/performance.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { createModel } from "./model.config.js";
+import { viewerCentricCardSummary } from "../support/opportunity.card-text.js";
+import { stripUuids, stripIntroducerMentions } from "../support/opportunity.sanitize.js";
 const logger = protocolLogger("OpportunityPresenter");
 const LLM_TIMEOUT_MS = 20000;
 const model = createModel("opportunityPresenter");

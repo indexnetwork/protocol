@@ -1,2 +1,2 @@
-export * from './chat.streamer';
-export * from './response.streamer';
+export * from './chat.streamer.js';
+export * from './response.streamer.js';

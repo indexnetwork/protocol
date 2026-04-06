@@ -1,4 +1,4 @@
-import { ProfileDocument } from '../agents/profile.generator';
+import { ProfileDocument } from '../agents/profile.generator.js';
 /** Branded string ID for type-safe entity references (keyed by Drizzle table name). */
 export type Id<T extends string = string> = string & {
     readonly __table?: T;

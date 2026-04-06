@@ -14,9 +14,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
  */
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { z } from 'zod';
-import { Timed } from "../support/performance";
-import { protocolLogger } from '../support/protocol.logger';
-import { createModel } from "./model.config";
+import { Timed } from "../support/performance.js";
+import { protocolLogger } from '../support/protocol.logger.js';
+import { createModel } from "./model.config.js";
 const SYSTEM_PROMPT = `You analyze goals and search queries to identify the most relevant perspectives for finding matching people in a professional network.
 
 For each perspective you identify, specify:

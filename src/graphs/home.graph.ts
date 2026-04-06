@@ -13,24 +13,24 @@ import { createHash } from 'crypto';
 
 import { StateGraph, START, END } from '@langchain/langgraph';
 
-import type { HomeGraphDatabase } from '../interfaces/database.interface';
-import type { OpportunityCache } from '../interfaces/cache.interface';
+import type { HomeGraphDatabase } from '../interfaces/database.interface.js';
+import type { OpportunityCache } from '../interfaces/cache.interface.js';
 import {
   HomeGraphState,
   type HomeCardItem,
   type HomeSection,
   type HomeSectionProposal,
   type HomeSectionItem,
-} from '../states/home.state';
-import { OpportunityPresenter, gatherPresenterContext, type PresenterDatabase } from '../agents/opportunity.presenter';
-import { HomeCategorizerAgent } from '../agents/home.categorizer';
-import { canUserSeeOpportunity, isActionableForViewer, selectByComposition } from '../support/opportunity.utils';
-import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON } from '../support/lucide.icon-catalog';
-import { getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from '../support/opportunity.constants';
-import type { DebugMetaAgent } from '../types/chat-streaming.types';
-import { protocolLogger } from '../support/protocol.logger';
-import { timed } from '../support/performance';
-import { requestContext } from "../support/request-context";
+} from '../states/home.state.js';
+import { OpportunityPresenter, gatherPresenterContext, type PresenterDatabase } from '../agents/opportunity.presenter.js';
+import { HomeCategorizerAgent } from '../agents/home.categorizer.js';
+import { canUserSeeOpportunity, isActionableForViewer, selectByComposition } from '../support/opportunity.utils.js';
+import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON } from '../support/lucide.icon-catalog.js';
+import { getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from '../support/opportunity.constants.js';
+import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
+import { protocolLogger } from '../support/protocol.logger.js';
+import { timed } from '../support/performance.js';
+import { requestContext } from "../support/request-context.js";
 
 const logger = protocolLogger('HomeGraph');
 

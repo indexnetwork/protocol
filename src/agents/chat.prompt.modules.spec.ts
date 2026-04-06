@@ -5,15 +5,15 @@ config({ path: ".env.test" });
 import { describe, test, expect } from "bun:test";
 import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 
-import type { ResolvedToolContext } from "../tools";
+import type { ResolvedToolContext } from "../tools/index.js";
 
-import { buildSystemContent } from "./chat.prompt";
+import { buildSystemContent } from "./chat.prompt.js";
 import {
   extractRecentToolCalls,
   resolveModules,
   PROMPT_MODULES,
   type IterationContext,
-} from "./chat.prompt.modules";
+} from "./chat.prompt.modules.js";
 
 describe("extractRecentToolCalls", () => {
   test("returns empty array when no tool calls in messages", () => {

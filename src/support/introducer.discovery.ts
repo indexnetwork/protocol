@@ -7,7 +7,7 @@
  * the user (as introducer) must approve before parties see them.
  */
 
-import { protocolLogger } from './protocol.logger';
+import { protocolLogger } from './protocol.logger.js';
 
 const logger = protocolLogger('IntroducerDiscovery');
 

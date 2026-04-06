@@ -1,6 +1,6 @@
 import { Annotation } from '@langchain/langgraph';
-import type { Opportunity } from '../interfaces/database.interface';
-import type { FeedHealthResult } from '../support/feed.health';
+import type { Opportunity } from '../interfaces/database.interface.js';
+import type { FeedHealthResult } from '../support/feed.health.js';
 
 /**
  * Maintenance Graph State (Annotation-based).

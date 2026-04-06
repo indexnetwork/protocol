@@ -9,11 +9,11 @@ import { z } from 'zod';
 import { McpServer, fromJsonSchema } from '@modelcontextprotocol/server';
 import type { ServerContext, JsonSchemaType } from '@modelcontextprotocol/server';
 
-import type { McpAuthResolver } from '../interfaces/auth.interface';
-import type { ToolDeps } from '../tools/tool.helpers';
-import { resolveChatContext } from '../tools/tool.helpers';
-import { createToolRegistry } from '../tools/tool.registry';
-import { protocolLogger } from '../support/protocol.logger';
+import type { McpAuthResolver } from '../interfaces/auth.interface.js';
+import type { ToolDeps } from '../tools/tool.helpers.js';
+import { resolveChatContext } from '../tools/tool.helpers.js';
+import { createToolRegistry } from '../tools/tool.registry.js';
+import { protocolLogger } from '../support/protocol.logger.js';
 
 const logger = protocolLogger('McpServer');
 

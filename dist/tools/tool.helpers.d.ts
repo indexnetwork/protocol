@@ -1,16 +1,16 @@
 import { z } from "zod";
-import type { ModelConfig } from "../agents/model.config";
-import type { ProfileDocument } from "../agents/profile.generator";
-import type { ChatGraphCompositeDatabase, IndexMembership, UserRecord, UserDatabase, SystemDatabase, NegotiationDatabase } from "../interfaces/database.interface";
-import type { Scraper } from "../interfaces/scraper.interface";
-import type { Cache, HydeCache } from "../interfaces/cache.interface";
-import type { CompiledOpportunityGraph } from "../support/opportunity.discover";
-import type { IntegrationAdapter } from "../interfaces/integration.interface";
-import type { ContactServiceAdapter } from "../interfaces/contact.interface";
-import type { ProfileEnricher } from "../interfaces/enrichment.interface";
-import type { IntentGraphQueue } from "../interfaces/queue.interface";
-import type { ChatSessionReader } from "../interfaces/chat-session.interface";
-import type { Embedder } from "../interfaces/embedder.interface";
+import type { ModelConfig } from "../agents/model.config.js";
+import type { ProfileDocument } from "../agents/profile.generator.js";
+import type { ChatGraphCompositeDatabase, IndexMembership, UserRecord, UserDatabase, SystemDatabase, NegotiationDatabase } from "../interfaces/database.interface.js";
+import type { Scraper } from "../interfaces/scraper.interface.js";
+import type { Cache, HydeCache } from "../interfaces/cache.interface.js";
+import type { CompiledOpportunityGraph } from "../support/opportunity.discover.js";
+import type { IntegrationAdapter } from "../interfaces/integration.interface.js";
+import type { ContactServiceAdapter } from "../interfaces/contact.interface.js";
+import type { ProfileEnricher } from "../interfaces/enrichment.interface.js";
+import type { IntentGraphQueue } from "../interfaces/queue.interface.js";
+import type { ChatSessionReader } from "../interfaces/chat-session.interface.js";
+import type { Embedder } from "../interfaces/embedder.interface.js";
 /** Profile without embedding — used in resolved context to avoid bloating prompts and memory. */
 export type ProfileContext = Omit<ProfileDocument, "embedding"> | null;
 /** Minimal interface for an invokable compiled LangGraph. */
@@ -167,7 +167,7 @@ export interface ToolDeps {
     /** Context-bound database for LLM/system operations on cross-user resources within shared indexes. */
     systemDb: SystemDatabase;
     scraper: Scraper;
-    embedder: import('../interfaces/embedder.interface').Embedder;
+    embedder: import('../interfaces/embedder.interface.js').Embedder;
     cache: Cache;
     integration: IntegrationAdapter;
     contactService: ContactServiceAdapter;

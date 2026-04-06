@@ -101,7 +101,7 @@ import {
   AIMessageChunk,
   HumanMessage,
 } from "@langchain/core/messages";
-import { ChatAgent, type AgentStreamEvent } from "../chat.agent";
+import { ChatAgent, type AgentStreamEvent } from "../chat.agent.js";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

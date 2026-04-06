@@ -8,11 +8,11 @@
  *
  * Used by the create_opportunities chat tool.
  */
-import type { ChatGraphCompositeDatabase } from "../interfaces/database.interface";
-import type { Cache } from "../interfaces/cache.interface";
-import { OpportunityPresenter, type OpportunityPresentationResult, type HomeCardPresentationResult } from "../agents/opportunity.presenter";
+import type { ChatGraphCompositeDatabase } from "../interfaces/database.interface.js";
+import type { Cache } from "../interfaces/cache.interface.js";
+import { OpportunityPresenter, type OpportunityPresentationResult, type HomeCardPresentationResult } from "../agents/opportunity.presenter.js";
 /** Compiled opportunity graph (from OpportunityGraphFactory.createGraph()). */
-export type CompiledOpportunityGraph = ReturnType<import("../graphs/opportunity.graph").OpportunityGraphFactory["createGraph"]>;
+export type CompiledOpportunityGraph = ReturnType<import("../graphs/opportunity.graph.js").OpportunityGraphFactory["createGraph"]>;
 export interface DiscoverInput {
     /** Compiled opportunity graph (already has DB, embedder, cache, HyDE graph). */
     opportunityGraph: CompiledOpportunityGraph;

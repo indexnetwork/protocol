@@ -4,11 +4,11 @@
  */
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { z } from 'zod';
-import { HYDE_CORPUS_PROMPTS } from './hyde.strategies';
-import type { HydeTargetCorpus } from './lens.inferrer';
-import { Timed } from "../support/performance";
-import { protocolLogger } from '../support/protocol.logger';
-import { createModel } from "./model.config";
+import { HYDE_CORPUS_PROMPTS } from './hyde.strategies.js';
+import type { HydeTargetCorpus } from './lens.inferrer.js';
+import { Timed } from "../support/performance.js";
+import { protocolLogger } from '../support/protocol.logger.js';
+import { createModel } from "./model.config.js";
 
 const logger = protocolLogger("HydeGenerator");
 

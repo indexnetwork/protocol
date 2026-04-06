@@ -12,12 +12,12 @@ config({ path: '.env.test' });
 
 import { describe, it } from "bun:test";
 import { z } from "zod";
-import { runScenario, defineScenario, expectSmartest } from "../../../smartest";
+import { runScenario, defineScenario, expectSmartest } from "../../../smartest.js";
 import {
   OpportunityEvaluator,
   type EvaluatorInput,
   type EvaluatorEntity,
-} from "../../agents/opportunity.evaluator";
+} from "../../agents/opportunity.evaluator.js";
 
 const DISCOVERER_ID = 'user-yanki';
 const TARGET_ID = 'user-sam';

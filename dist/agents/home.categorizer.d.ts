@@ -5,7 +5,7 @@
  * with CTA-style titles and Lucide icon names. Used by the home graph after
  * generateCardText.
  */
-import type { HomeSectionProposal } from '../states/home.state';
+import type { HomeSectionProposal } from '../states/home.state.js';
 export type CategorizerInputItem = {
     index: number;
     headline?: string;

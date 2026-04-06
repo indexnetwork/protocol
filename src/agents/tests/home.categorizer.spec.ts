@@ -5,8 +5,8 @@ import { config } from 'dotenv';
 config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { HomeCategorizerAgent } from '../home.categorizer';
-import { resolveHomeSectionIcon } from '../../support/lucide.icon-catalog';
+import { HomeCategorizerAgent } from '../home.categorizer.js';
+import { resolveHomeSectionIcon } from '../../support/lucide.icon-catalog.js';
 
 describe('HomeCategorizerAgent', () => {
   test('categorize with empty cards returns empty sections', async () => {

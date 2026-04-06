@@ -1,7 +1,7 @@
 import { BaseMessage } from "@langchain/core/messages";
 import { MemorySaver } from "@langchain/langgraph";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import type { ChatStreamEvent } from "../types/chat-streaming.types";
+import type { ChatStreamEvent } from "../types/chat-streaming.types.js";
 /**
  * Top-level streaming service for Chat Graph events.
  *

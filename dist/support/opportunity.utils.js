@@ -5,7 +5,7 @@
  * With lens-based HyDE, strategy selection is handled automatically by the
  * LensInferrer agent. This file provides corpus-to-role mapping for opportunity actors.
  */
-import { log } from './log';
+import { log } from './log.js';
 const logger = log.graph.from('SelectByComposition');
 /**
  * Derive actor roles from the corpus type of a lens match.

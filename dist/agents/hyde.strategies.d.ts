@@ -6,7 +6,7 @@
  * infers free-text "lenses" dynamically. This file re-exports the lens
  * types and provides constants for the HyDE pipeline.
  */
-export type { Lens, HydeTargetCorpus, LensInferenceInput, LensInferenceOutput } from './lens.inferrer';
+export type { Lens, HydeTargetCorpus, LensInferenceInput, LensInferenceOutput } from './lens.inferrer.js';
 /** Default cache TTL for ephemeral HyDE documents (1 hour). */
 export declare const HYDE_DEFAULT_CACHE_TTL = 3600;
 /**

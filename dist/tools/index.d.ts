@@ -1,6 +1,6 @@
-import { type ToolContext, type ResolvedToolContext } from "./tool.helpers";
-export type { ToolContext, ResolvedToolContext, ProtocolDeps } from "./tool.helpers";
-export type { ToolDeps } from "./tool.helpers";
+import { type ToolContext, type ResolvedToolContext } from "./tool.helpers.js";
+export type { ToolContext, ResolvedToolContext, ProtocolDeps } from "./tool.helpers.js";
+export type { ToolDeps } from "./tool.helpers.js";
 /**
  * Creates all chat tools bound to a specific user context.
  * Resolves user/index identity from DB at init time.

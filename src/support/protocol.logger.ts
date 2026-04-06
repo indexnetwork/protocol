@@ -5,8 +5,8 @@
  * outputs (or summary) + duration at end.
  */
 
-import { log, sanitizeForLog } from "./log";
-import type { LoggerWithSource } from "./log";
+import { log, sanitizeForLog } from "./log.js";
+import type { LoggerWithSource } from "./log.js";
 
 export type { LoggerWithSource };
 

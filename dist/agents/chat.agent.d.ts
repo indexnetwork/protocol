@@ -1,7 +1,7 @@
 import { BaseMessage } from "@langchain/core/messages";
-import { type ToolContext } from "../tools";
-import type { DebugMetaToolCall } from "../types/chat-streaming.types";
-export { ITERATION_NUDGE } from "./chat.prompt";
+import { type ToolContext } from "../tools/index.js";
+import type { DebugMetaToolCall } from "../types/chat-streaming.types.js";
+export { ITERATION_NUDGE } from "./chat.prompt.js";
 /**
  * Writer callback for streaming custom data out of the graph node.
  * Matches the `config.writer` signature from LangGraphRunnableConfig.

@@ -1,9 +1,9 @@
 import { StateGraph } from "@langchain/langgraph";
 
-import { requestContext, type TraceEmitter } from "../support/request-context";
-import type { NegotiationDatabase } from "../interfaces/database.interface";
-import { NegotiationGraphState, type NegotiationTurn, type NegotiationOutcome, type UserNegotiationContext, type SeedAssessment, type NegotiationGraphLike } from "../states/negotiation.state";
-import { protocolLogger } from "../support/protocol.logger";
+import { requestContext, type TraceEmitter } from "../support/request-context.js";
+import type { NegotiationDatabase } from "../interfaces/database.interface.js";
+import { NegotiationGraphState, type NegotiationTurn, type NegotiationOutcome, type UserNegotiationContext, type SeedAssessment, type NegotiationGraphLike } from "../states/negotiation.state.js";
+import { protocolLogger } from "../support/protocol.logger.js";
 
 const logger = protocolLogger("NegotiationGraph");
 

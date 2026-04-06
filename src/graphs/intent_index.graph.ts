@@ -1,18 +1,18 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
 
-import { IntentIndexer } from "../agents/intent.indexer";
-import type { IntentIndexGraphDatabase } from "../interfaces/database.interface";
-import { protocolLogger } from "../support/protocol.logger";
-import { timed } from "../support/performance";
-import { requestContext } from "../support/request-context";
-import type { DebugMetaAgent } from "../types/chat-streaming.types";
+import { IntentIndexer } from "../agents/intent.indexer.js";
+import type { IntentIndexGraphDatabase } from "../interfaces/database.interface.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { timed } from "../support/performance.js";
+import { requestContext } from "../support/request-context.js";
+import type { DebugMetaAgent } from "../types/chat-streaming.types.js";
 
 import {
   IntentIndexGraphState,
   type IntentForIndexing,
   type IndexMemberContext,
   type AssignmentResult,
-} from "../states/intent_index.state";
+} from "../states/intent_index.state.js";
 
 const logger = protocolLogger("IntentIndexGraphFactory");
 const QUALIFICATION_THRESHOLD = 0.7;

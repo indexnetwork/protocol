@@ -11,11 +11,11 @@
  *
  * Constructor injects Database, Embedder, and compiled HyDE graph.
  */
-import type { Id } from '../interfaces/database.interface';
-import type { DebugMetaAgent } from '../types/chat-streaming.types';
-import { type IndexedIntent, type SourceProfileData, type TargetIndex, type CandidateMatch, type EvaluatedCandidate, type EvaluatedOpportunity, type EvaluatedOpportunityActor } from '../states/opportunity.state';
-import { type CandidateProfile, type EvaluatorEntity, type EvaluatorInput } from '../agents/opportunity.evaluator';
-import type { OpportunityGraphDatabase } from '../interfaces/database.interface';
+import type { Id } from '../interfaces/database.interface.js';
+import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
+import { type IndexedIntent, type SourceProfileData, type TargetIndex, type CandidateMatch, type EvaluatedCandidate, type EvaluatedOpportunity, type EvaluatedOpportunityActor } from '../states/opportunity.state.js';
+import { type CandidateProfile, type EvaluatorEntity, type EvaluatorInput } from '../agents/opportunity.evaluator.js';
+import type { OpportunityGraphDatabase } from '../interfaces/database.interface.js';
 /** Optional evaluator for testing (avoids LLM calls). */
 export type OpportunityEvaluatorLike = {
     invoke?: (sourceProfileContext: string, candidates: CandidateProfile[], options: {
@@ -39,9 +39,9 @@ export type OpportunityEvaluatorLike = {
         }>;
     }>>;
 };
-import type { Embedder } from '../interfaces/embedder.interface';
-import type { Opportunity } from '../interfaces/database.interface';
-import type { NegotiationGraphLike } from "../states/negotiation.state";
+import type { Embedder } from '../interfaces/embedder.interface.js';
+import type { Opportunity } from '../interfaces/database.interface.js';
+import type { NegotiationGraphLike } from "../states/negotiation.state.js";
 /** Input shape for the HyDE graph invoke call (query-based embedding). */
 export interface HydeGeneratorInvokeInput {
     sourceType: 'query';
@@ -90,7 +90,7 @@ export declare class OpportunityGraphFactory {
         triggerIntentId: Id<"intents"> | undefined;
         targetUserId: Id<"users"> | undefined;
         onBehalfOfUserId: Id<"users"> | undefined;
-        options: import("../states/opportunity.state").OpportunityGraphOptions;
+        options: import("../states/opportunity.state.js").OpportunityGraphOptions;
         operationMode: "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send";
         introductionEntities: EvaluatorEntity[];
         introductionHint: string | undefined;
@@ -121,7 +121,7 @@ export declare class OpportunityGraphFactory {
             candidateUserId: Id<"users">;
             indexId: Id<"indexes">;
             existingOpportunityId?: Id<"opportunities">;
-            existingStatus?: import("..").OpportunityStatus;
+            existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[];
         error: string | undefined;
         readResult: {
@@ -159,7 +159,7 @@ export declare class OpportunityGraphFactory {
         triggerIntentId?: Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined;
         targetUserId?: Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined;
         onBehalfOfUserId?: Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined;
-        options?: import("../states/opportunity.state").OpportunityGraphOptions | import("@langchain/langgraph").OverwriteValue<import("../states/opportunity.state").OpportunityGraphOptions> | undefined;
+        options?: import("../states/opportunity.state.js").OpportunityGraphOptions | import("@langchain/langgraph").OverwriteValue<import("../states/opportunity.state.js").OpportunityGraphOptions> | undefined;
         operationMode?: "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send"> | undefined;
         introductionEntities?: EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]> | undefined;
         introductionHint?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
@@ -192,12 +192,12 @@ export declare class OpportunityGraphFactory {
             candidateUserId: Id<"users">;
             indexId: Id<"indexes">;
             existingOpportunityId?: Id<"opportunities">;
-            existingStatus?: import("..").OpportunityStatus;
+            existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[] | import("@langchain/langgraph").OverwriteValue<{
             candidateUserId: Id<"users">;
             indexId: Id<"indexes">;
             existingOpportunityId?: Id<"opportunities">;
-            existingStatus?: import("..").OpportunityStatus;
+            existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[]> | undefined;
         error?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
         readResult?: {
@@ -259,7 +259,7 @@ export declare class OpportunityGraphFactory {
         triggerIntentId: import("@langchain/langgraph").BaseChannel<Id<"intents"> | undefined, Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined, unknown>;
         targetUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
         onBehalfOfUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
-        options: import("@langchain/langgraph").BaseChannel<import("../states/opportunity.state").OpportunityGraphOptions, import("../states/opportunity.state").OpportunityGraphOptions | import("@langchain/langgraph").OverwriteValue<import("../states/opportunity.state").OpportunityGraphOptions>, unknown>;
+        options: import("@langchain/langgraph").BaseChannel<import("../states/opportunity.state.js").OpportunityGraphOptions, import("../states/opportunity.state.js").OpportunityGraphOptions | import("@langchain/langgraph").OverwriteValue<import("../states/opportunity.state.js").OpportunityGraphOptions>, unknown>;
         operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send", "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send">, unknown>;
         introductionEntities: import("@langchain/langgraph").BaseChannel<EvaluatorEntity[], EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]>, unknown>;
         introductionHint: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
@@ -294,17 +294,17 @@ export declare class OpportunityGraphFactory {
             candidateUserId: Id<"users">;
             indexId: Id<"indexes">;
             existingOpportunityId?: Id<"opportunities">;
-            existingStatus?: import("..").OpportunityStatus;
+            existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[], {
             candidateUserId: Id<"users">;
             indexId: Id<"indexes">;
             existingOpportunityId?: Id<"opportunities">;
-            existingStatus?: import("..").OpportunityStatus;
+            existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[] | import("@langchain/langgraph").OverwriteValue<{
             candidateUserId: Id<"users">;
             indexId: Id<"indexes">;
             existingOpportunityId?: Id<"opportunities">;
-            existingStatus?: import("..").OpportunityStatus;
+            existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[]>, unknown>;
         error: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         readResult: import("@langchain/langgraph").BaseChannel<{
@@ -390,7 +390,7 @@ export declare class OpportunityGraphFactory {
         triggerIntentId: import("@langchain/langgraph").BaseChannel<Id<"intents"> | undefined, Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined, unknown>;
         targetUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
         onBehalfOfUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
-        options: import("@langchain/langgraph").BaseChannel<import("../states/opportunity.state").OpportunityGraphOptions, import("../states/opportunity.state").OpportunityGraphOptions | import("@langchain/langgraph").OverwriteValue<import("../states/opportunity.state").OpportunityGraphOptions>, unknown>;
+        options: import("@langchain/langgraph").BaseChannel<import("../states/opportunity.state.js").OpportunityGraphOptions, import("../states/opportunity.state.js").OpportunityGraphOptions | import("@langchain/langgraph").OverwriteValue<import("../states/opportunity.state.js").OpportunityGraphOptions>, unknown>;
         operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send", "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send">, unknown>;
         introductionEntities: import("@langchain/langgraph").BaseChannel<EvaluatorEntity[], EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]>, unknown>;
         introductionHint: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
@@ -425,17 +425,17 @@ export declare class OpportunityGraphFactory {
             candidateUserId: Id<"users">;
             indexId: Id<"indexes">;
             existingOpportunityId?: Id<"opportunities">;
-            existingStatus?: import("..").OpportunityStatus;
+            existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[], {
             candidateUserId: Id<"users">;
             indexId: Id<"indexes">;
             existingOpportunityId?: Id<"opportunities">;
-            existingStatus?: import("..").OpportunityStatus;
+            existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[] | import("@langchain/langgraph").OverwriteValue<{
             candidateUserId: Id<"users">;
             indexId: Id<"indexes">;
             existingOpportunityId?: Id<"opportunities">;
-            existingStatus?: import("..").OpportunityStatus;
+            existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[]>, unknown>;
         error: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         readResult: import("@langchain/langgraph").BaseChannel<{
@@ -522,7 +522,7 @@ export declare class OpportunityGraphFactory {
             triggerIntentId: import("@langchain/langgraph").BaseChannel<Id<"intents"> | undefined, Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined, unknown>;
             targetUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
             onBehalfOfUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
-            options: import("@langchain/langgraph").BaseChannel<import("../states/opportunity.state").OpportunityGraphOptions, import("../states/opportunity.state").OpportunityGraphOptions | import("@langchain/langgraph").OverwriteValue<import("../states/opportunity.state").OpportunityGraphOptions>, unknown>;
+            options: import("@langchain/langgraph").BaseChannel<import("../states/opportunity.state.js").OpportunityGraphOptions, import("../states/opportunity.state.js").OpportunityGraphOptions | import("@langchain/langgraph").OverwriteValue<import("../states/opportunity.state.js").OpportunityGraphOptions>, unknown>;
             operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send", "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send">, unknown>;
             introductionEntities: import("@langchain/langgraph").BaseChannel<EvaluatorEntity[], EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]>, unknown>;
             introductionHint: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
@@ -557,17 +557,17 @@ export declare class OpportunityGraphFactory {
                 candidateUserId: Id<"users">;
                 indexId: Id<"indexes">;
                 existingOpportunityId?: Id<"opportunities">;
-                existingStatus?: import("..").OpportunityStatus;
+                existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[], {
                 candidateUserId: Id<"users">;
                 indexId: Id<"indexes">;
                 existingOpportunityId?: Id<"opportunities">;
-                existingStatus?: import("..").OpportunityStatus;
+                existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[] | import("@langchain/langgraph").OverwriteValue<{
                 candidateUserId: Id<"users">;
                 indexId: Id<"indexes">;
                 existingOpportunityId?: Id<"opportunities">;
-                existingStatus?: import("..").OpportunityStatus;
+                existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[]>, unknown>;
             error: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
             readResult: import("@langchain/langgraph").BaseChannel<{
@@ -841,10 +841,10 @@ export declare class OpportunityGraphFactory {
                 createdByName: string | undefined;
             };
             options: {
-                initialStatus: import("..").OpportunityStatus;
+                initialStatus: import("../interfaces/database.interface.js").OpportunityStatus;
                 minScore?: number;
                 limit?: number;
-                lenses?: import("..").Lens[];
+                lenses?: import("../agents/lens.inferrer.js").Lens[];
                 hydeDescription?: string;
                 existingOpportunities?: string;
                 conversationId?: string;
@@ -864,10 +864,10 @@ export declare class OpportunityGraphFactory {
                 createdByName: string | undefined;
             };
             options: {
-                initialStatus: import("..").OpportunityStatus;
+                initialStatus: import("../interfaces/database.interface.js").OpportunityStatus;
                 minScore?: number;
                 limit?: number;
-                lenses?: import("..").Lens[];
+                lenses?: import("../agents/lens.inferrer.js").Lens[];
                 hydeDescription?: string;
                 existingOpportunities?: string;
                 conversationId?: string;
@@ -883,7 +883,7 @@ export declare class OpportunityGraphFactory {
             triggerIntentId: import("@langchain/langgraph").BaseChannel<Id<"intents"> | undefined, Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined, unknown>;
             targetUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
             onBehalfOfUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
-            options: import("@langchain/langgraph").BaseChannel<import("../states/opportunity.state").OpportunityGraphOptions, import("../states/opportunity.state").OpportunityGraphOptions | import("@langchain/langgraph").OverwriteValue<import("../states/opportunity.state").OpportunityGraphOptions>, unknown>;
+            options: import("@langchain/langgraph").BaseChannel<import("../states/opportunity.state.js").OpportunityGraphOptions, import("../states/opportunity.state.js").OpportunityGraphOptions | import("@langchain/langgraph").OverwriteValue<import("../states/opportunity.state.js").OpportunityGraphOptions>, unknown>;
             operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send", "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send">, unknown>;
             introductionEntities: import("@langchain/langgraph").BaseChannel<EvaluatorEntity[], EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]>, unknown>;
             introductionHint: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
@@ -918,17 +918,17 @@ export declare class OpportunityGraphFactory {
                 candidateUserId: Id<"users">;
                 indexId: Id<"indexes">;
                 existingOpportunityId?: Id<"opportunities">;
-                existingStatus?: import("..").OpportunityStatus;
+                existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[], {
                 candidateUserId: Id<"users">;
                 indexId: Id<"indexes">;
                 existingOpportunityId?: Id<"opportunities">;
-                existingStatus?: import("..").OpportunityStatus;
+                existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[] | import("@langchain/langgraph").OverwriteValue<{
                 candidateUserId: Id<"users">;
                 indexId: Id<"indexes">;
                 existingOpportunityId?: Id<"opportunities">;
-                existingStatus?: import("..").OpportunityStatus;
+                existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[]>, unknown>;
             error: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
             readResult: import("@langchain/langgraph").BaseChannel<{
@@ -1018,7 +1018,7 @@ export declare class OpportunityGraphFactory {
                     connectedWith: string[];
                     suggestedBy: string | null;
                     reasoning: string;
-                    status: import("..").OpportunityStatus;
+                    status: import("../interfaces/database.interface.js").OpportunityStatus;
                     category: string;
                     confidence: number | null;
                     source: string | null;

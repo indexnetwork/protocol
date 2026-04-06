@@ -1,17 +1,17 @@
 import { StateGraph, START, END, MemorySaver, type LangGraphRunnableConfig } from "@langchain/langgraph";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { BaseMessage, HumanMessage } from "@langchain/core/messages";
-import { ChatGraphState } from "../states/chat.state";
-import { ChatAgent } from "../agents/chat.agent";
-import type { ChatGraphCompositeDatabase } from "../interfaces/database.interface";
-import type { Embedder } from "../interfaces/embedder.interface";
-import type { Scraper } from "../interfaces/scraper.interface";
-import { protocolLogger } from "../support/protocol.logger";
-import type { ChatSessionReader } from "../interfaces/chat-session.interface";
-import type { ProtocolDeps } from "../tools/tool.helpers";
-import { truncateToTokenLimit, MAX_CONTEXT_TOKENS } from "../support/chat.utils";
-import { ChatStreamer } from "../streamers";
-import { timed } from "../support/performance";
+import { ChatGraphState } from "../states/chat.state.js";
+import { ChatAgent } from "../agents/chat.agent.js";
+import type { ChatGraphCompositeDatabase } from "../interfaces/database.interface.js";
+import type { Embedder } from "../interfaces/embedder.interface.js";
+import type { Scraper } from "../interfaces/scraper.interface.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import type { ChatSessionReader } from "../interfaces/chat-session.interface.js";
+import type { ProtocolDeps } from "../tools/tool.helpers.js";
+import { truncateToTokenLimit, MAX_CONTEXT_TOKENS } from "../support/chat.utils.js";
+import { ChatStreamer } from "../streamers/index.js";
+import { timed } from "../support/performance.js";
 
 const logger = protocolLogger("ChatGraphFactory");
 
@@ -217,7 +217,7 @@ export class ChatGraphFactory {
             scraper,
             indexId,
             sessionId: state.sessionId,
-          } as import("../tools/tool.helpers").ToolContext);
+          } as import("../tools/tool.helpers.js").ToolContext);
           // Direct streaming writer - emit events immediately instead of buffering
           const directWriter = (data: unknown) => {
             try {

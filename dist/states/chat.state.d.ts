@@ -1,5 +1,5 @@
 import type { BaseMessage } from "@langchain/core/messages";
-import type { DebugMetaToolCall } from "../types/chat-streaming.types";
+import type { DebugMetaToolCall } from "../types/chat-streaming.types.js";
 /** Routing decision from router node (target, operationType, extractedContext). */
 export interface RoutingDecision {
     target: string;

@@ -1,11 +1,11 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { ProfileGraphState } from "../states/profile.state";
-import { ProfileGenerator } from "../agents/profile.generator";
-import { HydeGenerator } from "../agents/profile.hyde.generator";
-import { shouldEnrichGhostDisplayNameFromParallel } from "../support/profile.enrichment-display-name";
-import { protocolLogger } from "../support/protocol.logger";
-import { timed } from "../support/performance";
-import { requestContext } from "../support/request-context";
+import { ProfileGraphState } from "../states/profile.state.js";
+import { ProfileGenerator } from "../agents/profile.generator.js";
+import { HydeGenerator } from "../agents/profile.hyde.generator.js";
+import { shouldEnrichGhostDisplayNameFromParallel } from "../support/profile.enrichment-display-name.js";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { timed } from "../support/performance.js";
+import { requestContext } from "../support/request-context.js";
 const logger = protocolLogger("ProfileGraphFactory");
 /** Minimum length for input to be considered meaningful (e.g. not just "Yes") */
 const MIN_MEANINGFUL_INPUT_LENGTH = 20;

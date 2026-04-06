@@ -8,9 +8,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { log } from "../support/log";
-import { Timed } from "../support/performance";
-import { createModel } from "./model.config";
+import { log } from "../support/log.js";
+import { Timed } from "../support/performance.js";
+import { createModel } from "./model.config.js";
 const logger = log.lib.from("ChatTitleGenerator");
 const SYSTEM_PROMPT = `You suggest a very short title for a chat conversation.
 

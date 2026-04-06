@@ -5,7 +5,7 @@ import { describe, it, expect } from "bun:test";
 import {
   sanitizeForDebugMeta,
   SANITIZATION_ERROR_PLACEHOLDER,
-} from "../debug-meta.sanitizer";
+} from "../debug-meta.sanitizer.js";
 
 describe("sanitizeForDebugMeta", () => {
   it("replaces embedding array with placeholder", () => {

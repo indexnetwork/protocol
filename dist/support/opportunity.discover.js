@@ -8,10 +8,10 @@
  *
  * Used by the create_opportunities chat tool.
  */
-import { gatherPresenterContext, } from "../agents/opportunity.presenter";
-import { MINIMAL_MAIN_TEXT_MAX_CHARS, getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from "./opportunity.constants";
-import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "./opportunity.card-text";
-import { protocolLogger, withCallLogging } from "./protocol.logger";
+import { gatherPresenterContext, } from "../agents/opportunity.presenter.js";
+import { MINIMAL_MAIN_TEXT_MAX_CHARS, getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from "./opportunity.constants.js";
+import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "./opportunity.card-text.js";
+import { protocolLogger, withCallLogging } from "./protocol.logger.js";
 const logger = protocolLogger("OpportunityDiscover");
 /** Max chars for bio and matchReason in chat tool results to keep context manageable. */
 const MAX_FIELD_CHARS = 100;

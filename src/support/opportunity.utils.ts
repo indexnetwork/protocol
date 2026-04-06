@@ -6,8 +6,8 @@
  * LensInferrer agent. This file provides corpus-to-role mapping for opportunity actors.
  */
 
-import type { HydeTargetCorpus } from '../agents/lens.inferrer';
-import { log } from './log';
+import type { HydeTargetCorpus } from '../agents/lens.inferrer.js';
+import { log } from './log.js';
 
 const logger = log.graph.from('SelectByComposition');
 

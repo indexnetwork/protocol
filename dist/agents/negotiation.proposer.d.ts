@@ -1,4 +1,4 @@
-import { type NegotiationTurn, type UserNegotiationContext, type SeedAssessment } from "../states/negotiation.state";
+import { type NegotiationTurn, type UserNegotiationContext, type SeedAssessment } from "../states/negotiation.state.js";
 export interface NegotiationProposerInput {
     ownUser: UserNegotiationContext;
     otherUser: UserNegotiationContext;

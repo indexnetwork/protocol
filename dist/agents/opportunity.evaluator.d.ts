@@ -1,7 +1,7 @@
 import type { Runnable } from "@langchain/core/runnables";
 import { z } from "zod";
-import type { Lens } from "./lens.inferrer";
-import type { OpportunityStatus } from "../interfaces/database.interface";
+import type { Lens } from "./lens.inferrer.js";
+import type { OpportunityStatus } from "../interfaces/database.interface.js";
 declare const OpportunitySchema: z.ZodObject<{
     reasoning: z.ZodString;
     score: z.ZodNumber;

@@ -5,7 +5,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it, beforeAll } from 'bun:test';
-import { LensInferrer, type Lens } from '../lens.inferrer';
+import { LensInferrer, type Lens } from '../lens.inferrer.js';
 
 describe('LensInferrer', () => {
   let inferrer: LensInferrer;

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { success, error } from './tool.helpers';
+import { success, error } from './tool.helpers.js';
 /**
  * Creates contact management tools for the chat agent.
  * Enables importing, listing, and managing the user's network.

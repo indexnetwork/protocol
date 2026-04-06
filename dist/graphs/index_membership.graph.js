@@ -1,7 +1,7 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { protocolLogger } from "../support/protocol.logger";
-import { timed } from "../support/performance";
-import { IndexMembershipGraphState } from "../states/index_membership.state";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { timed } from "../support/performance.js";
+import { IndexMembershipGraphState } from "../states/index_membership.state.js";
 const logger = protocolLogger("IndexMembershipGraphFactory");
 /**
  * Factory class to build and compile the Index Membership Graph.

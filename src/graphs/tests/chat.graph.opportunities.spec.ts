@@ -9,17 +9,17 @@ config({ path: ".env.test" });
 import { describe, test, expect } from "bun:test";
 import { z } from "zod";
 import { HumanMessage } from "@langchain/core/messages";
-import { runScenario, defineScenario, expectSmartest } from "../../../smartest";
-import { ChatGraphFactory } from "../chat.graph";
-import type { Embedder } from "../../interfaces/embedder.interface";
-import type { Scraper } from "../../interfaces/scraper.interface";
+import { runScenario, defineScenario, expectSmartest } from "../../../smartest.js";
+import { ChatGraphFactory } from "../chat.graph.js";
+import type { Embedder } from "../../interfaces/embedder.interface.js";
+import type { Scraper } from "../../interfaces/scraper.interface.js";
 import {
   createChatGraphMockDb,
   mockOpportunity,
   mockActiveIntent,
   mockChatSessionReader,
   createMockProtocolDeps,
-} from "./chat.graph.mocks";
+} from "./chat.graph.mocks.js";
 
 const testUserId = "opp-test-user";
 const testIndexId = "00000000-0000-0000-4000-000000000002";

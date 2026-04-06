@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { requestContext } from "../support/request-context";
-import { success, error, needsClarification, UUID_REGEX } from "./tool.helpers";
-import { protocolLogger } from "../support/protocol.logger";
+import { requestContext } from "../support/request-context.js";
+import { success, error, needsClarification, UUID_REGEX } from "./tool.helpers.js";
+import { protocolLogger } from "../support/protocol.logger.js";
 const logger = protocolLogger("ChatTools:Profile");
 function isMeaningfulEnrichment(enrichment) {
     return !!enrichment &&

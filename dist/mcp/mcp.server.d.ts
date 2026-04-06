@@ -5,8 +5,8 @@
  * to the raw tool handler.
  */
 import { McpServer } from '@modelcontextprotocol/server';
-import type { McpAuthResolver } from '../interfaces/auth.interface';
-import type { ToolDeps } from '../tools/tool.helpers';
+import type { McpAuthResolver } from '../interfaces/auth.interface.js';
+import type { ToolDeps } from '../tools/tool.helpers.js';
 /**
  * Factory for creating per-request scoped database instances.
  * Injected from the controller/handler layer to keep the protocol layer

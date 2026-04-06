@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it } from "bun:test";
-import { ExplicitIntentInferrer } from "../intent.inferrer";
+import { ExplicitIntentInferrer } from "../intent.inferrer.js";
 
 describe('ExplicitIntentInferrer - Basic Inference', () => {
   const inferrer = new ExplicitIntentInferrer();

@@ -1,4 +1,4 @@
-import type { ToolDeps, ToolRegistry } from './tool.helpers';
+import type { ToolDeps, ToolRegistry } from './tool.helpers.js';
 /**
  * Creates a tool registry containing all tool handlers indexed by name.
  * Handlers are raw async functions (not LangChain tool() wrappers) that

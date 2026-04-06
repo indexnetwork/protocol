@@ -1,10 +1,10 @@
 import type { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
-import { log } from "../support/log";
-import { Timed } from "../support/performance";
+import { log } from "../support/log.js";
+import { Timed } from "../support/performance.js";
 
-import { createModel } from "./model.config";
+import { createModel } from "./model.config.js";
 
 const logger = log.lib.from("ChatTitleGenerator");
 

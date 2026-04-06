@@ -3,7 +3,7 @@
  * opportunities (by non-introducer actor userId), check semantic relatedness, and
  * optionally merge into a single enriched opportunity and expire the old one(s).
  */
-import { protocolLogger } from './protocol.logger';
+import { protocolLogger } from './protocol.logger.js';
 const logger = protocolLogger('OpportunityEnricher');
 const DEFAULT_SIMILARITY_THRESHOLD = 0.7;
 const MIN_REASONING_LENGTH_FOR_EMBEDDING = 10;

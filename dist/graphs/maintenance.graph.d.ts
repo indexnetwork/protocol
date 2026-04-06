@@ -59,10 +59,10 @@ export declare class MaintenanceGraphFactory {
             id: string;
             payload: string;
         }[];
-        currentOpportunities: import("..").Opportunity[];
+        currentOpportunities: import("../index.js").Opportunity[];
         expiredCount: number;
         lastRediscoveryAt: number | null;
-        healthResult: import("../support/feed.health").FeedHealthResult | null;
+        healthResult: import("../support/feed.health.js").FeedHealthResult | null;
         rediscoveryJobsEnqueued: number;
         connectorFlowCount: number;
         introducerDiscoveryJobsEnqueued: number;
@@ -76,10 +76,10 @@ export declare class MaintenanceGraphFactory {
             id: string;
             payload: string;
         }[]> | undefined;
-        currentOpportunities?: import("..").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("..").Opportunity[]> | undefined;
+        currentOpportunities?: import("../index.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../index.js").Opportunity[]> | undefined;
         expiredCount?: number | import("@langchain/langgraph").OverwriteValue<number> | undefined;
         lastRediscoveryAt?: number | import("@langchain/langgraph").OverwriteValue<number | null> | null | undefined;
-        healthResult?: import("../support/feed.health").FeedHealthResult | import("@langchain/langgraph").OverwriteValue<import("../support/feed.health").FeedHealthResult | null> | null | undefined;
+        healthResult?: import("../support/feed.health.js").FeedHealthResult | import("@langchain/langgraph").OverwriteValue<import("../support/feed.health.js").FeedHealthResult | null> | null | undefined;
         rediscoveryJobsEnqueued?: number | import("@langchain/langgraph").OverwriteValue<number> | undefined;
         connectorFlowCount?: number | import("@langchain/langgraph").OverwriteValue<number> | undefined;
         introducerDiscoveryJobsEnqueued?: number | import("@langchain/langgraph").OverwriteValue<number> | undefined;
@@ -96,10 +96,10 @@ export declare class MaintenanceGraphFactory {
             id: string;
             payload: string;
         }[]>, unknown>;
-        currentOpportunities: import("@langchain/langgraph").BaseChannel<import("..").Opportunity[], import("..").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("..").Opportunity[]>, unknown>;
+        currentOpportunities: import("@langchain/langgraph").BaseChannel<import("../index.js").Opportunity[], import("../index.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../index.js").Opportunity[]>, unknown>;
         expiredCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         lastRediscoveryAt: import("@langchain/langgraph").BaseChannel<number | null, number | import("@langchain/langgraph").OverwriteValue<number | null> | null, unknown>;
-        healthResult: import("@langchain/langgraph").BaseChannel<import("../support/feed.health").FeedHealthResult | null, import("../support/feed.health").FeedHealthResult | import("@langchain/langgraph").OverwriteValue<import("../support/feed.health").FeedHealthResult | null> | null, unknown>;
+        healthResult: import("@langchain/langgraph").BaseChannel<import("../support/feed.health.js").FeedHealthResult | null, import("../support/feed.health.js").FeedHealthResult | import("@langchain/langgraph").OverwriteValue<import("../support/feed.health.js").FeedHealthResult | null> | null, unknown>;
         rediscoveryJobsEnqueued: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         connectorFlowCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         introducerDiscoveryJobsEnqueued: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
@@ -116,10 +116,10 @@ export declare class MaintenanceGraphFactory {
             id: string;
             payload: string;
         }[]>, unknown>;
-        currentOpportunities: import("@langchain/langgraph").BaseChannel<import("..").Opportunity[], import("..").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("..").Opportunity[]>, unknown>;
+        currentOpportunities: import("@langchain/langgraph").BaseChannel<import("../index.js").Opportunity[], import("../index.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../index.js").Opportunity[]>, unknown>;
         expiredCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         lastRediscoveryAt: import("@langchain/langgraph").BaseChannel<number | null, number | import("@langchain/langgraph").OverwriteValue<number | null> | null, unknown>;
-        healthResult: import("@langchain/langgraph").BaseChannel<import("../support/feed.health").FeedHealthResult | null, import("../support/feed.health").FeedHealthResult | import("@langchain/langgraph").OverwriteValue<import("../support/feed.health").FeedHealthResult | null> | null, unknown>;
+        healthResult: import("@langchain/langgraph").BaseChannel<import("../support/feed.health.js").FeedHealthResult | null, import("../support/feed.health.js").FeedHealthResult | import("@langchain/langgraph").OverwriteValue<import("../support/feed.health.js").FeedHealthResult | null> | null, unknown>;
         rediscoveryJobsEnqueued: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         connectorFlowCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         introducerDiscoveryJobsEnqueued: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
@@ -137,10 +137,10 @@ export declare class MaintenanceGraphFactory {
                 id: string;
                 payload: string;
             }[]>, unknown>;
-            currentOpportunities: import("@langchain/langgraph").BaseChannel<import("..").Opportunity[], import("..").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("..").Opportunity[]>, unknown>;
+            currentOpportunities: import("@langchain/langgraph").BaseChannel<import("../index.js").Opportunity[], import("../index.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../index.js").Opportunity[]>, unknown>;
             expiredCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
             lastRediscoveryAt: import("@langchain/langgraph").BaseChannel<number | null, number | import("@langchain/langgraph").OverwriteValue<number | null> | null, unknown>;
-            healthResult: import("@langchain/langgraph").BaseChannel<import("../support/feed.health").FeedHealthResult | null, import("../support/feed.health").FeedHealthResult | import("@langchain/langgraph").OverwriteValue<import("../support/feed.health").FeedHealthResult | null> | null, unknown>;
+            healthResult: import("@langchain/langgraph").BaseChannel<import("../support/feed.health.js").FeedHealthResult | null, import("../support/feed.health.js").FeedHealthResult | import("@langchain/langgraph").OverwriteValue<import("../support/feed.health.js").FeedHealthResult | null> | null, unknown>;
             rediscoveryJobsEnqueued: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
             connectorFlowCount: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
             introducerDiscoveryJobsEnqueued: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
@@ -151,7 +151,7 @@ export declare class MaintenanceGraphFactory {
             connectorFlowCount?: undefined;
             error?: undefined;
         } | {
-            healthResult: import("../support/feed.health").FeedHealthResult;
+            healthResult: import("../support/feed.health.js").FeedHealthResult;
             connectorFlowCount: number;
             error?: undefined;
         } | {

@@ -3,9 +3,9 @@
  * opportunities (by non-introducer actor userId), check semantic relatedness, and
  * optionally merge into a single enriched opportunity and expire the old one(s).
  */
-import type { CreateOpportunityData, Opportunity, OpportunityStatus } from '../interfaces/database.interface';
-import type { Embedder } from '../interfaces/embedder.interface';
-import type { Id } from '../interfaces/database.interface';
+import type { CreateOpportunityData, Opportunity, OpportunityStatus } from '../interfaces/database.interface.js';
+import type { Embedder } from '../interfaces/embedder.interface.js';
+import type { Id } from '../interfaces/database.interface.js';
 export type EnricherDatabase = {
     findOverlappingOpportunities(actorUserIds: Id<'users'>[], options?: {
         excludeStatuses?: ('latent' | 'pending' | 'accepted' | 'rejected' | 'expired')[];

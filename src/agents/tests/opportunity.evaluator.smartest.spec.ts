@@ -4,8 +4,8 @@ config({ path: '.env.test' });
 
 import { describe, it } from "bun:test";
 import { z } from "zod";
-import { runScenario, defineScenario, expectSmartest } from "../../../smartest";
-import { OpportunityEvaluator, type EvaluatorInput, type EvaluatorEntity } from "../opportunity.evaluator";
+import { runScenario, defineScenario, expectSmartest } from "../../../smartest.js";
+import { OpportunityEvaluator, type EvaluatorInput, type EvaluatorEntity } from "../opportunity.evaluator.js";
 
 const DISCOVERER_ID = 'user-founder-alice';
 

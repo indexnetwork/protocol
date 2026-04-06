@@ -3,8 +3,8 @@
  * The card is shown to the viewer (logged-in user) and should introduce the
  * counterpart, not describe the viewer to themselves.
  */
-import { MINIMAL_MAIN_TEXT_MAX_CHARS } from "./opportunity.constants";
-import { stripUuids, stripIntroducerMentions } from "./opportunity.sanitize";
+import { MINIMAL_MAIN_TEXT_MAX_CHARS } from "./opportunity.constants.js";
+import { stripUuids, stripIntroducerMentions } from "./opportunity.sanitize.js";
 /**
  * Splits text into sentences using (?<=[.!?])\s+ (period/exclamation/question followed by whitespace).
  * Note: splits after any such punctuation, including abbreviations like "Dr." or "e.g.".

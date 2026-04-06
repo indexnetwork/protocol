@@ -2,8 +2,8 @@ import { config } from "dotenv";
 config({ path: ".env.development", override: true });
 
 import { describe, expect, it } from "bun:test";
-import type { Opportunity } from "../../interfaces/database.interface";
-import { buildMinimalOpportunityCard } from "../opportunity.tools";
+import type { Opportunity } from "../../interfaces/database.interface.js";
+import { buildMinimalOpportunityCard } from "../opportunity.tools.js";
 
 describe("buildMinimalOpportunityCard - IND-113", () => {
   const mockOpportunity = {

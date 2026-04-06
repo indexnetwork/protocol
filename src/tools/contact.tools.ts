@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { DefineTool, ToolDeps } from './tool.helpers';
-import { success, error } from './tool.helpers';
+import type { DefineTool, ToolDeps } from './tool.helpers.js';
+import { success, error } from './tool.helpers.js';
 
 /**
  * Creates contact management tools for the chat agent.

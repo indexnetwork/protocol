@@ -1,5 +1,5 @@
-import type { Opportunity } from '../interfaces/database.interface';
-import type { FeedHealthResult } from '../support/feed.health';
+import type { Opportunity } from '../interfaces/database.interface.js';
+import type { FeedHealthResult } from '../support/feed.health.js';
 /**
  * Maintenance Graph State (Annotation-based).
  * Flow: loadCurrentFeed → scoreFeedHealth → [conditional: rediscover | END] → logMaintenance → END

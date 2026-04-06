@@ -7,8 +7,8 @@
  * and suggestedAction for chat tools and user-facing surfaces.
  */
 import { z } from "zod";
-import type { Opportunity } from "../interfaces/database.interface";
-import type { ChatGraphCompositeDatabase } from "../interfaces/database.interface";
+import type { Opportunity } from "../interfaces/database.interface.js";
+import type { ChatGraphCompositeDatabase } from "../interfaces/database.interface.js";
 /**
  * Minimal database interface required by gatherPresenterContext.
  * Any database adapter that implements these three methods can be passed.

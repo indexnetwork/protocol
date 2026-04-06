@@ -5,7 +5,7 @@
  * With lens-based HyDE, strategy selection is handled automatically by the
  * LensInferrer agent. This file provides corpus-to-role mapping for opportunity actors.
  */
-import type { HydeTargetCorpus } from '../agents/lens.inferrer';
+import type { HydeTargetCorpus } from '../agents/lens.inferrer.js';
 /** Actor roles in the opportunity model (agent / patient / peer). */
 export type OpportunityActorRole = 'agent' | 'patient' | 'peer';
 /** Result of mapping a corpus to source and candidate roles. */

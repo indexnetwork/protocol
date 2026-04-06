@@ -1,12 +1,12 @@
-import { createProfileTools } from './profile.tools';
-import { createIntentTools } from './intent.tools';
-import { createIndexTools } from './index.tools';
-import { createOpportunityTools } from './opportunity.tools';
-import { createUtilityTools } from './utility.tools';
-import { createIntegrationTools } from './integration.tools';
-import { createContactTools } from './contact.tools';
-import { protocolLogger } from '../support/protocol.logger';
-import { error } from './tool.helpers';
+import { createProfileTools } from './profile.tools.js';
+import { createIntentTools } from './intent.tools.js';
+import { createIndexTools } from './index.tools.js';
+import { createOpportunityTools } from './opportunity.tools.js';
+import { createUtilityTools } from './utility.tools.js';
+import { createIntegrationTools } from './integration.tools.js';
+import { createContactTools } from './contact.tools.js';
+import { protocolLogger } from '../support/protocol.logger.js';
+import { error } from './tool.helpers.js';
 const logger = protocolLogger('ToolRegistry');
 /**
  * Creates a tool registry containing all tool handlers indexed by name.

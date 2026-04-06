@@ -1,4 +1,4 @@
-import { resolveModules } from "./chat.prompt.modules";
+import { resolveModules } from "./chat.prompt.modules.js";
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROTOCOL SYSTEM PROMPT — DUMB TOOLS + SMART ORCHESTRATOR
 // ═══════════════════════════════════════════════════════════════════════════════

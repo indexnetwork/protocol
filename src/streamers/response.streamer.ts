@@ -1,9 +1,9 @@
-import type { ChatStreamEvent } from "../types/chat-streaming.types";
+import type { ChatStreamEvent } from "../types/chat-streaming.types.js";
 import {
   createTokenEvent,
   createErrorEvent,
-} from "../types/chat-streaming.types";
-import { protocolLogger } from "../support/protocol.logger";
+} from "../types/chat-streaming.types.js";
+import { protocolLogger } from "../support/protocol.logger.js";
 
 const logger = protocolLogger("ResponseStreamer");
 

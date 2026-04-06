@@ -1,6 +1,6 @@
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import { protocolLogger } from "../support/protocol.logger";
-import { createAgentEndEvent, createAgentStartEvent, createDebugMetaEvent, createErrorEvent, createGraphEndEvent, createGraphStartEvent, createIterationStartEvent, createLlmStartEvent, createLlmEndEvent, createResponseCompleteEvent, createResponseResetEvent, createHallucinationDetectedEvent, createStatusEvent, createTokenEvent, createToolActivityEvent, } from "../types/chat-streaming.types";
+import { protocolLogger } from "../support/protocol.logger.js";
+import { createAgentEndEvent, createAgentStartEvent, createDebugMetaEvent, createErrorEvent, createGraphEndEvent, createGraphStartEvent, createIterationStartEvent, createLlmStartEvent, createLlmEndEvent, createResponseCompleteEvent, createResponseResetEvent, createHallucinationDetectedEvent, createStatusEvent, createTokenEvent, createToolActivityEvent, } from "../types/chat-streaming.types.js";
 const logger = protocolLogger("ChatStreamer");
 // ══════════════════════════════════════════════════════════════════════════════
 // CHAT STREAMER (Streaming Narration Architecture)

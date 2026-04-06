@@ -1,5 +1,5 @@
 import type { BaseMessage } from "@langchain/core/messages";
-import type { ResolvedToolContext } from "../tools";
+import type { ResolvedToolContext } from "../tools/index.js";
 /**
  * A conditional prompt section injected into the system prompt based on triggers.
  */

@@ -7,7 +7,7 @@
  */
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import { createModel } from "./model.config";
+import { createModel } from "./model.config.js";
 const model = createModel("inviteGenerator");
 const InviteInputSchema = z.object({
     recipientName: z.string(),

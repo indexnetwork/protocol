@@ -1,4 +1,4 @@
-import type { HydeTargetCorpus } from './lens.inferrer';
+import type { HydeTargetCorpus } from './lens.inferrer.js';
 export interface HydeGeneratorOutput {
     text: string;
 }

@@ -15,15 +15,15 @@ config({ path: ".env.test" });
 import { describe, test, expect, beforeAll } from "bun:test";
 import { z } from "zod";
 import { HumanMessage } from "@langchain/core/messages";
-import { runScenario, defineScenario, expectSmartest } from "../../../smartest";
-import { ChatGraphFactory } from "../chat.graph";
+import { runScenario, defineScenario, expectSmartest } from "../../../smartest.js";
+import { ChatGraphFactory } from "../chat.graph.js";
 import type {
   ChatGraphCompositeDatabase,
   CreateIntentData,
-} from "../../interfaces/database.interface";
-import type { Embedder } from "../../interfaces/embedder.interface";
-import type { Scraper } from "../../interfaces/scraper.interface";
-import { mockChatSessionReader, createMockProtocolDeps } from "./chat.graph.mocks";
+} from "../../interfaces/database.interface.js";
+import type { Embedder } from "../../interfaces/embedder.interface.js";
+import type { Scraper } from "../../interfaces/scraper.interface.js";
+import { mockChatSessionReader, createMockProtocolDeps } from "./chat.graph.mocks.js";
 
 const testUserId = "test-vocabulary-user";
 const testIndexId = "test-vocabulary-index";

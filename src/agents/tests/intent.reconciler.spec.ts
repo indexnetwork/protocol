@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it } from "bun:test";
-import { IntentReconciler } from "../intent.reconciler";
+import { IntentReconciler } from "../intent.reconciler.js";
 
 describe('IntentReconciler', () => {
   const reconciler = new IntentReconciler();

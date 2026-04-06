@@ -1,7 +1,7 @@
 import { StateGraph } from "@langchain/langgraph";
-import { requestContext } from "../support/request-context";
-import { NegotiationGraphState } from "../states/negotiation.state";
-import { protocolLogger } from "../support/protocol.logger";
+import { requestContext } from "../support/request-context.js";
+import { NegotiationGraphState } from "../states/negotiation.state.js";
+import { protocolLogger } from "../support/protocol.logger.js";
 const logger = protocolLogger("NegotiationGraph");
 /**
  * Factory for the bilateral negotiation LangGraph state machine.
