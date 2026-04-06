@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 config({ path: '.env.test' });
 
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, afterAll } from "bun:test";
 
 // Mock all concrete adapters/services before importing the module under test
 mock.module("../../../../../backend/src/adapters/cache.adapter", () => ({
@@ -119,3 +119,5 @@ describe("createDefaultProtocolDeps()", () => {
     expect(typeof deps.contactService.removeContact).toBe("function");
   });
 });
+
+afterAll(() => mock.restore());

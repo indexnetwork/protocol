@@ -5,7 +5,7 @@
 import { config } from "dotenv";
 config({ path: '.env.test' });
 
-import { mock } from "bun:test";
+import { mock, afterAll } from "bun:test";
 mock.module("../../../../../backend/queues/notification.queue", () => ({
   queueOpportunityNotification: async () =>
     ({ id: "mock-job" } as unknown as Awaited<ReturnType<typeof import("../../../../../backend/queues/notification.queue").queueOpportunityNotification>>),
@@ -1929,3 +1929,5 @@ describe("list_opportunities tool (CHAT_DISPLAY_LIMIT cap)", () => {
     expect(parsed.data.count).toBe(3);
   });
 });
+
+afterAll(() => mock.restore());
