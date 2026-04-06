@@ -5,7 +5,7 @@ This is the protocol layer: LangGraph workflows, AI agents, chat tools, and supp
 ## Directory Structure
 
 ```
-protocol/src/lib/protocol/
+packages/protocol/src/
   graphs/           8 LangGraph state machines (NAME.graph.ts)
   states/           8 graph state definitions (NAME.state.ts)
   tools/            Chat tool definitions by domain
