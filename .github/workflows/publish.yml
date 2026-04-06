@@ -1,5 +1,5 @@
 # Publish @indexnetwork/protocol to npm on every push to main.
-# Reads version from package.json — npm silently skips if already published.
+# Reads version from package.json — skips silently if already published.
 #
 # Requires: GitHub repo secret INDEX_REPO_TOKEN (npm automation token).
 name: Publish
@@ -36,7 +36,20 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Publish (skip if version already exists)
-        run: npm publish --access public || true
+      - name: Check if version already published
+        id: check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          NAME=$(node -p "require('./package.json').name")
+          if npm view "${NAME}@${VERSION}" version &>/dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Version ${VERSION} already published — skipping."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        if: steps.check.outputs.skip == 'false'
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.INDEX_REPO_TOKEN }}
