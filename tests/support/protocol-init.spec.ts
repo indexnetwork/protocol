@@ -4,7 +4,7 @@ config({ path: '.env.test' });
 import { describe, it, expect, mock } from "bun:test";
 
 // Mock all concrete adapters/services before importing the module under test
-mock.module("../../../../../protocol/src/adapters/cache.adapter", () => ({
+mock.module("../../../../../backend/src/adapters/cache.adapter", () => ({
   RedisCacheAdapter: class {
     get = mock(async () => null);
     set = mock(async () => {});
@@ -12,13 +12,13 @@ mock.module("../../../../../protocol/src/adapters/cache.adapter", () => ({
   },
 }));
 
-mock.module("../../../../../protocol/src/adapters/integration.adapter", () => ({
+mock.module("../../../../../backend/src/adapters/integration.adapter", () => ({
   ComposioIntegrationAdapter: class {
     getIntegrationStatus = mock(async () => ({}));
   },
 }));
 
-mock.module("../../../../../protocol/src/adapters/database.adapter", () => ({
+mock.module("../../../../../backend/src/adapters/database.adapter", () => ({
   chatDatabaseAdapter: { getUser: mock(async () => null) },
   conversationDatabaseAdapter: { getConversation: mock(async () => null) },
   ChatDatabaseAdapter: class {},
@@ -28,33 +28,33 @@ mock.module("../../../../../protocol/src/adapters/database.adapter", () => ({
   })),
 }));
 
-mock.module("../../../../../protocol/src/adapters/embedder.adapter", () => ({
+mock.module("../../../../../backend/src/adapters/embedder.adapter", () => ({
   EmbedderAdapter: class {
     embed = mock(async () => []);
   },
 }));
 
-mock.module("../../../../../protocol/src/adapters/scraper.adapter", () => ({
+mock.module("../../../../../backend/src/adapters/scraper.adapter", () => ({
   ScraperAdapter: class {
     scrape = mock(async () => ({ title: "", content: "" }));
   },
 }));
 
-mock.module("../../../../../protocol/src/queues/intent.queue", () => ({
+mock.module("../../../../../backend/src/queues/intent.queue", () => ({
   intentQueue: {
     add: mock(async () => {}),
     process: mock(() => {}),
   },
 }));
 
-mock.module("../../../../../protocol/src/services/chat.service", () => ({
+mock.module("../../../../../backend/src/services/chat.service", () => ({
   chatSessionService: {
     getSession: mock(async () => null),
     listMessages: mock(async () => []),
   },
 }));
 
-mock.module("../../../../../protocol/src/services/contact.service", () => ({
+mock.module("../../../../../backend/src/services/contact.service", () => ({
   contactService: {
     importContacts: mock(async () => ({ imported: 0, skipped: 0, newContacts: 0, existingContacts: 0, details: [] })),
     listContacts: mock(async () => []),
@@ -63,17 +63,17 @@ mock.module("../../../../../protocol/src/services/contact.service", () => ({
   },
 }));
 
-mock.module("../../../../../protocol/src/services/integration.service", () => ({
+mock.module("../../../../../backend/src/services/integration.service", () => ({
   IntegrationService: class {
     importContacts = mock(async () => ({ imported: 0, skipped: 0, newContacts: 0, existingContacts: 0 }));
   },
 }));
 
-mock.module("../../../../../protocol/src/lib/parallel/parallel", () => ({
+mock.module("../../../../../backend/src/lib/parallel/parallel", () => ({
   enrichUserProfile: mock(async () => ({})),
 }));
 
-import { createDefaultProtocolDeps } from "../../../../protocol/src/protocol-init.js";
+import { createDefaultProtocolDeps } from "../../../../backend/src/protocol-init.js";
 
 describe("createDefaultProtocolDeps()", () => {
   it("returns an object with all required ProtocolDeps fields", () => {
