@@ -12,16 +12,15 @@
 /** Config — must set OPENROUTER_API_KEY before any module-level createModel() runs */
 process.env.OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "test-key-unused";
 import { config } from "dotenv";
-import { resolve } from "path";
-config({ path: resolve(import.meta.dir, '../../../../..', '.env.test') });
+config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { OpportunityGraphFactory, type OpportunityEvaluatorLike } from '../opportunity.graph.js';
-import type { Id } from '../../../../types/common.types.js';
-import type { OpportunityGraphDatabase } from '../../interfaces/database.interface.js';
-import type { Embedder } from '../../interfaces/embedder.interface.js';
-import type { EvaluatedOpportunityWithActors } from '../../agents/opportunity.evaluator.js';
-import { requestContext } from '../../support/request-context.js';
+import { OpportunityGraphFactory, type OpportunityEvaluatorLike } from '../../src/graphs/opportunity.graph.js';
+import type { Id } from '../../../types/common.types.js';
+import type { OpportunityGraphDatabase } from '../../src/interfaces/database.interface.js';
+import type { Embedder } from '../../src/interfaces/embedder.interface.js';
+import type { EvaluatedOpportunityWithActors } from '../../src/agents/opportunity.evaluator.js';
+import { requestContext } from '../../src/support/request-context.js';
 
 const dummyEmbedding = new Array(2000).fill(0.1);
 

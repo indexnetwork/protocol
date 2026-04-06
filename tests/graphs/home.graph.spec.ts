@@ -5,11 +5,11 @@ import { config } from 'dotenv';
 config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { HomeGraphFactory, stripLeadingNarratorName } from '../home.graph.js';
-import type { HomeGraphDatabase } from '../../interfaces/database.interface.js';
-import type { Opportunity } from '../../interfaces/database.interface.js';
-import type { OpportunityCache } from '../../interfaces/cache.interface.js';
-import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON, getIconNamesForPrompt } from '../../support/lucide.icon-catalog.js';
+import { HomeGraphFactory, stripLeadingNarratorName } from '../../src/graphs/home.graph.js';
+import type { HomeGraphDatabase } from '../../src/interfaces/database.interface.js';
+import type { Opportunity } from '../../src/interfaces/database.interface.js';
+import type { OpportunityCache } from '../../src/interfaces/cache.interface.js';
+import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON, getIconNamesForPrompt } from '../../src/support/lucide.icon-catalog.js';
 
 function createMockCache(): OpportunityCache {
   const store = new Map<string, unknown>();
@@ -460,7 +460,7 @@ describe('HomeGraph caching', () => {
   const viewerId = 'viewer-1';
   const otherId = 'other-1';
 
-  function cachedCard(opportunityId: string, cardIndex: number): import('../../states/home.state').HomeCardItem {
+  function cachedCard(opportunityId: string, cardIndex: number): import('../../src/states/home.state').HomeCardItem {
     return {
       opportunityId,
       userId: otherId,

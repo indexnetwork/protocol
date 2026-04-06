@@ -10,10 +10,10 @@ import { config } from 'dotenv';
 config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { HomeGraphFactory } from '../home.graph.js';
-import type { HomeGraphDatabase } from '../../interfaces/database.interface.js';
-import type { Opportunity } from '../../interfaces/database.interface.js';
-import type { OpportunityCache } from '../../interfaces/cache.interface.js';
+import { HomeGraphFactory } from '../../src/graphs/home.graph.js';
+import type { HomeGraphDatabase } from '../../src/interfaces/database.interface.js';
+import type { Opportunity } from '../../src/interfaces/database.interface.js';
+import type { OpportunityCache } from '../../src/interfaces/cache.interface.js';
 
 function createMockCache(): OpportunityCache {
   const store = new Map<string, unknown>();

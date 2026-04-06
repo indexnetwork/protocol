@@ -4,9 +4,9 @@ config({ path: '.env.test' });
 
 import { describe, expect, it } from "bun:test";
 
-import type { SourceProfileData } from "../../states/opportunity.state.js";
+import type { SourceProfileData } from "../../src/states/opportunity.state.js";
 
-import { buildDiscovererContext } from "../opportunity.graph.js";
+import { buildDiscovererContext } from "../../src/graphs/opportunity.graph.js";
 
 describe('buildDiscovererContext', () => {
   it('includes location when present in profile identity', () => {

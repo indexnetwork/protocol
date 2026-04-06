@@ -32,7 +32,7 @@ import {
   mockProfile,
   mockActiveIntent,
   createMockProtocolDeps,
-} from "../../src/graphs/tests/chat.graph.mocks.js";
+} from "../graphs/chat.graph.mocks.js";
 import type { ChatSessionReader } from "../../src/interfaces/chat-session.interface.js";
 import type { NetworkMembership } from "../../src/interfaces/database.interface.js";
 

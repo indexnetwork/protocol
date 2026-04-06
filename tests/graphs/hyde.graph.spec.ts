@@ -4,13 +4,13 @@ config({ path: '.env.test' });
 
 import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
 import { z } from 'zod';
-import { runScenario, defineScenario, expectSmartest } from '../../../smartest.js';
-import { HydeGraphFactory } from '../hyde.graph.js';
-import type { HydeGraphDatabase } from '../../interfaces/database.interface.js';
-import type { EmbeddingGenerator } from '../../interfaces/embedder.interface.js';
-import type { HydeCache } from '../../interfaces/cache.interface.js';
-import { HydeGenerator } from '../../agents/hyde.generator.js';
-import { LensInferrer } from '../../agents/lens.inferrer.js';
+import { runScenario, defineScenario, expectSmartest } from '../../smartest.js';
+import { HydeGraphFactory } from '../../src/graphs/hyde.graph.js';
+import type { HydeGraphDatabase } from '../../src/interfaces/database.interface.js';
+import type { EmbeddingGenerator } from '../../src/interfaces/embedder.interface.js';
+import type { HydeCache } from '../../src/interfaces/cache.interface.js';
+import { HydeGenerator } from '../../src/agents/hyde.generator.js';
+import { LensInferrer } from '../../src/agents/lens.inferrer.js';
 
 /** Real embedder for smartest integration tests — calls OpenRouter embeddings API. */
 function createTestEmbedder(): EmbeddingGenerator {

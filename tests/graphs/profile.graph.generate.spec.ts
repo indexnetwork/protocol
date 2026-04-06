@@ -3,10 +3,10 @@ import { config } from "dotenv";
 config({ path: '.env.development', override: true });
 
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { ProfileGraphFactory } from '../profile.graph.js';
-import type { ProfileGraphDatabase } from '../../interfaces/database.interface.js';
-import type { Embedder } from '../../interfaces/embedder.interface.js';
-import type { Scraper } from '../../interfaces/scraper.interface.js';
+import { ProfileGraphFactory } from '../../src/graphs/profile.graph.js';
+import type { ProfileGraphDatabase } from '../../src/interfaces/database.interface.js';
+import type { Embedder } from '../../src/interfaces/embedder.interface.js';
+import type { Scraper } from '../../src/interfaces/scraper.interface.js';
 
 const mockEnrichUserProfile = mock(async () => null as any);
 

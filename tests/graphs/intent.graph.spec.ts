@@ -6,9 +6,9 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it, beforeAll, beforeEach } from "bun:test";
-import { IntentGraphFactory } from "../intent.graph.js";
-import { IntentGraphState } from "../../states/intent.state.js";
-import type { IntentGraphDatabase, ActiveIntent, CreatedIntent, ArchiveResult } from "../../interfaces/database.interface.js";
+import { IntentGraphFactory } from "../../src/graphs/intent.graph.js";
+import { IntentGraphState } from "../../src/states/intent.state.js";
+import type { IntentGraphDatabase, ActiveIntent, CreatedIntent, ArchiveResult } from "../../src/interfaces/database.interface.js";
 
 /**
  * Mock database for testing the Intent Graph.

@@ -1,5 +1,5 @@
 /**
- * Smartest test: evaluator behavior for direct-connection candidates.
+ * Tests evaluator behavior for direct-connection candidates.
  *
  * Validates that the OpportunityEvaluator produces a meaningful opportunity
  * when given candidates shaped like the direct-connection fast path
@@ -11,13 +11,13 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, it } from "bun:test";
-import { z } from "zod";
-import { runScenario, defineScenario, expectSmartest } from "../../../smartest.js";
 import {
   OpportunityEvaluator,
   type EvaluatorInput,
   type EvaluatorEntity,
-} from "../../agents/opportunity.evaluator.js";
+} from "../../src/agents/opportunity.evaluator.js";
+
+import { assertLLM } from "../support/llm-assert.js";
 
 const DISCOVERER_ID = 'user-yanki';
 const TARGET_ID = 'user-sam';
@@ -58,15 +58,6 @@ const targetEntity: EvaluatorEntity = {
   matchedVia: 'explicit_mention',
 };
 
-const resultSchema = z.object({
-  opportunities: z.array(z.object({
-    reasoning: z.string(),
-    score: z.number(),
-    candidateUserId: z.string().min(1),
-  })),
-  durationMs: z.number(),
-});
-
 const verificationCriteria =
   'The discoverer (Yankı) was directly @-mentioned with target user (Samuel). ' +
   'Both share strong technical overlap: Laravel, Vue.js, game development interests, and web engineering. ' +
@@ -105,7 +96,7 @@ async function runDirectConnectionEval(): Promise<{ opportunities: Array<{ reaso
   return { opportunities: [], durationMs: totalDurationMs };
 }
 
-describe('OpportunityEvaluator: direct-connection candidates (Smartest)', () => {
+describe('OpportunityEvaluator: direct-connection candidates', () => {
   it('produces an opportunity when evaluating explicitly-mentioned users with genuine alignment', async () => {
     const { opportunities, durationMs } = await runDirectConnectionEval();
 
@@ -114,25 +105,6 @@ describe('OpportunityEvaluator: direct-connection candidates (Smartest)', () => 
       console.log(`  score=${o.score}  ${o.candidateUserId}  "${o.reasoning.slice(0, 100)}..."`);
     }
 
-    const result = await runScenario(
-      defineScenario({
-        name: 'opportunity-direct-connection-aligned-users',
-        description: 'Direct connection test: discoverer explicitly @-mentioned a target user. Both have shared tech skills (Laravel, Vue) and complementary intents (game dev + co-founder search). Must produce a match.',
-        fixtures: { opportunities, durationMs },
-        sut: {
-          type: 'graph',
-          factory: () => null,
-          invoke: async (_instance, resolvedInput) => resolvedInput,
-          input: { opportunities: '@fixtures.opportunities', durationMs: '@fixtures.durationMs' },
-        },
-        verification: {
-          schema: resultSchema,
-          criteria: verificationCriteria,
-          llmVerify: true,
-        },
-      })
-    );
-
-    expectSmartest(result);
+    await assertLLM({ opportunities, durationMs }, verificationCriteria);
   }, 120000);
 });

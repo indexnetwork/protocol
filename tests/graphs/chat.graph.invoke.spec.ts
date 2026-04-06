@@ -18,13 +18,13 @@ config({ path: '.env.test' });
 import { describe, test, expect, spyOn, beforeAll } from "bun:test";
 import { z } from "zod";
 import { HumanMessage } from "@langchain/core/messages";
-import { runScenario, defineScenario, expectSmartest } from "../../../smartest.js";
-import { ChatGraphFactory } from "../chat.graph.js";
-import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../interfaces/database.interface.js";
-import type { Embedder } from "../../interfaces/embedder.interface.js";
-import type { Scraper } from "../../interfaces/scraper.interface.js";
+import { runScenario, defineScenario, expectSmartest } from "../../smartest.js";
+import { ChatGraphFactory } from "../../src/graphs/chat.graph.js";
+import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../src/interfaces/database.interface.js";
+import type { Embedder } from "../../src/interfaces/embedder.interface.js";
+import type { Scraper } from "../../src/interfaces/scraper.interface.js";
 import { mockChatSessionReader, createMockProtocolDeps } from "./chat.graph.mocks.js";
-import { ChatAgent } from "../../agents/chat.agent.js";
+import { ChatAgent } from "../../src/agents/chat.agent.js";
 
 const testUserId = "test-chat-invoke-user";
 

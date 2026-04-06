@@ -9,10 +9,10 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it, beforeAll } from "bun:test";
-import { ChatGraphFactory } from "../chat.graph.js";
-import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../interfaces/database.interface.js";
-import type { Embedder } from "../../interfaces/embedder.interface.js";
-import type { Scraper } from "../../interfaces/scraper.interface.js";
+import { ChatGraphFactory } from "../../src/graphs/chat.graph.js";
+import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../src/interfaces/database.interface.js";
+import type { Embedder } from "../../src/interfaces/embedder.interface.js";
+import type { Scraper } from "../../src/interfaces/scraper.interface.js";
 import { mockChatSessionReader, createMockProtocolDeps } from "./chat.graph.mocks.js";
 
 const testUserId = "test-chat-graph-user";

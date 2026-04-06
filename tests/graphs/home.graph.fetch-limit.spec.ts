@@ -3,7 +3,7 @@ import { config } from 'dotenv';
 config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { selectByComposition, classifyOpportunity, FEED_SOFT_TARGETS } from '../../support/opportunity.utils.js';
+import { selectByComposition, classifyOpportunity, FEED_SOFT_TARGETS } from '../../src/support/opportunity.utils.js';
 
 /**
  * Hypothesis: The bug occurs because the home graph's fetchLimit formula

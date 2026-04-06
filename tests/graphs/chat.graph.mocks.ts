@@ -14,9 +14,9 @@ import type {
   UserRecord,
   Opportunity,
   OpportunityStatus,
-} from "../../interfaces/database.interface.js";
-import type { ChatSessionReader } from "../../interfaces/chat-session.interface.js";
-import type { ProtocolDeps } from "../../tools/tool.helpers.js";
+} from "../../src/interfaces/database.interface.js";
+import type { ChatSessionReader } from "../../src/interfaces/chat-session.interface.js";
+import type { ProtocolDeps } from "../../src/tools/tool.helpers.js";
 
 // Minimal profile shape for getProfileByUserId (avoids importing ProfileDocument)
 export interface MockProfileFixture {
