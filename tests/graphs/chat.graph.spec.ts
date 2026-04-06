@@ -2,7 +2,7 @@
  * Tests for ChatGraph (agent loop architecture).
  * Quick smoke tests for creation and invoke. Comprehensive Smartest scenarios
  * and streaming tests live in ./tests/ (chat.graph.factory.spec.ts,
- * chat.graph.invoke.spec.ts, chat.graph.streaming.spec.ts).
+ * chat.graph.streaming.spec.ts, chat.prompt.dynamic.spec.ts).
  */
 /** Config */
 import { config } from "dotenv";

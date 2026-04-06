@@ -45,11 +45,6 @@ describe('OpportunityEvaluator', () => {
     // For this test, we need the mock to return DIFFERENT results based on input, or simpler:
     // We can just create a new evaluator with a mock that returns NOTHING.
 
-    // Actually, the current logic filters based on returned score.
-    // My simple mock always returns score 95 for "user-bob".
-    // It doesn't return "user-charlie".
-    // So "user-charlie" is implicitly filtered out because the mock didn't return it.
-
     const result = await evaluator.invoke(sourceProfile, candidates, { minScore: 90 });
 
     const charlieMatch = result.find(r => r.candidateId === "user-charlie");

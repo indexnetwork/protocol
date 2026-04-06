@@ -4,7 +4,7 @@ config({ path: '.env.test' });
 
 import { describe, it, expect } from "bun:test";
 import { ResponseStreamer } from "../../src/streamers/response.streamer.js";
-import type { ChatStreamEvent, TokenEvent, ErrorEvent } from "../../src/types/chat-streaming.types.js";
+import type { TokenEvent, ErrorEvent } from "../../src/types/chat-streaming.types.js";
 
 describe('ResponseStreamer', () => {
   const streamer = new ResponseStreamer();
@@ -19,8 +19,7 @@ describe('ResponseStreamer', () => {
     expect(result.hadError).toBe(false);
     expect(result.events).toHaveLength(1);
     expect(result.events[0].type).toBe('token');
-    // @ts-expect-error content exists on TokenEvent
-    expect(result.events[0].content).toBe('Hello, here is your answer.');
+    expect((result.events[0] as TokenEvent).content).toBe('Hello, here is your answer.');
   });
 
   it('returns an error event when output.error is present', () => {
@@ -56,11 +55,9 @@ describe('ResponseStreamer', () => {
       data: { output: { error: 'JSON error injected into SSE stream' } },
     });
 
-    const errorEvent = result.events.find(e => e.type === 'error');
+    const errorEvent = result.events.find(e => e.type === 'error') as ErrorEvent | undefined;
     expect(errorEvent).toBeDefined();
-    // @ts-expect-error message exists on ErrorEvent
     expect(errorEvent!.message).not.toBe('JSON error injected into SSE stream');
-    // @ts-expect-error message exists on ErrorEvent
     expect(errorEvent!.message.length).toBeGreaterThan(0);
   });
 

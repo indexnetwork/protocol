@@ -7,6 +7,6 @@
     "types": ["node", "bun"],
     "typeRoots": ["../node_modules/@types", "../../../node_modules/@types"]
   },
-  "include": ["**/*", "../src/**/*"],
+  "include": ["**/*.spec.ts", "**/*.test.ts", "../src/**/*"],
   "exclude": ["node_modules", "../node_modules", "../dist"]
 }
