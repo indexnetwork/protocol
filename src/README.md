@@ -6,8 +6,8 @@ This is the protocol layer: LangGraph workflows, AI agents, chat tools, and supp
 
 ```
 packages/protocol/src/
-  graphs/           8 LangGraph state machines (NAME.graph.ts)
-  states/           8 graph state definitions (NAME.state.ts)
+  graphs/           11 LangGraph state machines (NAME.graph.ts)
+  states/           11 graph state definitions (NAME.state.ts)
   tools/            Chat tool definitions by domain
   agents/           Flat, domain-prefixed AI agents
   streamers/        SSE streaming for chat
@@ -28,6 +28,9 @@ packages/protocol/src/
 | Index | `index.graph.ts` | Manage index CRUD |
 | Index Membership | `index_membership.graph.ts` | Manage index member join/leave |
 | Intent Index | `intent_index.graph.ts` | Evaluate and assign/unassign intents to indexes |
+| Home | `home.graph.ts` | Categorize and curate home feed content |
+| Maintenance | `maintenance.graph.ts` | Periodic maintenance tasks (feed health, opportunity expiration) |
+| Negotiation | `negotiation.graph.ts` | Multi-turn bilateral negotiation flows |
 
 ## Agents
 
