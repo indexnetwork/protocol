@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "lib": ["ES2020", "ESNext.AsyncIterable"],
+    "noEmit": true
+  },
+  "include": ["**/*", "../src/**/*"]
+}
