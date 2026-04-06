@@ -10,7 +10,7 @@
 process.env.OPENROUTER_API_KEY = "test-key-for-unit-tests";
 process.env.NODE_ENV = "test";
 
-import { mock, describe, expect, it } from "bun:test";
+import { mock, describe, expect, it, afterAll } from "bun:test";
 
 // ─── Mock model.config globally ─────────────────────────────────────────────
 // Every module that imports createModel (directly or transitively) will get
@@ -39,23 +39,6 @@ mock.module("../../src/agents/model.config", () => ({
   },
 }));
 
-// Mock resolveChatContext to skip DB lookups — return a full ResolvedToolContext
-mock.module("../../src/tools/tool.helpers", () => ({
-  resolveChatContext: async (ctx: Record<string, unknown>) => ({
-    userId: ctx.userId ?? "test-user",
-    userName: "Test User",
-    userEmail: "test@example.com",
-    networkId: ctx.networkId,
-    indexName: undefined,
-    sessionId: ctx.sessionId ?? "test-session",
-    isOwner: false,
-    isOnboarding: false,
-    hasName: true,
-    user: { id: ctx.userId ?? "test-user", name: "Test User", email: "test@example.com" },
-    userProfile: { name: "Test User", bio: "Test bio", signals: [] },
-    userNetworks: [],
-  }),
-}));
 
 // Track tools for inspection
 let capturedTools: Array<{
@@ -127,7 +110,11 @@ function createEventCollector(): {
 describe("ChatAgent hallucination auto-retry", () => {
   it("auto-invokes create_intent when hallucinated intent_proposal block is detected", async () => {
     const agent = await ChatAgent.create({
-      database: {} as any,
+      database: {
+        getUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com", location: null, socials: {} }),
+        getProfile: async () => null,
+        getNetworkMemberships: async () => [],
+      } as any,
       embedder: {} as any,
       scraper: {} as any,
       userId: "test-user",
@@ -215,7 +202,11 @@ I've created an intent for you!`;
 
   it("auto-invokes create_opportunities when hallucinated opportunity block is detected", async () => {
     const agent = await ChatAgent.create({
-      database: {} as any,
+      database: {
+        getUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com", location: null, socials: {} }),
+        getProfile: async () => null,
+        getNetworkMemberships: async () => [],
+      } as any,
       embedder: {} as any,
       scraper: {} as any,
       userId: "test-user",
@@ -276,7 +267,11 @@ I've created an intent for you!`;
 
   it("falls back to correction message if auto-invoked tool throws", async () => {
     const agent = await ChatAgent.create({
-      database: {} as any,
+      database: {
+        getUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com", location: null, socials: {} }),
+        getProfile: async () => null,
+        getNetworkMemberships: async () => [],
+      } as any,
       embedder: {} as any,
       scraper: {} as any,
       userId: "test-user",
@@ -340,7 +335,11 @@ I've created an intent for you!`;
 
   it("does not trigger hallucination detection when model makes a real tool call", async () => {
     const agent = await ChatAgent.create({
-      database: {} as any,
+      database: {
+        getUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com", location: null, socials: {} }),
+        getProfile: async () => null,
+        getNetworkMemberships: async () => [],
+      } as any,
       embedder: {} as any,
       scraper: {} as any,
       userId: "test-user",
@@ -394,3 +393,6 @@ I've created an intent for you!`;
     expect(hallucinationResets.length).toBe(0);
   }, 15000);
 });
+
+// Restore all module mocks so subsequent test files get the real implementations.
+afterAll(() => mock.restore());
