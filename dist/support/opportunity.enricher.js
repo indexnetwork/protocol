@@ -81,11 +81,11 @@ function shareIntentIds(newData, existing) {
     return false;
 }
 /**
- * Merge actors from new data and existing opportunities: union by (indexId, userId, intent),
+ * Merge actors from new data and existing opportunities: union by (networkId, userId, intent),
  * preserving all unique introducers and preferring newer role on conflict.
  */
 function mergeActors(newData, existingList) {
-    const key = (a) => `${a.indexId}:${a.userId}:${a.intent ?? ''}`;
+    const key = (a) => `${a.networkId}:${a.userId}:${a.intent ?? ''}`;
     const map = new Map();
     // Add all from existing first (older)
     for (const opp of existingList) {

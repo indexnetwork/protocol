@@ -85,7 +85,7 @@ export declare const IntentGraphState: import("@langchain/langgraph").Annotation
      * and for scoping read operations. Prep always fetches ALL user intents via
      * getActiveIntents(userId) regardless of index scope (for global dedup/reconciliation).
      */
-    indexId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
+    networkId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
     /**
      * The formatted string of currently active intents.
      * Always populated by prep via getActiveIntents(userId).
@@ -173,7 +173,7 @@ export declare const IntentGraphState: import("@langchain/langgraph").Annotation
             userName?: string | null;
         }>;
         message?: string;
-        indexId?: string;
+        networkId?: string;
     } | undefined, {
         count: number;
         intents: Array<{
@@ -185,7 +185,7 @@ export declare const IntentGraphState: import("@langchain/langgraph").Annotation
             userName?: string | null;
         }>;
         message?: string;
-        indexId?: string;
+        networkId?: string;
     } | import("@langchain/langgraph").OverwriteValue<{
         count: number;
         intents: Array<{
@@ -197,7 +197,7 @@ export declare const IntentGraphState: import("@langchain/langgraph").Annotation
             userName?: string | null;
         }>;
         message?: string;
-        indexId?: string;
+        networkId?: string;
     } | undefined> | undefined, unknown>;
 }>;
 //# sourceMappingURL=intent.state.d.ts.map

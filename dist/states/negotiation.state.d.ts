@@ -124,7 +124,7 @@ export interface NegotiationGraphLike {
         sourceUser: UserNegotiationContext;
         candidateUser: UserNegotiationContext;
         indexContext: {
-            indexId: string;
+            networkId: string;
             prompt: string;
         };
         seedAssessment: Omit<SeedAssessment, "actors">;
@@ -147,13 +147,13 @@ export declare const NegotiationGraphState: import("@langchain/langgraph").Annot
     sourceUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
     candidateUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
     indexContext: import("@langchain/langgraph").BaseChannel<{
-        indexId: string;
+        networkId: string;
         prompt: string;
     }, {
-        indexId: string;
+        networkId: string;
         prompt: string;
     } | import("@langchain/langgraph").OverwriteValue<{
-        indexId: string;
+        networkId: string;
         prompt: string;
     }>, unknown>;
     seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;

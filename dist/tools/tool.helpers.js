@@ -15,11 +15,11 @@ export class ChatContextAccessError extends Error {
  * This preloads user identity, profile, index memberships, and scoped index role.
  */
 export async function resolveChatContext(params) {
-    const { database, userId, indexId, sessionId } = params;
-    const [user, rawProfile, userIndexes] = await Promise.all([
+    const { database, userId, networkId, sessionId } = params;
+    const [user, rawProfile, userNetworks] = await Promise.all([
         database.getUser(userId),
         database.getProfile(userId),
-        database.getIndexMemberships(userId),
+        database.getNetworkMemberships(userId),
     ]);
     // Omit embedding from profile so resolved context stays lean (embedding is for search only).
     let userProfile = null;
@@ -34,11 +34,11 @@ export async function resolveChatContext(params) {
     let scopedMembershipRole = undefined;
     let isOwner = false;
     let indexName;
-    if (indexId) {
+    if (networkId) {
         const [index, isMember, owner] = await Promise.all([
-            database.getIndex(indexId),
-            database.isIndexMember(indexId, userId),
-            database.isIndexOwner(indexId, userId),
+            database.getIndex(networkId),
+            database.isNetworkMember(networkId, userId),
+            database.isIndexOwner(networkId, userId),
         ]);
         if (!index) {
             throw new ChatContextAccessError("Index not found", 404, "INDEX_NOT_FOUND");
@@ -46,9 +46,9 @@ export async function resolveChatContext(params) {
         if (!isMember) {
             throw new ChatContextAccessError("You are not a member of this index", 403, "INDEX_MEMBERSHIP_REQUIRED");
         }
-        let membership = userIndexes.find((m) => m.indexId === index.id);
+        let membership = userNetworks.find((m) => m.networkId === index.id);
         if (membership === undefined) {
-            membership = (await database.getIndexMembership(index.id, userId)) ?? undefined;
+            membership = (await database.getNetworkMembership(index.id, userId)) ?? undefined;
         }
         scopedIndex = {
             id: index.id,
@@ -66,12 +66,12 @@ export async function resolveChatContext(params) {
         userId,
         userName,
         userEmail,
-        indexId,
+        networkId,
         indexName,
         isOwner,
         user,
         userProfile,
-        userIndexes,
+        userNetworks,
         scopedIndex,
         scopedMembershipRole,
         isOnboarding: !(user.onboarding?.completedAt),

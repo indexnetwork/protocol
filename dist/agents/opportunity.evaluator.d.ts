@@ -36,7 +36,7 @@ export interface EvaluatorEntity {
         payload: string;
         summary?: string;
     }>;
-    indexId: string;
+    networkId: string;
     ragScore?: number;
     matchedVia?: string;
 }

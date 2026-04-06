@@ -8,7 +8,7 @@ export const HomeGraphState = Annotation.Root({
         reducer: (curr, next) => next ?? curr,
         default: () => '',
     }),
-    indexId: Annotation({
+    networkId: Annotation({
         reducer: (curr, next) => next ?? curr,
         default: () => undefined,
     }),

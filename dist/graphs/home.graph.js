@@ -134,8 +134,8 @@ export class HomeGraphFactory {
                     const options = {
                         limit: fetchLimit,
                     };
-                    if (state.indexId)
-                        options.indexId = state.indexId;
+                    if (state.networkId)
+                        options.networkId = state.networkId;
                     // Do not pass conversationId: home view excludes draft opportunities (chat-only drafts).
                     const raw = await this.database.getOpportunitiesForUser(state.userId, options);
                     const visible = raw.filter((opp) => canUserSeeOpportunity(opp.actors, opp.status, state.userId));

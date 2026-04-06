@@ -61,9 +61,9 @@ export declare const ChatGraphState: import("@langchain/langgraph").AnnotationRo
     /**
      * Optional index (community) ID when chat is scoped to a specific index.
      * When set, the agent and tools use this as the current index (e.g. read_intents,
-     * create_intent with indexId, scope index assignment to this index only).
+     * create_intent with networkId, scope index assignment to this index only).
      */
-    indexId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
+    networkId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
     /**
      * Chat session ID when streaming with context. Used by tools to create draft
      * opportunities tied to this conversation (context.conversationId).

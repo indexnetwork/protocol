@@ -63,9 +63,9 @@ For open-ended connection-seeking ("find me a mentor", "who needs a React dev", 
 
 **CRITICAL: DO NOT create an intent first. Discovery comes FIRST.**
 
-**Network scoping**: When the user says "in my network", "from my contacts", "people I know", "among my connections", or similar network-scoping language, pass the user's **personal index ID** as \`indexId\`. The personal index (\`isPersonal: true\` in preloaded memberships) contains the user's contacts — scoping discovery to it restricts results to people the user already knows. If no network-scoping language is used, do not pass a personal index ID — let discovery run across all indexes as usual.
+**Network scoping**: When the user says "in my network", "from my contacts", "people I know", "among my connections", or similar network-scoping language, pass the user's **personal index ID** as \`networkId\`. The personal index (\`isPersonal: true\` in preloaded memberships) contains the user's contacts — scoping discovery to it restricts results to people the user already knows. If no network-scoping language is used, do not pass a personal index ID — let discovery run across all indexes as usual.
 
-- Call \`create_opportunities(searchQuery=user's request)\` IMMEDIATELY (with indexId when scoped).
+- Call \`create_opportunities(searchQuery=user's request)\` IMMEDIATELY (with networkId when scoped).
 - Do NOT call \`create_intent\` unless the user **explicitly** asks to "create", "save", "add", or "remember" an intent/signal.
 - Phrases like "looking for X", "find me X", "I want to meet X", "I need X" are discovery requests — NOT intent creation requests.
 - If the tool returns \`createIntentSuggested\` and \`suggestedIntentDescription\`, the system will create an intent and retry discovery automatically; use the final result (candidates or "no matches") for your reply.
@@ -80,7 +80,7 @@ When the user mentions a specific person via @mention or name AND expresses inte
 **This is a direct connection — NOT an introduction (introductions connect two OTHER people).**
 
 \`\`\`
-1. If not already done: read_user_profiles(userId=X) + read_index_memberships(userId=X)
+1. If not already done: read_user_profiles(userId=X) + read_network_memberships(userId=X)
 2. Find shared indexes with the user (intersect with preloaded memberships)
 3. If no shared indexes: tell the user you can't find a connection path
 4. create_opportunities(targetUserId=X, searchQuery="<synthesized reason for connecting based on shared context>")
@@ -121,16 +121,16 @@ const introductionModule = {
 **You MUST gather all context before calling create_opportunities. The tool does NOT fetch data internally.**
 
 \`\`\`
-1. read_index_memberships(userId=A) + read_index_memberships(userId=B)  → find shared indexes
+1. read_network_memberships(userId=A) + read_network_memberships(userId=B)  → find shared networks
 2. If no shared indexes: tell user they're not in any shared community
 3. read_user_profiles(userId=A) + read_user_profiles(userId=B)
-4. For each shared index: read_intents(indexId=X, userId=A) + read_intents(indexId=X, userId=B)
+4. For each shared index: read_intents(networkId=X, userId=A) + read_intents(networkId=X, userId=B)
 5. Summarize to user: "Here's what I found about A and B..."
-6. create_opportunities(partyUserIds=[A,B], entities=[{userId:A, profile:{...}, intents:[...], indexId:shared}, {userId:B, ...}], hint="user's reason")
+6. create_opportunities(partyUserIds=[A,B], entities=[{userId:A, profile:{...}, intents:[...], networkId:shared}, {userId:B, ...}], hint="user's reason")
 7. Present the draft introduction
 \`\`\`
 
-The entities array must include each party's userId, profile data, intents from shared indexes, and the shared indexId. The hint is the user's stated reason (e.g. "both AI devs"). If the user asks to introduce only one person or to "introduce" themselves to someone, explain that introductions connect two other people and suggest they name two people to connect.
+The entities array must include each party's userId, profile data, intents from shared indexes, and the shared networkId. The hint is the user's stated reason (e.g. "both AI devs"). If the user asks to introduce only one person or to "introduce" themselves to someone, explain that introductions connect two other people and suggest they name two people to connect.
 
 ### 6a. Discover who to introduce to someone
 
@@ -226,15 +226,15 @@ If the user pastes or types a profile URL (e.g. linkedin.com/..., github.com/...
 };
 const communityModule = {
     id: "community",
-    triggers: ["read_indexes", "create_index", "create_index_membership", "update_index", "delete_index", "delete_index_membership"],
+    triggers: ["read_networks", "create_network", "create_network_membership", "update_network", "delete_network", "delete_network_membership"],
     content: () => `
 ### 8. Explore what a community is about
 
 \`\`\`
 0. If user asks about communities they belong to, first use preloaded memberships in this prompt.
-1. read_indexes() → get index details (title, prompt)
-2. read_intents(indexId=X) → what members are looking for
-3. read_index_memberships(indexId=X) → who's in it
+1. read_networks() → get network details (title, prompt)
+2. read_intents(networkId=X) → what members are looking for
+3. read_network_memberships(networkId=X) → who's in it
 4. Synthesize: community purpose, active needs, member composition
 \`\`\`
 
@@ -274,15 +274,15 @@ remove_contact(contactId=X)
 };
 const sharedContextModule = {
     id: "shared-context",
-    triggers: ["read_index_memberships"],
+    triggers: ["read_network_memberships"],
     content: () => `
 ### 5. Find shared context between two users
 
 \`\`\`
-1. read_index_memberships(userId=me)     → my indexes
-2. read_index_memberships(userId=other)  → their indexes
-3. Intersect indexIds
-4. For each shared index: read_intents(indexId=shared)
+1. read_network_memberships(userId=me)     → my networks
+2. read_network_memberships(userId=other)  → their networks
+3. Intersect networkIds
+4. For each shared index: read_intents(networkId=shared)
 5. read_user_profiles(userId=other)
 6. Synthesize: what overlaps, where they could collaborate
 \`\`\`

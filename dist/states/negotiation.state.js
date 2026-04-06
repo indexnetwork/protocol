@@ -36,7 +36,7 @@ export const NegotiationGraphState = Annotation.Root({
     }),
     indexContext: Annotation({
         reducer: (curr, next) => next ?? curr,
-        default: () => ({ indexId: "", prompt: "" }),
+        default: () => ({ networkId: "", prompt: "" }),
     }),
     seedAssessment: Annotation({
         reducer: (curr, next) => next ?? curr,

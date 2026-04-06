@@ -3,7 +3,7 @@
  * Use createChatGraphMockDb(config) to get a full ChatGraphCompositeDatabase
  * with controllable profile, intents, index membership, and opportunities.
  */
-import type { ChatGraphCompositeDatabase, ActiveIntent, IndexedIntentDetails, IndexMembership, OwnedIndex, UserRecord, Opportunity, OpportunityStatus } from "../../interfaces/database.interface.js";
+import type { ChatGraphCompositeDatabase, ActiveIntent, IndexedIntentDetails, NetworkMembership, OwnedIndex, UserRecord, Opportunity, OpportunityStatus } from "../../interfaces/database.interface.js";
 import type { ChatSessionReader } from "../../interfaces/chat-session.interface.js";
 import type { ProtocolDeps } from "../../tools/tool.helpers.js";
 export interface MockProfileFixture {
@@ -28,26 +28,26 @@ export interface ChatGraphMockConfig {
     profile?: MockProfileFixture | null;
     /** Active intents per userId (global scope). */
     activeIntents?: (userId: string) => ActiveIntent[] | Promise<ActiveIntent[]>;
-    /** Intents in index for a member (userId, indexId) -> member's intents in that index. */
-    intentsInIndexForMember?: (userId: string, indexId: string) => ActiveIntent[] | Promise<ActiveIntent[]>;
-    /** All intents in index (owner view). (indexId, requestingUserId) -> details. */
-    indexIntentsForOwner?: (indexId: string, requestingUserId: string) => IndexedIntentDetails[] | Promise<IndexedIntentDetails[]>;
+    /** Intents in index for a member (userId, networkId) -> member's intents in that index. */
+    intentsInIndexForMember?: (userId: string, networkId: string) => ActiveIntent[] | Promise<ActiveIntent[]>;
+    /** All intents in index (owner view). (networkId, requestingUserId) -> details. */
+    indexIntentsForOwner?: (networkId: string, requestingUserId: string) => IndexedIntentDetails[] | Promise<IndexedIntentDetails[]>;
     /** Opportunities for user. */
     opportunitiesForUser?: (userId: string) => Opportunity[] | Promise<Opportunity[]>;
-    /** Index memberships for user. */
-    indexMemberships?: (userId: string) => IndexMembership[] | Promise<IndexMembership[]>;
+    /** Network memberships for user. */
+    networkMemberships?: (userId: string) => NetworkMembership[] | Promise<NetworkMembership[]>;
     /** Index by id (for scope validation). */
-    getIndex?: (indexId: string) => {
+    getIndex?: (networkId: string) => {
         id: string;
         title: string;
     } | null | Promise<{
         id: string;
         title: string;
     } | null>;
-    /** (indexId, userId) -> is member. */
-    isIndexMember?: (indexId: string, userId: string) => boolean | Promise<boolean>;
-    /** (indexId, userId) -> is owner. */
-    isIndexOwner?: (indexId: string, userId: string) => boolean | Promise<boolean>;
+    /** (networkId, userId) -> is member. */
+    isNetworkMember?: (networkId: string, userId: string) => boolean | Promise<boolean>;
+    /** (networkId, userId) -> is owner. */
+    isIndexOwner?: (networkId: string, userId: string) => boolean | Promise<boolean>;
     /** User record by id. */
     getUser?: (userId: string) => UserRecord | null | Promise<UserRecord | null>;
     /** Owned indexes for user. */
@@ -55,7 +55,7 @@ export interface ChatGraphMockConfig {
 }
 /** Actor shape for opportunity mocks (role determines visibility). */
 export type MockOpportunityActor = {
-    indexId: string;
+    networkId: string;
     userId: string;
     role: "introducer" | "patient" | "agent" | "peer" | "party";
     intent?: string;
@@ -64,7 +64,7 @@ export type MockOpportunityActor = {
 export declare function mockOpportunity(overrides: {
     id?: string;
     status?: OpportunityStatus;
-    indexId?: string;
+    networkId?: string;
     /** Current user (must be one of the actors so they "have" this opportunity). */
     currentUserId?: string;
     /** Other party user ids (role "party"); tool resolves names via getUser. Ignored if actors is provided. */

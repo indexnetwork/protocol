@@ -6,10 +6,10 @@ export { ChatContextAccessError, resolveChatContext } from "./tools/tool.helpers
 export { ChatGraphFactory } from "./graphs/chat.graph.js";
 export { HomeGraphFactory } from "./graphs/home.graph.js";
 export { HydeGraphFactory } from "./graphs/hyde.graph.js";
-export { IndexGraphFactory } from "./graphs/index.graph.js";
-export { IndexMembershipGraphFactory } from "./graphs/index_membership.graph.js";
+export { NetworkGraphFactory } from "./graphs/network.graph.js";
+export { NetworkMembershipGraphFactory } from "./graphs/network_membership.graph.js";
 export { IntentGraphFactory } from "./graphs/intent.graph.js";
-export { IntentIndexGraphFactory } from "./graphs/intent_index.graph.js";
+export { IntentNetworkGraphFactory } from "./graphs/intent_network.graph.js";
 export { MaintenanceGraphFactory } from "./graphs/maintenance.graph.js";
 export { NegotiationGraphFactory, createDefaultNegotiationGraph, negotiateCandidates } from "./graphs/negotiation.graph.js";
 export { OpportunityGraphFactory } from "./graphs/opportunity.graph.js";

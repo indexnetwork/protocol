@@ -6,7 +6,7 @@ interface NegotiationAgentLike {
         ownUser: UserNegotiationContext;
         otherUser: UserNegotiationContext;
         indexContext: {
-            indexId: string;
+            networkId: string;
             prompt: string;
         };
         seedAssessment: SeedAssessment;
@@ -26,7 +26,7 @@ export declare class NegotiationGraphFactory {
         sourceUser: UserNegotiationContext;
         candidateUser: UserNegotiationContext;
         indexContext: {
-            indexId: string;
+            networkId: string;
             prompt: string;
         };
         seedAssessment: SeedAssessment;
@@ -63,10 +63,10 @@ export declare class NegotiationGraphFactory {
         sourceUser?: UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext> | undefined;
         candidateUser?: UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext> | undefined;
         indexContext?: {
-            indexId: string;
+            networkId: string;
             prompt: string;
         } | import("@langchain/langgraph").OverwriteValue<{
-            indexId: string;
+            networkId: string;
             prompt: string;
         }> | undefined;
         seedAssessment?: SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment> | undefined;
@@ -123,13 +123,13 @@ export declare class NegotiationGraphFactory {
         sourceUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
         candidateUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
         indexContext: import("@langchain/langgraph").BaseChannel<{
-            indexId: string;
+            networkId: string;
             prompt: string;
         }, {
-            indexId: string;
+            networkId: string;
             prompt: string;
         } | import("@langchain/langgraph").OverwriteValue<{
-            indexId: string;
+            networkId: string;
             prompt: string;
         }>, unknown>;
         seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
@@ -206,13 +206,13 @@ export declare class NegotiationGraphFactory {
         sourceUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
         candidateUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
         indexContext: import("@langchain/langgraph").BaseChannel<{
-            indexId: string;
+            networkId: string;
             prompt: string;
         }, {
-            indexId: string;
+            networkId: string;
             prompt: string;
         } | import("@langchain/langgraph").OverwriteValue<{
-            indexId: string;
+            networkId: string;
             prompt: string;
         }>, unknown>;
         seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
@@ -303,13 +303,13 @@ export declare class NegotiationGraphFactory {
             sourceUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
             candidateUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
             indexContext: import("@langchain/langgraph").BaseChannel<{
-                indexId: string;
+                networkId: string;
                 prompt: string;
             }, {
-                indexId: string;
+                networkId: string;
                 prompt: string;
             } | import("@langchain/langgraph").OverwriteValue<{
-                indexId: string;
+                networkId: string;
                 prompt: string;
             }>, unknown>;
             seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
@@ -403,7 +403,7 @@ export interface NegotiationCandidate {
     score: number;
     reasoning: string;
     valencyRole: string;
-    indexId?: string;
+    networkId?: string;
     candidateUser: UserNegotiationContext;
 }
 export interface NegotiationResult {
@@ -423,7 +423,7 @@ export interface NegotiationResult {
  * @returns Only candidates that produced an opportunity
  */
 export declare function negotiateCandidates(negotiationGraph: NegotiationGraphLike, sourceUser: UserNegotiationContext, candidates: NegotiationCandidate[], indexContext: {
-    indexId: string;
+    networkId: string;
     prompt: string;
 }, opts?: {
     maxTurns?: number;
@@ -444,7 +444,7 @@ export declare function createDefaultNegotiationGraph(deps: {
     sourceUser: UserNegotiationContext;
     candidateUser: UserNegotiationContext;
     indexContext: {
-        indexId: string;
+        networkId: string;
         prompt: string;
     };
     seedAssessment: SeedAssessment;
@@ -481,10 +481,10 @@ export declare function createDefaultNegotiationGraph(deps: {
     sourceUser?: UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext> | undefined;
     candidateUser?: UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext> | undefined;
     indexContext?: {
-        indexId: string;
+        networkId: string;
         prompt: string;
     } | import("@langchain/langgraph").OverwriteValue<{
-        indexId: string;
+        networkId: string;
         prompt: string;
     }> | undefined;
     seedAssessment?: SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment> | undefined;
@@ -541,13 +541,13 @@ export declare function createDefaultNegotiationGraph(deps: {
     sourceUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
     candidateUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
     indexContext: import("@langchain/langgraph").BaseChannel<{
-        indexId: string;
+        networkId: string;
         prompt: string;
     }, {
-        indexId: string;
+        networkId: string;
         prompt: string;
     } | import("@langchain/langgraph").OverwriteValue<{
-        indexId: string;
+        networkId: string;
         prompt: string;
     }>, unknown>;
     seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
@@ -624,13 +624,13 @@ export declare function createDefaultNegotiationGraph(deps: {
     sourceUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
     candidateUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
     indexContext: import("@langchain/langgraph").BaseChannel<{
-        indexId: string;
+        networkId: string;
         prompt: string;
     }, {
-        indexId: string;
+        networkId: string;
         prompt: string;
     } | import("@langchain/langgraph").OverwriteValue<{
-        indexId: string;
+        networkId: string;
         prompt: string;
     }>, unknown>;
     seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;
@@ -721,13 +721,13 @@ export declare function createDefaultNegotiationGraph(deps: {
         sourceUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
         candidateUser: import("@langchain/langgraph").BaseChannel<UserNegotiationContext, UserNegotiationContext | import("@langchain/langgraph").OverwriteValue<UserNegotiationContext>, unknown>;
         indexContext: import("@langchain/langgraph").BaseChannel<{
-            indexId: string;
+            networkId: string;
             prompt: string;
         }, {
-            indexId: string;
+            networkId: string;
             prompt: string;
         } | import("@langchain/langgraph").OverwriteValue<{
-            indexId: string;
+            networkId: string;
             prompt: string;
         }>, unknown>;
         seedAssessment: import("@langchain/langgraph").BaseChannel<SeedAssessment, SeedAssessment | import("@langchain/langgraph").OverwriteValue<SeedAssessment>, unknown>;

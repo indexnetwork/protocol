@@ -28,12 +28,12 @@ const defaultOwnedIndex = () => ({
 /** Build a minimal Opportunity for list_my_opportunities / create_opportunities tests. */
 export function mockOpportunity(overrides) {
     const id = overrides.id ?? `opp-${Date.now()}`;
-    const indexId = overrides.indexId ?? "idx-1";
+    const networkId = overrides.networkId ?? "idx-1";
     const otherIds = overrides.otherPartyUserIds ?? ["user-alice"];
     const currentUserId = overrides.currentUserId ?? "current-user";
     const actors = overrides.actors ?? [
-        { indexId, userId: currentUserId, role: "party" },
-        ...otherIds.map((userId) => ({ indexId, userId, role: "party" })),
+        { networkId, userId: currentUserId, role: "party" },
+        ...otherIds.map((userId) => ({ networkId, userId, role: "party" })),
     ];
     return {
         id,
@@ -43,7 +43,7 @@ export function mockOpportunity(overrides) {
         },
         actors,
         interpretation: { category: "connection", reasoning: "Match", confidence: 0.8 },
-        context: { indexId },
+        context: { networkId },
         confidence: "0.8",
         status: overrides.status ?? "latent",
         createdAt: new Date(),
@@ -97,9 +97,9 @@ export function createChatGraphMockDb(config = {}) {
     const intentsInIndexForMember = config.intentsInIndexForMember ?? (() => []);
     const indexIntentsForOwner = config.indexIntentsForOwner ?? (() => []);
     const opportunitiesForUser = config.opportunitiesForUser ?? (() => []);
-    const indexMemberships = config.indexMemberships ?? (() => []);
+    const networkMemberships = config.networkMemberships ?? (() => []);
     const getIndex = config.getIndex ?? (() => null);
-    const isIndexMember = config.isIndexMember ?? (() => false);
+    const isNetworkMember = config.isNetworkMember ?? (() => false);
     const isIndexOwner = config.isIndexOwner ?? (() => false);
     const getUser = config.getUser ??
         ((userId) => ({ id: userId, name: "Test User", email: "test@example.com" }));
@@ -108,7 +108,7 @@ export function createChatGraphMockDb(config = {}) {
         getProfile: async () => (profile ? { ...profile } : null),
         getProfileByUserId: async () => (profile ? { ...profile } : null),
         getActiveIntents: async (userId) => Promise.resolve(activeIntents(userId)).then((f) => (Array.isArray(f) ? f : [])),
-        getIntentsInIndexForMember: async (userId, indexId) => Promise.resolve(intentsInIndexForMember(userId, indexId)).then((f) => Array.isArray(f) ? f : []),
+        getIntentsInIndexForMember: async (userId, networkId) => Promise.resolve(intentsInIndexForMember(userId, networkId)).then((f) => Array.isArray(f) ? f : []),
         getUser: async (userId) => Promise.resolve(getUser(userId)),
         updateUser: async (userId, data) => ({
             id: userId,
@@ -130,17 +130,17 @@ export function createChatGraphMockDb(config = {}) {
         updateIntent: noopNull,
         archiveIntent: async () => ({ success: true }),
         getUserIndexIds: async (userId) => {
-            const memberships = await Promise.resolve(indexMemberships(userId));
-            return Array.isArray(memberships) ? memberships.map((m) => m.indexId) : [];
+            const memberships = await Promise.resolve(networkMemberships(userId));
+            return Array.isArray(memberships) ? memberships.map((m) => m.networkId) : [];
         },
-        getIndexMemberships: async (userId) => Promise.resolve(indexMemberships(userId)).then((f) => (Array.isArray(f) ? f : [])),
-        getIndex: async (indexId) => Promise.resolve(getIndex(indexId)),
-        getIndexMembership: async (indexId, userId) => {
-            const index = await Promise.resolve(getIndex(indexId));
+        getNetworkMemberships: async (userId) => Promise.resolve(networkMemberships(userId)).then((f) => (Array.isArray(f) ? f : [])),
+        getIndex: async (networkId) => Promise.resolve(getIndex(networkId)),
+        getNetworkMembership: async (networkId, userId) => {
+            const index = await Promise.resolve(getIndex(networkId));
             if (!index)
                 return null;
-            const member = await Promise.resolve(isIndexMember(indexId, userId));
-            return member ? { indexId, indexTitle: index.title, indexPrompt: null, permissions: [] } : null;
+            const member = await Promise.resolve(isNetworkMember(networkId, userId));
+            return member ? { networkId, networkTitle: index.title, indexPrompt: null, permissions: [] } : null;
         },
         getIndexWithPermissions: async () => null,
         getIntentForIndexing: noopNull,
@@ -157,22 +157,22 @@ export function createChatGraphMockDb(config = {}) {
         saveHydeDocument: noop,
         getIntent: noopNull,
         isIntentAssignedToIndex: noopBool,
-        assignIntentToIndex: noop,
+        assignIntentToNetwork: noop,
         unassignIntentFromIndex: noop,
         getIndexIdsForIntent: noopArray,
         getOwnedIndexes: async (userId) => Promise.resolve(ownedIndexes(userId)).then((f) => (Array.isArray(f) ? f : [])),
-        isIndexOwner: async (indexId, userId) => Promise.resolve(isIndexOwner(indexId, userId)),
-        isIndexMember: async (indexId, userId) => Promise.resolve(isIndexMember(indexId, userId)),
+        isIndexOwner: async (networkId, userId) => Promise.resolve(isIndexOwner(networkId, userId)),
+        isNetworkMember: async (networkId, userId) => Promise.resolve(isNetworkMember(networkId, userId)),
         getIndexMembersForOwner: noopArray,
         getIndexMembersForMember: noopArray,
         getMembersFromUserIndexes: async () => [],
         removeMemberFromIndex: async () => ({ success: true }),
-        getIndexIntentsForOwner: async (indexId, requestingUserId, opts) => Promise.resolve(indexIntentsForOwner(indexId, requestingUserId)).then((f) => Array.isArray(f) ? f : []),
+        getIndexIntentsForOwner: async (networkId, requestingUserId, opts) => Promise.resolve(indexIntentsForOwner(networkId, requestingUserId)).then((f) => Array.isArray(f) ? f : []),
         getIndexIntentsForMember: async () => [],
         updateIndexSettings: async () => defaultOwnedIndex(),
         softDeleteIndex: noop,
         deleteProfile: noop,
-        createIndex: async () => defaultOwnedIndex(),
+        createNetwork: async () => defaultOwnedIndex(),
         getIndexMemberCount: async () => 0,
         addMemberToIndex: noop,
     };

@@ -28,14 +28,14 @@ export class ChatStreamer {
      * @yields ChatStreamEvent objects
      */
     async *streamChatEventsWithContext(input, checkpointer, signal) {
-        const { userId, message, sessionId, maxContextMessages = 20, indexId, prefillMessages, } = input;
+        const { userId, message, sessionId, maxContextMessages = 20, networkId, prefillMessages, } = input;
         logger.verbose("Starting context-aware streaming", {
             userId,
             sessionId,
             maxContextMessages,
             hasCheckpointer: !!checkpointer,
-            hasIndexId: !!indexId,
-            indexId: indexId ?? undefined,
+            hasIndexId: !!networkId,
+            networkId: networkId ?? undefined,
         });
         try {
             // Load previous conversation context
@@ -50,7 +50,7 @@ export class ChatStreamer {
                 totalCount: allMessages.length,
             });
             // Stream with context using the optional checkpointer
-            yield* this.streamChatEvents({ userId, messages: allMessages, indexId }, sessionId, checkpointer, signal);
+            yield* this.streamChatEvents({ userId, messages: allMessages, networkId }, sessionId, checkpointer, signal);
         }
         catch (error) {
             logger.error("Stream error", {
@@ -81,8 +81,8 @@ export class ChatStreamer {
                 userId: input.userId,
                 messages: input.messages,
             };
-            if (input.indexId)
-                initialState.indexId = input.indexId;
+            if (input.networkId)
+                initialState.networkId = input.networkId;
             initialState.sessionId = sessionId;
             // Use graph.stream() with custom + updates modes.
             // Custom events come from config.writer() inside agentLoopNode.

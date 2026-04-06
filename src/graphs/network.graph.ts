@@ -1,18 +1,10 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
 
-<<<<<<<< HEAD:packages/protocol/src/graphs/index.graph.ts
-import { IndexGraphDatabase } from "../interfaces/database.interface.js";
+import { NetworkGraphDatabase } from "../interfaces/database.interface.js";
 import { protocolLogger } from "../support/protocol.logger.js";
 import { timed } from "../support/performance.js";
 
-import { IndexGraphState } from "../states/index.state.js";
-========
-import { NetworkGraphDatabase } from "../interfaces/database.interface";
-import { protocolLogger } from "../support/protocol.logger";
-import { timed } from "../support/performance";
-
-import { NetworkGraphState } from "../states/network.state";
->>>>>>>> 608653918 (refactor: rename community 'index' to 'network' across full stack):packages/protocol/src/graphs/network.graph.ts
+import { NetworkGraphState } from "../states/network.state.js";
 
 const logger = protocolLogger("NetworkGraphFactory");
 

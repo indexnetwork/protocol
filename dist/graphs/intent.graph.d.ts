@@ -18,7 +18,7 @@ export declare class IntentGraphFactory {
         conversationContext: import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | undefined;
         operationMode: "create" | "update" | "delete" | "read" | "propose";
         targetIntentIds: string[] | undefined;
-        indexId: string | undefined;
+        networkId: string | undefined;
         activeIntents: string;
         inferredIntents: {
             reasoning: string;
@@ -49,7 +49,7 @@ export declare class IntentGraphFactory {
                 userName?: string | null;
             }>;
             message?: string;
-            indexId?: string;
+            networkId?: string;
         } | undefined;
     }, {
         userId?: string | undefined;
@@ -58,7 +58,7 @@ export declare class IntentGraphFactory {
         conversationContext?: import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | import("@langchain/langgraph").OverwriteValue<import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | undefined> | undefined;
         operationMode?: "create" | "update" | "delete" | "read" | "propose" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "propose"> | undefined;
         targetIntentIds?: string[] | import("@langchain/langgraph").OverwriteValue<string[] | undefined> | undefined;
-        indexId?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
+        networkId?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
         activeIntents?: string | import("@langchain/langgraph").OverwriteValue<string> | undefined;
         inferredIntents?: {
             reasoning: string;
@@ -98,7 +98,7 @@ export declare class IntentGraphFactory {
                 userName?: string | null;
             }>;
             message?: string;
-            indexId?: string;
+            networkId?: string;
         } | import("@langchain/langgraph").OverwriteValue<{
             count: number;
             intents: Array<{
@@ -110,7 +110,7 @@ export declare class IntentGraphFactory {
                 userName?: string | null;
             }>;
             message?: string;
-            indexId?: string;
+            networkId?: string;
         } | undefined> | undefined;
     }, "query" | "__start__" | "prep" | "inference" | "verification" | "reconciler" | "executor", {
         userId: {
@@ -131,7 +131,7 @@ export declare class IntentGraphFactory {
         conversationContext: import("@langchain/langgraph").BaseChannel<import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | undefined, import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | import("@langchain/langgraph").OverwriteValue<import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | undefined> | undefined, unknown>;
         operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "propose", "create" | "update" | "delete" | "read" | "propose" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "propose">, unknown>;
         targetIntentIds: import("@langchain/langgraph").BaseChannel<string[] | undefined, string[] | import("@langchain/langgraph").OverwriteValue<string[] | undefined> | undefined, unknown>;
-        indexId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
+        networkId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         activeIntents: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
         inferredIntents: import("@langchain/langgraph").BaseChannel<{
             reasoning: string;
@@ -180,7 +180,7 @@ export declare class IntentGraphFactory {
                 userName?: string | null;
             }>;
             message?: string;
-            indexId?: string;
+            networkId?: string;
         } | undefined, {
             count: number;
             intents: Array<{
@@ -192,7 +192,7 @@ export declare class IntentGraphFactory {
                 userName?: string | null;
             }>;
             message?: string;
-            indexId?: string;
+            networkId?: string;
         } | import("@langchain/langgraph").OverwriteValue<{
             count: number;
             intents: Array<{
@@ -204,7 +204,7 @@ export declare class IntentGraphFactory {
                 userName?: string | null;
             }>;
             message?: string;
-            indexId?: string;
+            networkId?: string;
         } | undefined> | undefined, unknown>;
     }, {
         userId: {
@@ -225,7 +225,7 @@ export declare class IntentGraphFactory {
         conversationContext: import("@langchain/langgraph").BaseChannel<import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | undefined, import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | import("@langchain/langgraph").OverwriteValue<import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | undefined> | undefined, unknown>;
         operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "propose", "create" | "update" | "delete" | "read" | "propose" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "propose">, unknown>;
         targetIntentIds: import("@langchain/langgraph").BaseChannel<string[] | undefined, string[] | import("@langchain/langgraph").OverwriteValue<string[] | undefined> | undefined, unknown>;
-        indexId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
+        networkId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         activeIntents: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
         inferredIntents: import("@langchain/langgraph").BaseChannel<{
             reasoning: string;
@@ -274,7 +274,7 @@ export declare class IntentGraphFactory {
                 userName?: string | null;
             }>;
             message?: string;
-            indexId?: string;
+            networkId?: string;
         } | undefined, {
             count: number;
             intents: Array<{
@@ -286,7 +286,7 @@ export declare class IntentGraphFactory {
                 userName?: string | null;
             }>;
             message?: string;
-            indexId?: string;
+            networkId?: string;
         } | import("@langchain/langgraph").OverwriteValue<{
             count: number;
             intents: Array<{
@@ -298,7 +298,7 @@ export declare class IntentGraphFactory {
                 userName?: string | null;
             }>;
             message?: string;
-            indexId?: string;
+            networkId?: string;
         } | undefined> | undefined, unknown>;
     }, import("@langchain/langgraph").StateDefinition, {
         prep: {
@@ -318,19 +318,19 @@ export declare class IntentGraphFactory {
                 count: number;
                 intents: never[];
                 message: string;
-                indexId?: undefined;
+                networkId?: undefined;
             };
         } | {
             readResult: {
                 count: number;
                 intents: never[];
                 message: string;
-                indexId: string;
+                networkId: string;
             };
         } | {
             readResult: {
                 count: number;
-                indexId: string;
+                networkId: string;
                 intents: {
                     id: string;
                     description: string;
@@ -351,7 +351,7 @@ export declare class IntentGraphFactory {
                     createdAt: Date;
                 }[];
                 message?: undefined;
-                indexId?: undefined;
+                networkId?: undefined;
             };
         };
         inference: {
@@ -406,7 +406,7 @@ export declare class IntentGraphFactory {
             conversationContext: import("@langchain/langgraph").BaseChannel<import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | undefined, import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | import("@langchain/langgraph").OverwriteValue<import("@langchain/core/messages").BaseMessage<import("@langchain/core/messages").MessageStructure<import("@langchain/core/messages").MessageToolSet>, import("@langchain/core/messages").MessageType>[] | undefined> | undefined, unknown>;
             operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "propose", "create" | "update" | "delete" | "read" | "propose" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "propose">, unknown>;
             targetIntentIds: import("@langchain/langgraph").BaseChannel<string[] | undefined, string[] | import("@langchain/langgraph").OverwriteValue<string[] | undefined> | undefined, unknown>;
-            indexId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
+            networkId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
             activeIntents: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
             inferredIntents: import("@langchain/langgraph").BaseChannel<{
                 reasoning: string;
@@ -455,7 +455,7 @@ export declare class IntentGraphFactory {
                     userName?: string | null;
                 }>;
                 message?: string;
-                indexId?: string;
+                networkId?: string;
             } | undefined, {
                 count: number;
                 intents: Array<{
@@ -467,7 +467,7 @@ export declare class IntentGraphFactory {
                     userName?: string | null;
                 }>;
                 message?: string;
-                indexId?: string;
+                networkId?: string;
             } | import("@langchain/langgraph").OverwriteValue<{
                 count: number;
                 intents: Array<{
@@ -479,7 +479,7 @@ export declare class IntentGraphFactory {
                     userName?: string | null;
                 }>;
                 message?: string;
-                indexId?: string;
+                networkId?: string;
             } | undefined> | undefined, unknown>;
         }>;
         executor: {

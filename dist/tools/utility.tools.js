@@ -45,8 +45,8 @@ export function createUtilityTools(defineTool, deps) {
 - **Profiles**: A user's identity — bio, skills, interests, location, social links. Generated from account data or social URLs. Has a vector embedding for semantic matching.
 - **Indexes**: Communities or groups. Each has a title, optional prompt (purpose description), and a join policy (anyone or invite_only). Users join indexes as members; the creator is the owner.
 - **Index Members**: Junction between Users and Indexes. Tracks permissions, join date, auto-assign setting, and optional member prompt.
-- **Intents**: What a user is looking for — wants, needs, and priorities. Each has a description (payload), summary, confidence score, and vector embedding. Intents belong to a user but are linked to indexes via IntentIndexes (many-to-many).
-- **IntentIndexes**: Junction between Intents and Indexes. An intent can be in multiple indexes. When an intent is created, it is evaluated against index prompts and linked to relevant ones.
+- **Intents**: What a user is looking for — wants, needs, and priorities. Each has a description (payload), summary, confidence score, and vector embedding. Intents belong to a user but are linked to networks via IntentNetworks (many-to-many).
+- **IntentNetworks**: Junction between Intents and Networks. An intent can be in multiple networks. When an intent is created, it is evaluated against network prompts and linked to relevant ones.
 - **Opportunities**: Discovered connections between users based on intent overlap. Have roles (introducer, patient, agent, peer), status lifecycle, reasoning, and presentation data.
 - **HyDE Documents**: Hypothetical Document Embeddings — generated synthetic documents used for semantic retrieval of intents and profiles`,
                 intents: `## Intent Lifecycle
@@ -54,7 +54,7 @@ export function createUtilityTools(defineTool, deps) {
 1. **Creation**: User describes what they're looking for. The IntentClarifier checks if it's specific enough — vague intents get a refinement suggestion before persisting.
 2. **Inference**: The intent graph extracts structured intents from free text. It can infer multiple intents from a single input and reconcile with existing ones (update if similar, create if new).
 3. **Semantic Governance**: Each intent gets a confidence score, semantic entropy measure, speech act type (commissive, directive, assertive), referential anchor, and felicity conditions (sincerity, authority).
-4. **Index Assignment**: After creation, the intent is evaluated against all indexes the user belongs to (using the index prompt as criteria). It's automatically linked to matching indexes via IntentIndexes.
+4. **Index Assignment**: After creation, the intent is evaluated against all indexes the user belongs to (using the index prompt as criteria). It's automatically linked to matching indexes via IntentNetworks.
 5. **Discovery**: Creating an intent triggers background opportunity detection — the system looks for other users in shared indexes whose intents complement this one.
 6. **Update/Archive**: Intents can be updated (re-processed through the graph) or archived (soft delete).`,
                 opportunities: `## Opportunity Lifecycle

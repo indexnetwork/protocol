@@ -11,7 +11,7 @@ export declare function protocolLogger(source: string): LoggerWithSource;
 export interface CallLogOptions {
     /** Log full output on success (default: true). Set false for very large payloads. */
     logOutput?: boolean;
-    /** Extra context to include in both start and end (e.g. userId, indexId). */
+    /** Extra context to include in both start and end (e.g. userId, networkId). */
     context?: Record<string, unknown>;
 }
 /**

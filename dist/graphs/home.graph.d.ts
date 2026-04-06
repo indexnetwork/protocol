@@ -16,7 +16,7 @@ import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
 type HomeGraphDb = HomeGraphDatabase;
 export type HomeGraphInvokeInput = {
     userId: string;
-    indexId?: string;
+    networkId?: string;
     limit?: number;
     noCache?: boolean;
 };
@@ -40,7 +40,7 @@ export declare class HomeGraphFactory {
     constructor(database: HomeGraphDb, cache: OpportunityCache);
     createGraph(): import("@langchain/langgraph").CompiledStateGraph<{
         userId: string;
-        indexId: string | undefined;
+        networkId: string | undefined;
         limit: number;
         noCache: boolean;
         opportunities: import("../interfaces/database.interface.js").Opportunity[];
@@ -58,7 +58,7 @@ export declare class HomeGraphFactory {
         agentTimings: DebugMetaAgent[];
     }, {
         userId?: string | import("@langchain/langgraph").OverwriteValue<string> | undefined;
-        indexId?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
+        networkId?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
         limit?: number | import("@langchain/langgraph").OverwriteValue<number> | undefined;
         noCache?: boolean | import("@langchain/langgraph").OverwriteValue<boolean> | undefined;
         opportunities?: import("../interfaces/database.interface.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../interfaces/database.interface.js").Opportunity[]> | undefined;
@@ -79,7 +79,7 @@ export declare class HomeGraphFactory {
         agentTimings?: DebugMetaAgent[] | import("@langchain/langgraph").OverwriteValue<DebugMetaAgent[]> | undefined;
     }, "__start__" | "loadOpportunities" | "checkPresenterCache" | "generateCardText" | "cachePresenterResults" | "checkCategorizerCache" | "categorizeDynamically" | "cacheCategorizerResults" | "normalizeAndSort", {
         userId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
-        indexId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
+        networkId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         limit: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         noCache: import("@langchain/langgraph").BaseChannel<boolean, boolean | import("@langchain/langgraph").OverwriteValue<boolean>, unknown>;
         opportunities: import("@langchain/langgraph").BaseChannel<import("../interfaces/database.interface.js").Opportunity[], import("../interfaces/database.interface.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../interfaces/database.interface.js").Opportunity[]>, unknown>;
@@ -103,7 +103,7 @@ export declare class HomeGraphFactory {
         agentTimings: import("@langchain/langgraph").BaseChannel<DebugMetaAgent[], DebugMetaAgent[] | import("@langchain/langgraph").OverwriteValue<DebugMetaAgent[]>, unknown>;
     }, {
         userId: import("@langchain/langgraph").BaseChannel<string, string | import("@langchain/langgraph").OverwriteValue<string>, unknown>;
-        indexId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
+        networkId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         limit: import("@langchain/langgraph").BaseChannel<number, number | import("@langchain/langgraph").OverwriteValue<number>, unknown>;
         noCache: import("@langchain/langgraph").BaseChannel<boolean, boolean | import("@langchain/langgraph").OverwriteValue<boolean>, unknown>;
         opportunities: import("@langchain/langgraph").BaseChannel<import("../interfaces/database.interface.js").Opportunity[], import("../interfaces/database.interface.js").Opportunity[] | import("@langchain/langgraph").OverwriteValue<import("../interfaces/database.interface.js").Opportunity[]>, unknown>;

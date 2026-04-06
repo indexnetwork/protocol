@@ -24,9 +24,9 @@ export const ChatGraphState = Annotation.Root({
     /**
      * Optional index (community) ID when chat is scoped to a specific index.
      * When set, the agent and tools use this as the current index (e.g. read_intents,
-     * create_intent with indexId, scope index assignment to this index only).
+     * create_intent with networkId, scope index assignment to this index only).
      */
-    indexId: Annotation({
+    networkId: Annotation({
         reducer: (curr, next) => next ?? curr,
         default: () => undefined,
     }),

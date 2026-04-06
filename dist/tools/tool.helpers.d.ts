@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ModelConfig } from "../agents/model.config.js";
 import type { ProfileDocument } from "../agents/profile.generator.js";
-import type { ChatGraphCompositeDatabase, IndexMembership, UserRecord, UserDatabase, SystemDatabase, NegotiationDatabase } from "../interfaces/database.interface.js";
+import type { ChatGraphCompositeDatabase, NetworkMembership, UserRecord, UserDatabase, SystemDatabase, NegotiationDatabase } from "../interfaces/database.interface.js";
 import type { Scraper } from "../interfaces/scraper.interface.js";
 import type { Cache, HydeCache } from "../interfaces/cache.interface.js";
 import type { CompiledOpportunityGraph } from "../support/opportunity.discover.js";
@@ -26,13 +26,13 @@ export interface ResolvedToolContext {
     userId: string;
     userName: string;
     userEmail: string;
-    indexId?: string;
+    networkId?: string;
     indexName?: string;
     /** True when chat is index-scoped and the user owns the index. */
     isOwner?: boolean;
     user: UserRecord;
     userProfile: ProfileContext;
-    userIndexes: IndexMembership[];
+    userNetworks: NetworkMembership[];
     scopedIndex?: {
         id: string;
         title: string;
@@ -64,7 +64,7 @@ export interface ToolContext {
     embedder: Embedder;
     scraper: Scraper;
     /** When set, chat is scoped to this index; tools use it as default for read_intents and create_intent. */
-    indexId?: string;
+    networkId?: string;
     /** Chat session ID when creating tools for a chat; enables draft opportunities with context.conversationId. */
     sessionId?: string;
     /** General-purpose cache (e.g. for tool results). */
@@ -119,9 +119,9 @@ export declare class ChatContextAccessError extends Error {
  * This preloads user identity, profile, index memberships, and scoped index role.
  */
 export declare function resolveChatContext(params: {
-    database: Pick<ChatGraphCompositeDatabase, "getUser" | "getProfile" | "getIndexMemberships" | "getIndexMembership" | "getIndex" | "isIndexOwner" | "isIndexMember">;
+    database: Pick<ChatGraphCompositeDatabase, "getUser" | "getProfile" | "getNetworkMemberships" | "getNetworkMembership" | "getIndex" | "isIndexOwner" | "isNetworkMember">;
     userId: string;
-    indexId?: string;
+    networkId?: string;
     /** Chat session ID for draft opportunities (stored as context.conversationId). */
     sessionId?: string;
 }): Promise<ResolvedToolContext>;
@@ -184,7 +184,7 @@ export interface ToolDeps {
         profile: CompiledGraph;
         intent: CompiledGraph;
         index: CompiledGraph;
-        indexMembership: CompiledGraph;
+        networkMembership: CompiledGraph;
         intentIndex: CompiledGraph;
         opportunity: CompiledOpportunityGraph;
     };

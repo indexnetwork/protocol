@@ -29,7 +29,7 @@ const logger = log.lib.from("IntentIndexer");
 import { config } from "dotenv";
 config({ path: ".env.development", override: true });
 
-const model = createModel("intentNetworker");
+const model = createModel("intentIndexer");
 
 // ──────────────────────────────────────────────────────────────
 // 1. SYSTEM PROMPT

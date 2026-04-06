@@ -3,7 +3,7 @@ export interface NegotiationProposerInput {
     ownUser: UserNegotiationContext;
     otherUser: UserNegotiationContext;
     indexContext: {
-        indexId: string;
+        networkId: string;
         prompt: string;
     };
     seedAssessment: SeedAssessment;

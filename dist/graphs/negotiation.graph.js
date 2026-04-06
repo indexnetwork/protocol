@@ -192,8 +192,8 @@ export async function negotiateCandidates(negotiationGraph, sourceUser, candidat
         traceEmitter?.({ type: "agent_start", name: "Negotiating candidate" });
         try {
             // Use per-candidate index context; never fall back to a different index's prompt
-            const candidateIndexContext = candidate.indexId
-                ? { indexId: candidate.indexId, prompt: indexContextOverrides?.get(candidate.indexId) ?? '' }
+            const candidateIndexContext = candidate.networkId
+                ? { networkId: candidate.networkId, prompt: indexContextOverrides?.get(candidate.networkId) ?? '' }
                 : indexContext;
             const result = await negotiationGraph.invoke({
                 sourceUser,

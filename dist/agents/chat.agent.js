@@ -99,7 +99,7 @@ export class ChatAgent {
         const resolved = await resolveChatContext({
             database: context.database,
             userId: context.userId,
-            indexId: context.indexId,
+            networkId: context.networkId,
             sessionId: context.sessionId,
         });
         const tools = await createChatTools(context, resolved);
@@ -272,7 +272,7 @@ export class ChatAgent {
         logger.verbose("Create-intent signal: auto-calling create_intent then create_opportunities");
         const createIntentResult = await createIntentTool.invoke({
             description: parsed.data.suggestedIntentDescription,
-            indexId: originalArgs.indexId,
+            networkId: originalArgs.networkId,
         });
         const createIntentStr = typeof createIntentResult === "string" ? createIntentResult : JSON.stringify(createIntentResult);
         let createIntentParsed;

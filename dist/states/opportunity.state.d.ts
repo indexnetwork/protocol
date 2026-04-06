@@ -35,13 +35,13 @@ export interface IndexedIntent {
     summary?: string;
     hydeDocumentId?: string;
     hydeEmbedding?: number[];
-    indexes: Id<'indexes'>[];
+    indexes: Id<'networks'>[];
 }
 /**
  * Target index for search (from scope node)
  */
 export interface TargetIndex {
-    indexId: Id<'indexes'>;
+    networkId: Id<'networks'>;
     title: string;
     memberCount: number;
 }
@@ -52,7 +52,7 @@ export interface TargetIndex {
 export interface CandidateMatch {
     candidateUserId: Id<'users'>;
     candidateIntentId?: Id<'intents'>;
-    indexId: Id<'indexes'>;
+    networkId: Id<'networks'>;
     similarity: number;
     /** Free-text lens label that produced this match. */
     lens: string;
@@ -70,7 +70,7 @@ export interface EvaluatedCandidate {
     candidateUserId: Id<'users'>;
     sourceIntentId?: Id<'intents'>;
     candidateIntentId?: Id<'intents'>;
-    indexId: Id<'indexes'>;
+    networkId: Id<'networks'>;
     score: number;
     reasoning: string;
     valencyRole: 'Agent' | 'Patient' | 'Peer';
@@ -79,13 +79,13 @@ export interface EvaluatedCandidate {
 }
 /**
  * Actor in an evaluated opportunity (from entity-bundle evaluator).
- * indexId is filled from the entity bundle in the graph, not by the evaluator.
+ * networkId is filled from the entity bundle in the graph, not by the evaluator.
  */
 export interface EvaluatedOpportunityActor {
     userId: Id<'users'>;
     role: 'agent' | 'patient' | 'peer';
     intentId?: Id<'intents'>;
-    indexId: Id<'indexes'>;
+    networkId: Id<'networks'>;
 }
 /**
  * Evaluated opportunity with multi-actor output (entity-bundle evaluator).
@@ -120,7 +120,7 @@ export interface OpportunityGraphOptions {
 export declare const OpportunityGraphState: import("@langchain/langgraph").AnnotationRoot<{
     userId: import("@langchain/langgraph").BaseChannel<Id<"users">, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users">>, unknown>;
     searchQuery: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
-    indexId: import("@langchain/langgraph").BaseChannel<Id<"indexes"> | undefined, Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined, unknown>;
+    networkId: import("@langchain/langgraph").BaseChannel<Id<"networks"> | undefined, Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined, unknown>;
     /** Optional intent to use as discovery source and for triggeredBy. When set, used for search text (if query empty) and persist. */
     triggerIntentId: import("@langchain/langgraph").BaseChannel<Id<"intents"> | undefined, Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined, unknown>;
     /** Optional: restrict discovery to this specific user ID only (direct connection). */
@@ -133,7 +133,7 @@ export declare const OpportunityGraphState: import("@langchain/langgraph").Annot
      * - 'create': Existing discover pipeline (Prep → Scope → Discovery → Evaluation → Ranking → Persist)
      * - 'create_introduction': Introduction path (validation → evaluation → persist) for chat-driven intros
      * - 'continue_discovery': Pagination path (Prep → Evaluation → Ranking → Persist) using pre-loaded candidates
-     * - 'read': List opportunities filtered by userId and optionally indexId (fast path)
+     * - 'read': List opportunities filtered by userId and optionally networkId (fast path)
      * - 'update': Change opportunity status (accept, reject, etc.)
      * - 'delete': Expire/archive an opportunity
      * - 'send': Promote latent opportunity to pending + queue notification
@@ -145,8 +145,8 @@ export declare const OpportunityGraphState: import("@langchain/langgraph").Annot
     introductionEntities: import("@langchain/langgraph").BaseChannel<EvaluatorEntity[], EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]>, unknown>;
     /** Introduction mode: optional hint from the introducer. */
     introductionHint: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
-    /** When set (e.g. chat scope), indexId must match this. */
-    requiredIndexId: import("@langchain/langgraph").BaseChannel<Id<"indexes"> | undefined, Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined, unknown>;
+    /** When set (e.g. chat scope), networkId must match this. */
+    requiredNetworkId: import("@langchain/langgraph").BaseChannel<Id<"networks"> | undefined, Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined, unknown>;
     /** Set by intro_evaluation; used by persist to build manual detection and introducer actor. */
     introductionContext: import("@langchain/langgraph").BaseChannel<{
         createdByName?: string;
@@ -161,8 +161,8 @@ export declare const OpportunityGraphState: import("@langchain/langgraph").Annot
     newStatus: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
     /** User's indexed intents with hyde documents (from prep) */
     indexedIntents: import("@langchain/langgraph").BaseChannel<IndexedIntent[], IndexedIntent[] | import("@langchain/langgraph").OverwriteValue<IndexedIntent[]>, unknown>;
-    /** User's index memberships (from prep) */
-    userIndexes: import("@langchain/langgraph").BaseChannel<Id<"indexes">[], Id<"indexes">[] | import("@langchain/langgraph").OverwriteValue<Id<"indexes">[]>, unknown>;
+    /** User's network memberships (from prep) */
+    userNetworks: import("@langchain/langgraph").BaseChannel<Id<"networks">[], Id<"networks">[] | import("@langchain/langgraph").OverwriteValue<Id<"networks">[]>, unknown>;
     /** Target indexes to search within (from scope) */
     targetIndexes: import("@langchain/langgraph").BaseChannel<TargetIndex[], TargetIndex[] | import("@langchain/langgraph").OverwriteValue<TargetIndex[]>, unknown>;
     /** Per-index relevancy scores for dedup tie-breaking. Background path: from intent_indexes. Chat path: transient from IntentIndexer. */
@@ -196,17 +196,17 @@ export declare const OpportunityGraphState: import("@langchain/langgraph").Annot
     /** Discovery path: pairs skipped because an opportunity already exists between viewer and candidate (no duplicate created). */
     existingBetweenActors: import("@langchain/langgraph").BaseChannel<{
         candidateUserId: Id<"users">;
-        indexId: Id<"indexes">;
+        networkId: Id<"networks">;
         existingOpportunityId?: Id<"opportunities">;
         existingStatus?: OpportunityStatus;
     }[], {
         candidateUserId: Id<"users">;
-        indexId: Id<"indexes">;
+        networkId: Id<"networks">;
         existingOpportunityId?: Id<"opportunities">;
         existingStatus?: OpportunityStatus;
     }[] | import("@langchain/langgraph").OverwriteValue<{
         candidateUserId: Id<"users">;
-        indexId: Id<"indexes">;
+        networkId: Id<"networks">;
         existingOpportunityId?: Id<"opportunities">;
         existingStatus?: OpportunityStatus;
     }[]>, unknown>;

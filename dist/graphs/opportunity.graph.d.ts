@@ -86,7 +86,7 @@ export declare class OpportunityGraphFactory {
     createGraph(): import("@langchain/langgraph").CompiledStateGraph<{
         userId: Id<"users">;
         searchQuery: string | undefined;
-        indexId: Id<"indexes"> | undefined;
+        networkId: Id<"networks"> | undefined;
         triggerIntentId: Id<"intents"> | undefined;
         targetUserId: Id<"users"> | undefined;
         onBehalfOfUserId: Id<"users"> | undefined;
@@ -94,14 +94,14 @@ export declare class OpportunityGraphFactory {
         operationMode: "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send";
         introductionEntities: EvaluatorEntity[];
         introductionHint: string | undefined;
-        requiredIndexId: Id<"indexes"> | undefined;
+        requiredNetworkId: Id<"networks"> | undefined;
         introductionContext: {
             createdByName?: string;
         } | undefined;
         opportunityId: string | undefined;
         newStatus: string | undefined;
         indexedIntents: IndexedIntent[];
-        userIndexes: Id<"indexes">[];
+        userNetworks: Id<"networks">[];
         targetIndexes: TargetIndex[];
         indexRelevancyScores: Record<string, number>;
         discoverySource: "profile" | "intent";
@@ -119,7 +119,7 @@ export declare class OpportunityGraphFactory {
         opportunities: Opportunity[];
         existingBetweenActors: {
             candidateUserId: Id<"users">;
-            indexId: Id<"indexes">;
+            networkId: Id<"networks">;
             existingOpportunityId?: Id<"opportunities">;
             existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[];
@@ -155,7 +155,7 @@ export declare class OpportunityGraphFactory {
     }, {
         userId?: Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users">> | undefined;
         searchQuery?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
-        indexId?: Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined;
+        networkId?: Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined;
         triggerIntentId?: Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined;
         targetUserId?: Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined;
         onBehalfOfUserId?: Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined;
@@ -163,7 +163,7 @@ export declare class OpportunityGraphFactory {
         operationMode?: "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send"> | undefined;
         introductionEntities?: EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]> | undefined;
         introductionHint?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
-        requiredIndexId?: Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined;
+        requiredNetworkId?: Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined;
         introductionContext?: {
             createdByName?: string;
         } | import("@langchain/langgraph").OverwriteValue<{
@@ -172,7 +172,7 @@ export declare class OpportunityGraphFactory {
         opportunityId?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
         newStatus?: string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined;
         indexedIntents?: IndexedIntent[] | import("@langchain/langgraph").OverwriteValue<IndexedIntent[]> | undefined;
-        userIndexes?: Id<"indexes">[] | import("@langchain/langgraph").OverwriteValue<Id<"indexes">[]> | undefined;
+        userNetworks?: Id<"networks">[] | import("@langchain/langgraph").OverwriteValue<Id<"networks">[]> | undefined;
         targetIndexes?: TargetIndex[] | import("@langchain/langgraph").OverwriteValue<TargetIndex[]> | undefined;
         indexRelevancyScores?: Record<string, number> | import("@langchain/langgraph").OverwriteValue<Record<string, number>> | undefined;
         discoverySource?: "profile" | "intent" | import("@langchain/langgraph").OverwriteValue<"profile" | "intent"> | undefined;
@@ -190,12 +190,12 @@ export declare class OpportunityGraphFactory {
         opportunities?: Opportunity[] | import("@langchain/langgraph").OverwriteValue<Opportunity[]> | undefined;
         existingBetweenActors?: {
             candidateUserId: Id<"users">;
-            indexId: Id<"indexes">;
+            networkId: Id<"networks">;
             existingOpportunityId?: Id<"opportunities">;
             existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[] | import("@langchain/langgraph").OverwriteValue<{
             candidateUserId: Id<"users">;
-            indexId: Id<"indexes">;
+            networkId: Id<"networks">;
             existingOpportunityId?: Id<"opportunities">;
             existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[]> | undefined;
@@ -255,7 +255,7 @@ export declare class OpportunityGraphFactory {
     }, "update" | "read" | "__start__" | "prep" | "send" | "scope" | "discovery" | "persist" | "resolve" | "evaluation" | "ranking" | "intro_validation" | "intro_evaluation" | "delete_opp" | "negotiate", {
         userId: import("@langchain/langgraph").BaseChannel<Id<"users">, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users">>, unknown>;
         searchQuery: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
-        indexId: import("@langchain/langgraph").BaseChannel<Id<"indexes"> | undefined, Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined, unknown>;
+        networkId: import("@langchain/langgraph").BaseChannel<Id<"networks"> | undefined, Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined, unknown>;
         triggerIntentId: import("@langchain/langgraph").BaseChannel<Id<"intents"> | undefined, Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined, unknown>;
         targetUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
         onBehalfOfUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
@@ -263,7 +263,7 @@ export declare class OpportunityGraphFactory {
         operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send", "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send">, unknown>;
         introductionEntities: import("@langchain/langgraph").BaseChannel<EvaluatorEntity[], EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]>, unknown>;
         introductionHint: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
-        requiredIndexId: import("@langchain/langgraph").BaseChannel<Id<"indexes"> | undefined, Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined, unknown>;
+        requiredNetworkId: import("@langchain/langgraph").BaseChannel<Id<"networks"> | undefined, Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined, unknown>;
         introductionContext: import("@langchain/langgraph").BaseChannel<{
             createdByName?: string;
         } | undefined, {
@@ -274,7 +274,7 @@ export declare class OpportunityGraphFactory {
         opportunityId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         newStatus: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         indexedIntents: import("@langchain/langgraph").BaseChannel<IndexedIntent[], IndexedIntent[] | import("@langchain/langgraph").OverwriteValue<IndexedIntent[]>, unknown>;
-        userIndexes: import("@langchain/langgraph").BaseChannel<Id<"indexes">[], Id<"indexes">[] | import("@langchain/langgraph").OverwriteValue<Id<"indexes">[]>, unknown>;
+        userNetworks: import("@langchain/langgraph").BaseChannel<Id<"networks">[], Id<"networks">[] | import("@langchain/langgraph").OverwriteValue<Id<"networks">[]>, unknown>;
         targetIndexes: import("@langchain/langgraph").BaseChannel<TargetIndex[], TargetIndex[] | import("@langchain/langgraph").OverwriteValue<TargetIndex[]>, unknown>;
         indexRelevancyScores: import("@langchain/langgraph").BaseChannel<Record<string, number>, Record<string, number> | import("@langchain/langgraph").OverwriteValue<Record<string, number>>, unknown>;
         discoverySource: import("@langchain/langgraph").BaseChannel<"profile" | "intent", "profile" | "intent" | import("@langchain/langgraph").OverwriteValue<"profile" | "intent">, unknown>;
@@ -292,17 +292,17 @@ export declare class OpportunityGraphFactory {
         opportunities: import("@langchain/langgraph").BaseChannel<Opportunity[], Opportunity[] | import("@langchain/langgraph").OverwriteValue<Opportunity[]>, unknown>;
         existingBetweenActors: import("@langchain/langgraph").BaseChannel<{
             candidateUserId: Id<"users">;
-            indexId: Id<"indexes">;
+            networkId: Id<"networks">;
             existingOpportunityId?: Id<"opportunities">;
             existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[], {
             candidateUserId: Id<"users">;
-            indexId: Id<"indexes">;
+            networkId: Id<"networks">;
             existingOpportunityId?: Id<"opportunities">;
             existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[] | import("@langchain/langgraph").OverwriteValue<{
             candidateUserId: Id<"users">;
-            indexId: Id<"indexes">;
+            networkId: Id<"networks">;
             existingOpportunityId?: Id<"opportunities">;
             existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[]>, unknown>;
@@ -386,7 +386,7 @@ export declare class OpportunityGraphFactory {
     }, {
         userId: import("@langchain/langgraph").BaseChannel<Id<"users">, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users">>, unknown>;
         searchQuery: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
-        indexId: import("@langchain/langgraph").BaseChannel<Id<"indexes"> | undefined, Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined, unknown>;
+        networkId: import("@langchain/langgraph").BaseChannel<Id<"networks"> | undefined, Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined, unknown>;
         triggerIntentId: import("@langchain/langgraph").BaseChannel<Id<"intents"> | undefined, Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined, unknown>;
         targetUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
         onBehalfOfUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
@@ -394,7 +394,7 @@ export declare class OpportunityGraphFactory {
         operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send", "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send">, unknown>;
         introductionEntities: import("@langchain/langgraph").BaseChannel<EvaluatorEntity[], EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]>, unknown>;
         introductionHint: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
-        requiredIndexId: import("@langchain/langgraph").BaseChannel<Id<"indexes"> | undefined, Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined, unknown>;
+        requiredNetworkId: import("@langchain/langgraph").BaseChannel<Id<"networks"> | undefined, Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined, unknown>;
         introductionContext: import("@langchain/langgraph").BaseChannel<{
             createdByName?: string;
         } | undefined, {
@@ -405,7 +405,7 @@ export declare class OpportunityGraphFactory {
         opportunityId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         newStatus: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
         indexedIntents: import("@langchain/langgraph").BaseChannel<IndexedIntent[], IndexedIntent[] | import("@langchain/langgraph").OverwriteValue<IndexedIntent[]>, unknown>;
-        userIndexes: import("@langchain/langgraph").BaseChannel<Id<"indexes">[], Id<"indexes">[] | import("@langchain/langgraph").OverwriteValue<Id<"indexes">[]>, unknown>;
+        userNetworks: import("@langchain/langgraph").BaseChannel<Id<"networks">[], Id<"networks">[] | import("@langchain/langgraph").OverwriteValue<Id<"networks">[]>, unknown>;
         targetIndexes: import("@langchain/langgraph").BaseChannel<TargetIndex[], TargetIndex[] | import("@langchain/langgraph").OverwriteValue<TargetIndex[]>, unknown>;
         indexRelevancyScores: import("@langchain/langgraph").BaseChannel<Record<string, number>, Record<string, number> | import("@langchain/langgraph").OverwriteValue<Record<string, number>>, unknown>;
         discoverySource: import("@langchain/langgraph").BaseChannel<"profile" | "intent", "profile" | "intent" | import("@langchain/langgraph").OverwriteValue<"profile" | "intent">, unknown>;
@@ -423,17 +423,17 @@ export declare class OpportunityGraphFactory {
         opportunities: import("@langchain/langgraph").BaseChannel<Opportunity[], Opportunity[] | import("@langchain/langgraph").OverwriteValue<Opportunity[]>, unknown>;
         existingBetweenActors: import("@langchain/langgraph").BaseChannel<{
             candidateUserId: Id<"users">;
-            indexId: Id<"indexes">;
+            networkId: Id<"networks">;
             existingOpportunityId?: Id<"opportunities">;
             existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[], {
             candidateUserId: Id<"users">;
-            indexId: Id<"indexes">;
+            networkId: Id<"networks">;
             existingOpportunityId?: Id<"opportunities">;
             existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[] | import("@langchain/langgraph").OverwriteValue<{
             candidateUserId: Id<"users">;
-            indexId: Id<"indexes">;
+            networkId: Id<"networks">;
             existingOpportunityId?: Id<"opportunities">;
             existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
         }[]>, unknown>;
@@ -518,7 +518,7 @@ export declare class OpportunityGraphFactory {
         prep: import("@langchain/langgraph").UpdateType<{
             userId: import("@langchain/langgraph").BaseChannel<Id<"users">, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users">>, unknown>;
             searchQuery: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
-            indexId: import("@langchain/langgraph").BaseChannel<Id<"indexes"> | undefined, Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined, unknown>;
+            networkId: import("@langchain/langgraph").BaseChannel<Id<"networks"> | undefined, Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined, unknown>;
             triggerIntentId: import("@langchain/langgraph").BaseChannel<Id<"intents"> | undefined, Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined, unknown>;
             targetUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
             onBehalfOfUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
@@ -526,7 +526,7 @@ export declare class OpportunityGraphFactory {
             operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send", "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send">, unknown>;
             introductionEntities: import("@langchain/langgraph").BaseChannel<EvaluatorEntity[], EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]>, unknown>;
             introductionHint: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
-            requiredIndexId: import("@langchain/langgraph").BaseChannel<Id<"indexes"> | undefined, Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined, unknown>;
+            requiredNetworkId: import("@langchain/langgraph").BaseChannel<Id<"networks"> | undefined, Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined, unknown>;
             introductionContext: import("@langchain/langgraph").BaseChannel<{
                 createdByName?: string;
             } | undefined, {
@@ -537,7 +537,7 @@ export declare class OpportunityGraphFactory {
             opportunityId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
             newStatus: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
             indexedIntents: import("@langchain/langgraph").BaseChannel<IndexedIntent[], IndexedIntent[] | import("@langchain/langgraph").OverwriteValue<IndexedIntent[]>, unknown>;
-            userIndexes: import("@langchain/langgraph").BaseChannel<Id<"indexes">[], Id<"indexes">[] | import("@langchain/langgraph").OverwriteValue<Id<"indexes">[]>, unknown>;
+            userNetworks: import("@langchain/langgraph").BaseChannel<Id<"networks">[], Id<"networks">[] | import("@langchain/langgraph").OverwriteValue<Id<"networks">[]>, unknown>;
             targetIndexes: import("@langchain/langgraph").BaseChannel<TargetIndex[], TargetIndex[] | import("@langchain/langgraph").OverwriteValue<TargetIndex[]>, unknown>;
             indexRelevancyScores: import("@langchain/langgraph").BaseChannel<Record<string, number>, Record<string, number> | import("@langchain/langgraph").OverwriteValue<Record<string, number>>, unknown>;
             discoverySource: import("@langchain/langgraph").BaseChannel<"profile" | "intent", "profile" | "intent" | import("@langchain/langgraph").OverwriteValue<"profile" | "intent">, unknown>;
@@ -555,17 +555,17 @@ export declare class OpportunityGraphFactory {
             opportunities: import("@langchain/langgraph").BaseChannel<Opportunity[], Opportunity[] | import("@langchain/langgraph").OverwriteValue<Opportunity[]>, unknown>;
             existingBetweenActors: import("@langchain/langgraph").BaseChannel<{
                 candidateUserId: Id<"users">;
-                indexId: Id<"indexes">;
+                networkId: Id<"networks">;
                 existingOpportunityId?: Id<"opportunities">;
                 existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[], {
                 candidateUserId: Id<"users">;
-                indexId: Id<"indexes">;
+                networkId: Id<"networks">;
                 existingOpportunityId?: Id<"opportunities">;
                 existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[] | import("@langchain/langgraph").OverwriteValue<{
                 candidateUserId: Id<"users">;
-                indexId: Id<"indexes">;
+                networkId: Id<"networks">;
                 existingOpportunityId?: Id<"opportunities">;
                 existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[]>, unknown>;
@@ -879,7 +879,7 @@ export declare class OpportunityGraphFactory {
         persist: import("@langchain/langgraph").UpdateType<{
             userId: import("@langchain/langgraph").BaseChannel<Id<"users">, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users">>, unknown>;
             searchQuery: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
-            indexId: import("@langchain/langgraph").BaseChannel<Id<"indexes"> | undefined, Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined, unknown>;
+            networkId: import("@langchain/langgraph").BaseChannel<Id<"networks"> | undefined, Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined, unknown>;
             triggerIntentId: import("@langchain/langgraph").BaseChannel<Id<"intents"> | undefined, Id<"intents"> | import("@langchain/langgraph").OverwriteValue<Id<"intents"> | undefined> | undefined, unknown>;
             targetUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
             onBehalfOfUserId: import("@langchain/langgraph").BaseChannel<Id<"users"> | undefined, Id<"users"> | import("@langchain/langgraph").OverwriteValue<Id<"users"> | undefined> | undefined, unknown>;
@@ -887,7 +887,7 @@ export declare class OpportunityGraphFactory {
             operationMode: import("@langchain/langgraph").BaseChannel<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send", "create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send" | import("@langchain/langgraph").OverwriteValue<"create" | "update" | "delete" | "read" | "create_introduction" | "continue_discovery" | "send">, unknown>;
             introductionEntities: import("@langchain/langgraph").BaseChannel<EvaluatorEntity[], EvaluatorEntity[] | import("@langchain/langgraph").OverwriteValue<EvaluatorEntity[]>, unknown>;
             introductionHint: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
-            requiredIndexId: import("@langchain/langgraph").BaseChannel<Id<"indexes"> | undefined, Id<"indexes"> | import("@langchain/langgraph").OverwriteValue<Id<"indexes"> | undefined> | undefined, unknown>;
+            requiredNetworkId: import("@langchain/langgraph").BaseChannel<Id<"networks"> | undefined, Id<"networks"> | import("@langchain/langgraph").OverwriteValue<Id<"networks"> | undefined> | undefined, unknown>;
             introductionContext: import("@langchain/langgraph").BaseChannel<{
                 createdByName?: string;
             } | undefined, {
@@ -898,7 +898,7 @@ export declare class OpportunityGraphFactory {
             opportunityId: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
             newStatus: import("@langchain/langgraph").BaseChannel<string | undefined, string | import("@langchain/langgraph").OverwriteValue<string | undefined> | undefined, unknown>;
             indexedIntents: import("@langchain/langgraph").BaseChannel<IndexedIntent[], IndexedIntent[] | import("@langchain/langgraph").OverwriteValue<IndexedIntent[]>, unknown>;
-            userIndexes: import("@langchain/langgraph").BaseChannel<Id<"indexes">[], Id<"indexes">[] | import("@langchain/langgraph").OverwriteValue<Id<"indexes">[]>, unknown>;
+            userNetworks: import("@langchain/langgraph").BaseChannel<Id<"networks">[], Id<"networks">[] | import("@langchain/langgraph").OverwriteValue<Id<"networks">[]>, unknown>;
             targetIndexes: import("@langchain/langgraph").BaseChannel<TargetIndex[], TargetIndex[] | import("@langchain/langgraph").OverwriteValue<TargetIndex[]>, unknown>;
             indexRelevancyScores: import("@langchain/langgraph").BaseChannel<Record<string, number>, Record<string, number> | import("@langchain/langgraph").OverwriteValue<Record<string, number>>, unknown>;
             discoverySource: import("@langchain/langgraph").BaseChannel<"profile" | "intent", "profile" | "intent" | import("@langchain/langgraph").OverwriteValue<"profile" | "intent">, unknown>;
@@ -916,17 +916,17 @@ export declare class OpportunityGraphFactory {
             opportunities: import("@langchain/langgraph").BaseChannel<Opportunity[], Opportunity[] | import("@langchain/langgraph").OverwriteValue<Opportunity[]>, unknown>;
             existingBetweenActors: import("@langchain/langgraph").BaseChannel<{
                 candidateUserId: Id<"users">;
-                indexId: Id<"indexes">;
+                networkId: Id<"networks">;
                 existingOpportunityId?: Id<"opportunities">;
                 existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[], {
                 candidateUserId: Id<"users">;
-                indexId: Id<"indexes">;
+                networkId: Id<"networks">;
                 existingOpportunityId?: Id<"opportunities">;
                 existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[] | import("@langchain/langgraph").OverwriteValue<{
                 candidateUserId: Id<"users">;
-                indexId: Id<"indexes">;
+                networkId: Id<"networks">;
                 existingOpportunityId?: Id<"opportunities">;
                 existingStatus?: import("../interfaces/database.interface.js").OpportunityStatus;
             }[]>, unknown>;

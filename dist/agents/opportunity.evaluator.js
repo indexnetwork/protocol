@@ -86,7 +86,7 @@ Your Goal: Analyze a set of entities (people), each with a profile and optional 
 Input:
 - DISCOVERER: The user ID who triggered discovery (for context; they may or may not be in the entity list).
 - ENTITIES: A set of entities. Each entity has:
-  - userId, indexId (the index through which they were found)
+  - userId, networkId (the index through which they were found)
   - profile: name, bio, location, interests, skills, context
   - intents (optional): list of { intentId, payload, summary } — some entities are profile-only, some have intents
   - ragScore, matchedVia (how they were found)
@@ -324,7 +324,7 @@ CRITICAL SCORING RULES FOR DISCOVERY REQUESTS:
                 : (e.profile.name ?? '');
             return `
   USER: ${e.userId}
-  INDEX: ${e.indexId}
+  INDEX: ${e.networkId}
   PROFILE: Name: ${displayName} | Bio: ${e.profile.bio ?? ''} | Location: ${e.profile.location ?? ''} | Interests: ${e.profile.interests?.join(', ') ?? ''} | Skills: ${e.profile.skills?.join(', ') ?? ''} | Context: ${e.profile.context ?? ''}${intentsPart}
   RAG SCORE: ${e.ragScore ?? '—'}
   MATCHED VIA: ${e.matchedVia ?? '—'}`;

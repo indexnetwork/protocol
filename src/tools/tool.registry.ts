@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { DefineTool, ResolvedToolContext, ToolDeps, RawToolDefinition, ToolRegistry } from './tool.helpers.js';
 import { createProfileTools } from './profile.tools.js';
 import { createIntentTools } from './intent.tools.js';
-import { createIndexTools } from './index.tools.js';
+import { createNetworkTools } from './network.tools.js';
 import { createOpportunityTools } from './opportunity.tools.js';
 import { createUtilityTools } from './utility.tools.js';
 import { createIntegrationTools } from './integration.tools.js';
@@ -64,7 +64,7 @@ export function createToolRegistry(deps: ToolDeps): ToolRegistry {
   const dt = defineTool as DefineTool;
   createProfileTools(dt, deps);
   createIntentTools(dt, deps);
-  createIndexTools(dt, deps);
+  createNetworkTools(dt, deps);
   createOpportunityTools(dt, deps);
   createUtilityTools(dt, deps);
   createIntegrationTools(dt, deps);

@@ -292,7 +292,7 @@ export async function runDiscoverFromQuery(input) {
         return {
             found: false,
             count: 0,
-            message: "You need to join at least one index (community) to discover opportunities. Use read_indexes to see available indexes, or create one.",
+            message: "You need to join at least one network (community) to discover opportunities. Use read_networks to see available networks, or create one.",
         };
     }
     const debugSteps = [];
@@ -315,7 +315,7 @@ export async function runDiscoverFromQuery(input) {
         const result = await opportunityGraph.invoke({
             userId,
             searchQuery: queryOrEmpty || undefined,
-            indexId: indexScope.length === 1 ? indexScope[0] : undefined,
+            networkId: indexScope.length === 1 ? indexScope[0] : undefined,
             triggerIntentId,
             targetUserId,
             onBehalfOfUserId,

@@ -127,7 +127,7 @@ export class IntentGraphFactory {
                     operationMode: state.operationMode,
                     hasContent: !!state.inputContent,
                     targetIntentIds: state.targetIntentIds,
-                    indexId: state.indexId,
+                    networkId: state.networkId,
                 });
                 // Gate: write operations require an existing profile
                 if (state.operationMode !== 'read') {
@@ -565,16 +565,16 @@ export class IntentGraphFactory {
             return timed("IntentGraph.query", async () => {
                 logger.verbose("Starting query (read mode)", {
                     userId: state.userId,
-                    indexId: state.indexId,
+                    networkId: state.networkId,
                     queryUserId: state.queryUserId,
                     allUserIntents: state.allUserIntents,
                 });
                 try {
                     // When allUserIntents is true, ignore index scope and return all
-                    const effectiveIndexId = state.allUserIntents ? undefined : state.indexId;
+                    const effectiveIndexId = state.allUserIntents ? undefined : state.networkId;
                     if (effectiveIndexId) {
                         // Verify membership
-                        const isMember = await this.database.isIndexMember(effectiveIndexId, state.userId);
+                        const isMember = await this.database.isNetworkMember(effectiveIndexId, state.userId);
                         if (!isMember) {
                             return {
                                 readResult: {
@@ -594,14 +594,14 @@ export class IntentGraphFactory {
                                         count: 0,
                                         intents: [],
                                         message: "No intents in this index yet.",
-                                        indexId: effectiveIndexId,
+                                        networkId: effectiveIndexId,
                                     },
                                 };
                             }
                             return {
                                 readResult: {
                                     count: intents.length,
-                                    indexId: effectiveIndexId,
+                                    networkId: effectiveIndexId,
                                     intents: intents.map((i) => ({
                                         id: i.id,
                                         description: i.payload,
@@ -624,7 +624,7 @@ export class IntentGraphFactory {
                                     message: effectiveUserId === state.userId
                                         ? "You don't have any intents in this index yet."
                                         : "No intents for that user in this index.",
-                                    indexId: effectiveIndexId,
+                                    networkId: effectiveIndexId,
                                 },
                             };
                         }
@@ -633,7 +633,7 @@ export class IntentGraphFactory {
                         return {
                             readResult: {
                                 count: intents.length,
-                                indexId: effectiveIndexId,
+                                networkId: effectiveIndexId,
                                 intents: intents.map((i) => ({
                                     id: i.id,
                                     description: i.payload,

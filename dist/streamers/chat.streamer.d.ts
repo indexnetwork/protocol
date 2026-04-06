@@ -27,7 +27,7 @@ export declare class ChatStreamer {
         message: string;
         sessionId: string;
         maxContextMessages?: number;
-        indexId?: string;
+        networkId?: string;
         prefillMessages?: Array<{
             role: "assistant" | "user";
             content: string;
@@ -49,7 +49,7 @@ export declare class ChatStreamer {
     streamChatEvents(input: {
         userId: string;
         messages: BaseMessage[];
-        indexId?: string;
+        networkId?: string;
     }, sessionId: string, checkpointer?: BaseCheckpointSaver, signal?: AbortSignal): AsyncGenerator<ChatStreamEvent>;
 }
 //# sourceMappingURL=chat.streamer.d.ts.map

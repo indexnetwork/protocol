@@ -12,7 +12,7 @@ export const OpportunityGraphState = Annotation.Root({
         reducer: (curr, next) => next ?? curr,
         default: () => undefined,
     }),
-    indexId: Annotation({
+    networkId: Annotation({
         reducer: (curr, next) => next ?? curr,
         default: () => undefined,
     }),
@@ -40,7 +40,7 @@ export const OpportunityGraphState = Annotation.Root({
      * - 'create': Existing discover pipeline (Prep → Scope → Discovery → Evaluation → Ranking → Persist)
      * - 'create_introduction': Introduction path (validation → evaluation → persist) for chat-driven intros
      * - 'continue_discovery': Pagination path (Prep → Evaluation → Ranking → Persist) using pre-loaded candidates
-     * - 'read': List opportunities filtered by userId and optionally indexId (fast path)
+     * - 'read': List opportunities filtered by userId and optionally networkId (fast path)
      * - 'update': Change opportunity status (accept, reject, etc.)
      * - 'delete': Expire/archive an opportunity
      * - 'send': Promote latent opportunity to pending + queue notification
@@ -61,8 +61,8 @@ export const OpportunityGraphState = Annotation.Root({
         reducer: (curr, next) => next ?? curr,
         default: () => undefined,
     }),
-    /** When set (e.g. chat scope), indexId must match this. */
-    requiredIndexId: Annotation({
+    /** When set (e.g. chat scope), networkId must match this. */
+    requiredNetworkId: Annotation({
         reducer: (curr, next) => next ?? curr,
         default: () => undefined,
     }),
@@ -87,8 +87,8 @@ export const OpportunityGraphState = Annotation.Root({
         reducer: (curr, next) => next ?? curr,
         default: () => [],
     }),
-    /** User's index memberships (from prep) */
-    userIndexes: Annotation({
+    /** User's network memberships (from prep) */
+    userNetworks: Annotation({
         reducer: (curr, next) => next ?? curr,
         default: () => [],
     }),

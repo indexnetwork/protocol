@@ -1,6 +1,6 @@
 import { createProfileTools } from './profile.tools.js';
 import { createIntentTools } from './intent.tools.js';
-import { createIndexTools } from './index.tools.js';
+import { createNetworkTools } from './network.tools.js';
 import { createOpportunityTools } from './opportunity.tools.js';
 import { createUtilityTools } from './utility.tools.js';
 import { createIntegrationTools } from './integration.tools.js';
@@ -27,7 +27,7 @@ export function createToolRegistry(deps) {
             schema: opts.querySchema,
             handler: async (input) => {
                 logger.verbose(`Tool: ${opts.name}`, {
-                    context: { userId: input.context.userId, indexId: input.context.indexId },
+                    context: { userId: input.context.userId, networkId: input.context.networkId },
                     query: input.query,
                 });
                 try {
@@ -51,7 +51,7 @@ export function createToolRegistry(deps) {
     const dt = defineTool;
     createProfileTools(dt, deps);
     createIntentTools(dt, deps);
-    createIndexTools(dt, deps);
+    createNetworkTools(dt, deps);
     createOpportunityTools(dt, deps);
     createUtilityTools(dt, deps);
     createIntegrationTools(dt, deps);
