@@ -146,7 +146,15 @@ describe('persistOpportunities', () => {
   });
 
   it('uses atomic createOpportunityAndExpireIds when available and enrichment found overlaps', async () => {
-    const existingOpp = makeOpportunity({ id: 'opp-old', status: 'pending' });
+    // Use matching intent IDs to trigger Phase 1 (intent-based) enrichment path
+    const SHARED_INTENT = 'intent-shared-abc' as never;
+    const actor = { userId: 'user-1' as never, role: 'patient', intent: SHARED_INTENT, networkId: 'net-1' as never };
+
+    const existingOpp = makeOpportunity({
+      id: 'opp-old',
+      status: 'pending',
+      actors: [actor],
+    });
     const newOpp = makeOpportunity({ id: 'opp-new', status: 'pending' });
     const expiredOpp = makeOpportunity({ id: 'opp-old', status: 'expired' });
 
@@ -162,10 +170,15 @@ describe('persistOpportunities', () => {
       },
     };
 
+    const itemWithMatchingActor = makeCreateData({
+      actors: [actor] as never,
+      interpretation: { category: 'connection', reasoning: 'Shared ML intent', confidence: 0.9, signals: [] } as never,
+    });
+
     const result = await persistOpportunities({
       database,
       embedder: mockEmbedder,
-      items: [makeCreateData()],
+      items: [itemWithMatchingActor],
     });
 
     expect(atomicCalled).toBe(true);

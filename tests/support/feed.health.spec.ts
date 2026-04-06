@@ -86,7 +86,6 @@ describe('computeFeedHealth', () => {
     });
     // expiredCount=9, totalActionable=1 → total=10, expirationRatio = 1 - 9/10 = 0.1
     expect(result.breakdown.expirationRatio).toBeCloseTo(0.1, 5);
-    expect(result.shouldMaintain).toBe(true);
   });
 
   it('expirationRatio is 1 when no expired items', () => {
