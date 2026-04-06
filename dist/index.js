@@ -11,7 +11,7 @@ export { IndexMembershipGraphFactory } from "./graphs/index_membership.graph.js"
 export { IntentGraphFactory } from "./graphs/intent.graph.js";
 export { IntentIndexGraphFactory } from "./graphs/intent_index.graph.js";
 export { MaintenanceGraphFactory } from "./graphs/maintenance.graph.js";
-export { NegotiationGraphFactory, createDefaultNegotiationGraph } from "./graphs/negotiation.graph.js";
+export { NegotiationGraphFactory, createDefaultNegotiationGraph, negotiateCandidates } from "./graphs/negotiation.graph.js";
 export { OpportunityGraphFactory } from "./graphs/opportunity.graph.js";
 export { ProfileGraphFactory } from "./graphs/profile.graph.js";
 // ─── Agents (used by the protocol app; advanced use for external consumers) ───
@@ -24,10 +24,13 @@ export { LensInferrer } from "./agents/lens.inferrer.js";
 export { NegotiationInsightsGenerator } from "./agents/negotiation.insights.generator.js";
 export { NegotiationProposer } from "./agents/negotiation.proposer.js";
 export { NegotiationResponder } from "./agents/negotiation.responder.js";
+export { OpportunityEvaluator } from "./agents/opportunity.evaluator.js";
 export { OpportunityPresenter, gatherPresenterContext } from "./agents/opportunity.presenter.js";
 // ─── Support utilities (used by the protocol app) ─────────────────────────────
-export { canUserSeeOpportunity, isActionableForViewer, validateOpportunityActors, } from "./support/opportunity.utils.js";
+export { canUserSeeOpportunity, isActionableForViewer, validateOpportunityActors, classifyOpportunity, selectByComposition, FEED_SOFT_TARGETS, } from "./support/opportunity.utils.js";
 export { getPrimaryActionLabel } from "./support/opportunity.constants.js";
+export { computeFeedHealth } from "./support/feed.health.js";
+export { selectContactsForDiscovery, shouldRunIntroducerDiscovery, runIntroducerDiscovery, MAX_CONTACTS_PER_CYCLE, MAX_CANDIDATES_PER_CONTACT, INTRODUCER_DISCOVERY_SOURCE, } from "./support/introducer.discovery.js";
 export { persistOpportunities } from "./support/opportunity.persist.js";
 export { presentOpportunity } from "./support/opportunity.presentation.js";
 export { stripUuids, stripIntroducerMentions } from "./support/opportunity.sanitize.js";

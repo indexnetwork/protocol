@@ -24,7 +24,7 @@ export { IntentGraphFactory } from "./graphs/intent.graph.js";
 export { IntentIndexGraphFactory } from "./graphs/intent_index.graph.js";
 export { MaintenanceGraphFactory } from "./graphs/maintenance.graph.js";
 export type { MaintenanceGraphDatabase, MaintenanceGraphCache, MaintenanceGraphQueue, } from "./graphs/maintenance.graph.js";
-export { NegotiationGraphFactory, createDefaultNegotiationGraph } from "./graphs/negotiation.graph.js";
+export { NegotiationGraphFactory, createDefaultNegotiationGraph, negotiateCandidates } from "./graphs/negotiation.graph.js";
 export { OpportunityGraphFactory } from "./graphs/opportunity.graph.js";
 export { ProfileGraphFactory } from "./graphs/profile.graph.js";
 export { ChatTitleGenerator } from "./agents/chat.title.generator.js";
@@ -39,10 +39,16 @@ export { NegotiationInsightsGenerator } from "./agents/negotiation.insights.gene
 export type { NegotiationDigest } from "./agents/negotiation.insights.generator.js";
 export { NegotiationProposer } from "./agents/negotiation.proposer.js";
 export { NegotiationResponder } from "./agents/negotiation.responder.js";
+export { OpportunityEvaluator } from "./agents/opportunity.evaluator.js";
+export type { EvaluatorInput, OpportunityEvaluatorOptionsConstructor, } from "./agents/opportunity.evaluator.js";
 export { OpportunityPresenter, gatherPresenterContext } from "./agents/opportunity.presenter.js";
 export type { PresenterDatabase } from "./agents/opportunity.presenter.js";
-export { canUserSeeOpportunity, isActionableForViewer, validateOpportunityActors, } from "./support/opportunity.utils.js";
+export { canUserSeeOpportunity, isActionableForViewer, validateOpportunityActors, classifyOpportunity, selectByComposition, FEED_SOFT_TARGETS, } from "./support/opportunity.utils.js";
 export { getPrimaryActionLabel } from "./support/opportunity.constants.js";
+export { computeFeedHealth } from "./support/feed.health.js";
+export type { FeedHealthInput, FeedHealthResult } from "./support/feed.health.js";
+export { selectContactsForDiscovery, shouldRunIntroducerDiscovery, runIntroducerDiscovery, MAX_CONTACTS_PER_CYCLE, MAX_CANDIDATES_PER_CONTACT, INTRODUCER_DISCOVERY_SOURCE, } from "./support/introducer.discovery.js";
+export type { IntroducerDiscoveryDatabase, IntroducerDiscoveryQueue, ContactWithIntents, } from "./support/introducer.discovery.js";
 export { persistOpportunities } from "./support/opportunity.persist.js";
 export { presentOpportunity } from "./support/opportunity.presentation.js";
 export type { UserInfo } from "./support/opportunity.presentation.js";
@@ -50,7 +56,7 @@ export { stripUuids, stripIntroducerMentions } from "./support/opportunity.sanit
 export { createToolRegistry } from "./tools/tool.registry.js";
 export { createMcpServer } from "./mcp/mcp.server.js";
 export type { ScopedDepsFactory } from "./mcp/mcp.server.js";
-export type { UserNegotiationContext } from "./states/negotiation.state.js";
+export type { UserNegotiationContext, NegotiationTurn, SeedAssessment, NegotiationGraphLike, } from "./states/negotiation.state.js";
 export { ChatStreamer } from "./streamers/chat.streamer.js";
 export { ResponseStreamer } from "./streamers/response.streamer.js";
 //# sourceMappingURL=index.d.ts.map
