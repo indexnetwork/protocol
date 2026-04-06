@@ -1,0 +1,54 @@
+# Publish @indexnetwork/protocol to npm when a v* tag is pushed.
+#
+# Requires: GitHub repo secret INDEX_REPO_TOKEN (npm automation token).
+#
+# Usage:
+#   git tag v0.2.1
+#   git push origin v0.2.1
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    name: Build and publish to npm
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Sync version in package.json
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json
+
+      - name: Build
+        run: bun run build
+
+      - name: Publish
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.INDEX_REPO_TOKEN }}
