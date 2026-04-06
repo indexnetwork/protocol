@@ -3,15 +3,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it } from "bun:test";
-<<<<<<<< HEAD:packages/protocol/src/agents/tests/intent.networker.spec.ts
-<<<<<<<< HEAD:packages/protocol/src/agents/tests/intent.indexer.spec.ts
-import { IntentIndexer } from "../intent.indexer.js";
-========
-import { IntentNetworker } from "../intent.networker";
->>>>>>>> 608653918 (refactor: rename community 'index' to 'network' across full stack):packages/protocol/src/agents/tests/intent.networker.spec.ts
-========
-import { IntentIndexer } from "../intent.indexer";
->>>>>>>> c2f12b51f (refactor: rename IntentNetworker back to IntentIndexer):packages/protocol/src/agents/tests/intent.indexer.spec.ts
+import { IntentIndexer } from "../../src/agents/intent.indexer.js";
 
 describe("IntentIndexer", () => {
   const indexer = new IntentIndexer();

@@ -16,13 +16,13 @@ import { describe, test, expect } from "bun:test";
 import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import type { BaseMessage } from "@langchain/core/messages";
 
-import type { ResolvedToolContext } from "../tools/index.js";
-import { buildSystemContent } from "./chat.prompt.js";
+import type { ResolvedToolContext } from "../../src/tools/index.js";
+import { buildSystemContent } from "../../src/agents/chat.prompt.js";
 import {
   extractRecentToolCalls,
   resolveModules,
   type IterationContext,
-} from "./chat.prompt.modules.js";
+} from "../../src/agents/chat.prompt.modules.js";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 

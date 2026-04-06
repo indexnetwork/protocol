@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it } from "bun:test";
-import { SemanticVerifier } from "../intent.verifier.js";
+import { SemanticVerifier } from "../../src/agents/intent.verifier.js";
 
 describe('SemanticVerifier', () => {
   const verifier = new SemanticVerifier();

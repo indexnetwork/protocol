@@ -7,7 +7,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it } from 'bun:test';
-import { HYDE_CORPUS_PROMPTS, HYDE_DEFAULT_CACHE_TTL } from '../hyde.strategies.js';
+import { HYDE_CORPUS_PROMPTS, HYDE_DEFAULT_CACHE_TTL } from '../../src/agents/hyde.strategies.js';
 
 describe('HyDE Corpus Prompts', () => {
   it('profiles prompt embeds source text and lens with intent-aware framing', () => {

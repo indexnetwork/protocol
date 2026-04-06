@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it } from "bun:test";
-import { ExplicitIntentInferrer } from "../intent.inferrer.js";
+import { ExplicitIntentInferrer } from "../../src/agents/intent.inferrer.js";
 
 describe('ExplicitIntentInferrer - Basic Inference', () => {
   const inferrer = new ExplicitIntentInferrer();
@@ -35,7 +35,7 @@ describe('ExplicitIntentInferrer - Basic Inference', () => {
     const content = "Hey how are you?";
     const result = await inferrer.invoke(content, profileContext);
     // Should be empty or filtered out by the rules
-    // The extraction might find nothing or find it low confidence. 
+    // The extraction might find nothing or find it low confidence.
     // Our prompt says "IGNORE purely phatic communication... return empty intents"
     expect(result.intents.length).toBe(0);
   }, 30000);
@@ -63,27 +63,27 @@ I've been exploring AI/ML and want to transition into that space.
 
   it('should return empty array when allowProfileFallback is false and no content provided', async () => {
     const result = await inferrer.invoke(
-      null, 
-      mockProfile, 
-      { 
+      null,
+      mockProfile,
+      {
         allowProfileFallback: false,
         operationMode: 'create'
       }
     );
-    
+
     expect(result.intents.length).toBe(0);
   }, 30000);
 
   it('should infer from profile when allowProfileFallback is true and no content provided', async () => {
     const result = await inferrer.invoke(
-      null, 
-      mockProfile, 
-      { 
+      null,
+      mockProfile,
+      {
         allowProfileFallback: true,
         operationMode: 'create'
       }
     );
-    
+
     expect(result.intents.length).toBeGreaterThan(0);
   }, 30000);
 
@@ -91,12 +91,12 @@ I've been exploring AI/ML and want to transition into that space.
     const result = await inferrer.invoke(
       'I want to learn Rust programming and build a web framework',
       mockProfile,
-      { 
+      {
         allowProfileFallback: false,
         operationMode: 'create'
       }
     );
-    
+
     expect(result.intents.length).toBeGreaterThan(0);
   }, 30000);
 
@@ -106,7 +106,7 @@ I've been exploring AI/ML and want to transition into that space.
       mockProfile
       // No options provided
     );
-    
+
     expect(result.intents.length).toBeGreaterThan(0);
   }, 30000);
 
@@ -114,12 +114,12 @@ I've been exploring AI/ML and want to transition into that space.
     const result = await inferrer.invoke(
       'Change my ML goal to focus on computer vision instead',
       mockProfile,
-      { 
+      {
         allowProfileFallback: false,
         operationMode: 'update'
       }
     );
-    
+
     expect(result.intents.length).toBeGreaterThanOrEqual(0);
   }, 30000);
 

@@ -2,7 +2,7 @@
 import { config } from "dotenv";
 config({ path: '.env.test' });
 
-import { ProfileGenerator } from "../profile.generator.js";
+import { ProfileGenerator } from "../../src/agents/profile.generator.js";
 import { beforeEach, describe, expect, it } from "bun:test";
 
 const FIXTURE_RESULTS = JSON.stringify([

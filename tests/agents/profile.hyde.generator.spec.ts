@@ -2,7 +2,7 @@
 import { config } from "dotenv";
 config({ path: '.env.test' });
 
-import { HydeGenerator } from "../profile.hyde.generator.js";
+import { HydeGenerator } from "../../src/agents/profile.hyde.generator.js";
 import { beforeEach, describe, expect, it } from "bun:test";
 
 describe('HyDE Generator', () => {

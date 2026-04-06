@@ -1,11 +1,9 @@
-// protocol/src/lib/protocol/agents/tests/lens.inferrer.spec.ts
-
 /** Config */
 import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, expect, it, beforeAll } from 'bun:test';
-import { LensInferrer, type Lens } from '../lens.inferrer.js';
+import { LensInferrer, type Lens } from '../../src/agents/lens.inferrer.js';
 
 describe('LensInferrer', () => {
   let inferrer: LensInferrer;

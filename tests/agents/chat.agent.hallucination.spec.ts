@@ -29,7 +29,7 @@ const makeMockModel = () => {
   return inst;
 };
 
-mock.module("../model.config", () => ({
+mock.module("../../src/agents/model.config", () => ({
   createModel: (agent: string) => {
     const inst = makeMockModel();
     if (agent === "chat") {
@@ -40,7 +40,7 @@ mock.module("../model.config", () => ({
 }));
 
 // Mock resolveChatContext to skip DB lookups — return a full ResolvedToolContext
-mock.module("../../tools/tool.helpers", () => ({
+mock.module("../../src/tools/tool.helpers", () => ({
   resolveChatContext: async (ctx: Record<string, unknown>) => ({
     userId: ctx.userId ?? "test-user",
     userName: "Test User",
@@ -93,7 +93,7 @@ function createMockTools() {
   return capturedTools;
 }
 
-mock.module("../../tools", () => ({
+mock.module("../../src/tools", () => ({
   createChatTools: async () => createMockTools(),
 }));
 
@@ -101,7 +101,7 @@ import {
   AIMessageChunk,
   HumanMessage,
 } from "@langchain/core/messages";
-import { ChatAgent, type AgentStreamEvent } from "../chat.agent.js";
+import { ChatAgent, type AgentStreamEvent } from "../../src/agents/chat.agent.js";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

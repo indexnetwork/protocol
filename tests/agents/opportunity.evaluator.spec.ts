@@ -4,7 +4,7 @@ config({ path: '.env.test' });
 
 import { describe, expect, it } from "bun:test";
 import type { Runnable } from "@langchain/core/runnables";
-import { OpportunityEvaluator, CandidateProfile, EvaluatorInput } from "../opportunity.evaluator.js";
+import { OpportunityEvaluator, CandidateProfile, EvaluatorInput } from "../../src/agents/opportunity.evaluator.js";
 
 describe('OpportunityEvaluator', () => {
   const evaluator = new OpportunityEvaluator();
