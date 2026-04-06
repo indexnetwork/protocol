@@ -1,0 +1,4 @@
+.env.test
+.env.local
+dist/
+node_modules/
