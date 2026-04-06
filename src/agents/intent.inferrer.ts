@@ -7,15 +7,6 @@ import { createModel } from "./model.config.js";
 
 const logger = protocolLogger("ExplicitIntentInferrer");
 
-/**
- * Config
- */
-import { config } from "dotenv";
-config({ path: '.env.development', override: true });
-
-
-const model = createModel("intentInferrer");
-
 // ──────────────────────────────────────────────────────────────
 // 0. INFERRER OPTIONS
 // ──────────────────────────────────────────────────────────────
@@ -146,6 +137,7 @@ export class ExplicitIntentInferrer {
   private model: any;
 
   constructor() {
+    const model = createModel("intentInferrer");
     this.model = model.withStructuredOutput(responseFormat, {
       name: "intent_inferrer"
     });

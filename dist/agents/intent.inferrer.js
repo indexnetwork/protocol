@@ -14,12 +14,6 @@ import { protocolLogger } from "../support/protocol.logger.js";
 import { Timed } from "../support/performance.js";
 import { createModel } from "./model.config.js";
 const logger = protocolLogger("ExplicitIntentInferrer");
-/**
- * Config
- */
-import { config } from "dotenv";
-config({ path: '.env.development', override: true });
-const model = createModel("intentInferrer");
 // ──────────────────────────────────────────────────────────────
 // 1. SYSTEM PROMPT
 // ──────────────────────────────────────────────────────────────
@@ -104,6 +98,7 @@ const responseFormat = z.object({
 // ──────────────────────────────────────────────────────────────
 export class ExplicitIntentInferrer {
     constructor() {
+        const model = createModel("intentInferrer");
         this.model = model.withStructuredOutput(responseFormat, {
             name: "intent_inferrer"
         });
