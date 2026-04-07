@@ -4,10 +4,10 @@ config({ path: '.env.test' });
 
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { ProfileGraphFactory } from '../profile.graph.js';
-import { ProfileGraphDatabase } from '../../interfaces/database.interface.js';
-import { Embedder } from '../../interfaces/embedder.interface.js';
-import { Scraper } from '../../interfaces/scraper.interface.js';
-import { ProfileDocument } from '../../agents/profile.generator.js';
+import { ProfileGraphDatabase } from '../../shared/interfaces/database.interface.js';
+import { Embedder } from '../../shared/interfaces/embedder.interface.js';
+import { Scraper } from '../../shared/interfaces/scraper.interface.js';
+import { ProfileDocument } from '../profile.generator.js';
 
 describe('ProfileGraph', () => {
   let factory: ProfileGraphFactory;
@@ -431,9 +431,9 @@ describe('ProfileGraph', () => {
 
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { ProfileGraphFactory } from '../profile.graph.js';
-import type { ProfileGraphDatabase } from '../../interfaces/database.interface.js';
-import type { Embedder } from '../../interfaces/embedder.interface.js';
-import type { Scraper } from '../../interfaces/scraper.interface.js';
+import type { ProfileGraphDatabase } from '../../shared/interfaces/database.interface.js';
+import type { Embedder } from '../../shared/interfaces/embedder.interface.js';
+import type { Scraper } from '../../shared/interfaces/scraper.interface.js';
 
 const mockEnrichUserProfile = mock(async () => null as any);
 
@@ -717,9 +717,9 @@ describe('ProfileGraph - Generate Mode', () => {
 
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { ProfileGraphFactory } from '../profile.graph.js';
-import type { ProfileGraphDatabase } from '../../interfaces/database.interface.js';
-import type { Embedder } from '../../interfaces/embedder.interface.js';
-import type { Scraper } from '../../interfaces/scraper.interface.js';
+import type { ProfileGraphDatabase } from '../../shared/interfaces/database.interface.js';
+import type { Embedder } from '../../shared/interfaces/embedder.interface.js';
+import type { Scraper } from '../../shared/interfaces/scraper.interface.js';
 
 /**
  * Tests for the pre-populated profile path in ProfileGraph.

@@ -1,6 +1,6 @@
 import { Annotation } from "@langchain/langgraph";
-import type { IntentIndexerOutput } from "../agents/intent.indexer.js";
-import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
+import type { IntentIndexerOutput } from "../../intent/intent.indexer.js";
+import type { DebugMetaAgent } from '../../chat/chat-streaming.types.js';
 
 /**
  * Intent payload and metadata loaded for index evaluation.

@@ -1,10 +1,10 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
 
-import { NetworkGraphDatabase } from "../interfaces/database.interface.js";
-import { protocolLogger } from "../support/protocol.logger.js";
-import { timed } from "../support/performance.js";
+import { NetworkGraphDatabase } from "../shared/interfaces/database.interface.js";
+import { protocolLogger } from "../shared/observability/protocol.logger.js";
+import { timed } from "../shared/observability/performance.js";
 
-import { NetworkGraphState } from "../states/network.state.js";
+import { NetworkGraphState } from "./network.state.js";
 
 const logger = protocolLogger("NetworkGraphFactory");
 

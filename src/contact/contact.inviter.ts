@@ -9,7 +9,7 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 
-import { createModel } from "./model.config.js";
+import { createModel } from "../shared/agent/model.config.js";
 
 const model = createModel("inviteGenerator");
 

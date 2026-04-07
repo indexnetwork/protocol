@@ -10,19 +10,19 @@ import {
   createChatTools,
   type ToolContext,
   type ResolvedToolContext,
-} from "../tools/index.js";
-import { resolveChatContext } from "../tools/tool.helpers.js";
+} from "../shared/agent/tool.factory.js";
+import { resolveChatContext } from "../shared/agent/tool.helpers.js";
 import { ITERATION_NUDGE, buildSystemContent } from "./chat.prompt.js";
 import {
   extractRecentToolCalls,
   type IterationContext,
 } from "./chat.prompt.modules.js";
-import { protocolLogger } from "../support/protocol.logger.js";
-import { createModel } from "./model.config.js";
-import { sanitizeForDebugMeta } from "../support/debug-meta.sanitizer.js";
-import type { DebugMetaToolCall } from "../types/chat-streaming.types.js";
-import { Timed } from "../support/performance.js";
-import { requestContext } from "../support/request-context.js";
+import { protocolLogger } from "../shared/observability/protocol.logger.js";
+import { createModel } from "../shared/agent/model.config.js";
+import { sanitizeForDebugMeta } from "../shared/observability/debug-meta.sanitizer.js";
+import type { DebugMetaToolCall } from "./chat-streaming.types.js";
+import { Timed } from "../shared/observability/performance.js";
+import { requestContext } from "../shared/observability/request-context.js";
 
 const logger = protocolLogger("ChatAgent");
 

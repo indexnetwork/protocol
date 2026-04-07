@@ -4,7 +4,7 @@ config({ path: '.env.test' });
 
 import { describe, it, expect } from "bun:test";
 import { NegotiationResponder } from "../negotiation.responder.js";
-import type { UserNegotiationContext, SeedAssessment, NegotiationTurn } from "../../states/negotiation.state.js";
+import type { UserNegotiationContext, SeedAssessment, NegotiationTurn } from "../negotiation.state.js";
 
 const founderUser: UserNegotiationContext = {
   id: 'user-alice',

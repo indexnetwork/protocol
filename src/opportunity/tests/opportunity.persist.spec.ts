@@ -3,8 +3,8 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, it, expect } from "bun:test";
-import type { Opportunity, CreateOpportunityData, OpportunityStatus } from "../../interfaces/database.interface.js";
-import type { Embedder } from "../../interfaces/embedder.interface.js";
+import type { Opportunity, CreateOpportunityData, OpportunityStatus } from "../../shared/interfaces/database.interface.js";
+import type { Embedder } from "../../shared/interfaces/embedder.interface.js";
 import { persistOpportunities } from "../opportunity.persist.js";
 
 // ─── Mock helpers ─────────────────────────────────────────────────────────────

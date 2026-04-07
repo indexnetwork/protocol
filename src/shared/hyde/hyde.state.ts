@@ -5,8 +5,8 @@
 
 import { Annotation } from '@langchain/langgraph';
 import type { Id } from '../interfaces/database.interface.js';
-import type { Lens, HydeTargetCorpus } from '../agents/lens.inferrer.js';
-import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
+import type { Lens, HydeTargetCorpus } from './lens.inferrer.js';
+import type { DebugMetaAgent } from '../../chat/chat-streaming.types.js';
 
 /** Single HyDE document (text + embedding) for one lens. */
 export interface HydeDocumentState {

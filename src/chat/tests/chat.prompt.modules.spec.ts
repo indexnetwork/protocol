@@ -5,7 +5,7 @@ config({ path: ".env.test" });
 import { describe, test, expect } from "bun:test";
 import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 
-import type { ResolvedToolContext } from "../../tools/index.js";
+import type { ResolvedToolContext } from "../../shared/agent/tool.factory.js";
 
 import { buildSystemContent } from "../chat.prompt.js";
 import {

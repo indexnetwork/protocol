@@ -8,9 +8,9 @@ config({ path: '.env.test' });
 
 import { describe, expect, it, beforeAll } from "bun:test";
 import { ChatGraphFactory } from "../chat.graph.js";
-import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../interfaces/database.interface.js";
-import type { Embedder } from "../../interfaces/embedder.interface.js";
-import type { Scraper } from "../../interfaces/scraper.interface.js";
+import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../shared/interfaces/database.interface.js";
+import type { Embedder } from "../../shared/interfaces/embedder.interface.js";
+import type { Scraper } from "../../shared/interfaces/scraper.interface.js";
 import { mockChatSessionReader, createMockProtocolDeps } from "./chat.graph.mocks.js";
 
 const testUserId = "test-chat-graph-user";
@@ -129,10 +129,10 @@ import { describe, expect, it, beforeAll, spyOn, afterEach } from "bun:test";
 import { HumanMessage } from "@langchain/core/messages";
 import { MemorySaver } from "@langchain/langgraph";
 import { ChatGraphFactory } from "../chat.graph.js";
-import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../interfaces/database.interface.js";
-import type { Embedder } from "../../interfaces/embedder.interface.js";
-import type { Scraper } from "../../interfaces/scraper.interface.js";
-import type { ChatSessionReader } from "../../interfaces/chat-session.interface.js";
+import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../shared/interfaces/database.interface.js";
+import type { Embedder } from "../../shared/interfaces/embedder.interface.js";
+import type { Scraper } from "../../shared/interfaces/scraper.interface.js";
+import type { ChatSessionReader } from "../../shared/interfaces/chat-session.interface.js";
 import { createMockProtocolDeps } from "./chat.graph.mocks.js";
 
 const testFactoryUserId = "test-chat-factory-user";
@@ -310,12 +310,12 @@ describe("ChatGraphFactory", () => {
 import { describe, expect, it, beforeAll, spyOn, afterEach } from "bun:test";
 import { HumanMessage } from "@langchain/core/messages";
 import { ChatGraphFactory } from "../chat.graph.js";
-import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../interfaces/database.interface.js";
-import type { Embedder } from "../../interfaces/embedder.interface.js";
-import type { Scraper } from "../../interfaces/scraper.interface.js";
-import type { ChatSessionReader } from "../../interfaces/chat-session.interface.js";
+import type { ChatGraphCompositeDatabase, CreateIntentData } from "../../shared/interfaces/database.interface.js";
+import type { Embedder } from "../../shared/interfaces/embedder.interface.js";
+import type { Scraper } from "../../shared/interfaces/scraper.interface.js";
+import type { ChatSessionReader } from "../../shared/interfaces/chat-session.interface.js";
 import { createMockProtocolDeps } from "./chat.graph.mocks.js";
-import type { ChatStreamEvent } from "../../types/chat-streaming.types.js";
+import type { ChatStreamEvent } from "../chat-streaming.types.js";
 
 const testStreamUserId = "test-chat-stream-user";
 const testSessionId = "test-session-stream";

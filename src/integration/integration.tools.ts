@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import type { DefineTool, ToolDeps } from './tool.helpers.js';
-import { success, error } from './tool.helpers.js';
-import { requestContext } from "../support/request-context.js";
-import { log } from '../support/log.js';
+import type { DefineTool, ToolDeps } from '../shared/agent/tool.helpers.js';
+import { success, error } from '../shared/agent/tool.helpers.js';
+import { requestContext } from "../shared/observability/request-context.js";
+import { log } from '../shared/observability/log.js';
 
 const logger = log.lib.from('integration.tools');
 

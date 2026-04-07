@@ -1,6 +1,6 @@
 import type { BaseMessage, AIMessage } from "@langchain/core/messages";
 
-import type { ResolvedToolContext } from "../tools/index.js";
+import type { ResolvedToolContext } from "../shared/agent/tool.factory.js";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES

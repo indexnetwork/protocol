@@ -11,14 +11,14 @@ import type { Runnable } from "@langchain/core/runnables";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 
-import { Timed } from "../support/performance.js";
+import { Timed } from "../shared/observability/performance.js";
 
-import { protocolLogger } from "../support/protocol.logger.js";
-import { createModel } from "./model.config.js";
-import { viewerCentricCardSummary } from "../support/opportunity.card-text.js";
-import type { Opportunity } from "../interfaces/database.interface.js";
-import type { ChatGraphCompositeDatabase } from "../interfaces/database.interface.js";
-import { stripUuids, stripIntroducerMentions } from "../support/opportunity.sanitize.js";
+import { protocolLogger } from "../shared/observability/protocol.logger.js";
+import { createModel } from "../shared/agent/model.config.js";
+import { viewerCentricCardSummary } from "./opportunity.presentation.js";
+import type { Opportunity } from "../shared/interfaces/database.interface.js";
+import type { ChatGraphCompositeDatabase } from "../shared/interfaces/database.interface.js";
+import { stripUuids, stripIntroducerMentions } from "./opportunity.presentation.js";
 
 /**
  * Minimal database interface required by gatherPresenterContext.

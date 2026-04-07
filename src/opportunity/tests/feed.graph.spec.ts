@@ -6,10 +6,10 @@ config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
 import { HomeGraphFactory, stripLeadingNarratorName } from '../home.graph.js';
-import type { HomeGraphDatabase } from '../../interfaces/database.interface.js';
-import type { Opportunity } from '../../interfaces/database.interface.js';
-import type { OpportunityCache } from '../../interfaces/cache.interface.js';
-import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON, getIconNamesForPrompt } from '../../support/lucide.icon-catalog.js';
+import type { HomeGraphDatabase } from '../../shared/interfaces/database.interface.js';
+import type { Opportunity } from '../../shared/interfaces/database.interface.js';
+import type { OpportunityCache } from '../../shared/interfaces/cache.interface.js';
+import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON, getIconNamesForPrompt } from '../../shared/ui/lucide.icon-catalog.js';
 
 function createMockCache(): OpportunityCache {
   const store = new Map<string, unknown>();
@@ -460,7 +460,7 @@ describe('HomeGraph caching', () => {
   const viewerId = 'viewer-1';
   const otherId = 'other-1';
 
-  function cachedCard(opportunityId: string, cardIndex: number): import('../../states/home.state').HomeCardItem {
+  function cachedCard(opportunityId: string, cardIndex: number): import('../feed/feed.state.js').HomeCardItem {
     return {
       opportunityId,
       userId: otherId,
@@ -631,7 +631,7 @@ describe('Lucide icon catalog', () => {
 
 
 import { describe, test, expect } from 'bun:test';
-import { selectByComposition, classifyOpportunity, FEED_SOFT_TARGETS } from '../../support/opportunity.utils.js';
+import { selectByComposition, classifyOpportunity, FEED_SOFT_TARGETS } from '../opportunity.utils.js';
 
 /**
  * Hypothesis: The bug occurs because the home graph's fetchLimit formula
@@ -753,9 +753,9 @@ describe('home feed fetch limit bug', () => {
 
 import { describe, test, expect } from 'bun:test';
 import { HomeGraphFactory } from '../home.graph.js';
-import type { HomeGraphDatabase } from '../../interfaces/database.interface.js';
-import type { Opportunity } from '../../interfaces/database.interface.js';
-import type { OpportunityCache } from '../../interfaces/cache.interface.js';
+import type { HomeGraphDatabase } from '../../shared/interfaces/database.interface.js';
+import type { Opportunity } from '../../shared/interfaces/database.interface.js';
+import type { OpportunityCache } from '../../shared/interfaces/cache.interface.js';
 
 function createIntroMockCache(): OpportunityCache {
   const store = new Map<string, unknown>();

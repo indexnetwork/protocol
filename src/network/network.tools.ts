@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-import { requestContext } from "../support/request-context.js";
+import { requestContext } from "../shared/observability/request-context.js";
 
-import type { DefineTool, ToolDeps } from "./tool.helpers.js";
-import { success, error, UUID_REGEX } from "./tool.helpers.js";
+import type { DefineTool, ToolDeps } from "../shared/agent/tool.helpers.js";
+import { success, error, UUID_REGEX } from "../shared/agent/tool.helpers.js";
 
 export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   const { graphs, userDb, systemDb } = deps;

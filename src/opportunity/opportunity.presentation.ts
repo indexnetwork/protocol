@@ -3,7 +3,7 @@
  * Generates title, description, and CTA based on viewer context — no DB access.
  */
 
-import type { Opportunity } from '../interfaces/database.interface.js';
+import type { Opportunity } from '../shared/interfaces/database.interface.js';
 import { MINIMAL_MAIN_TEXT_MAX_CHARS } from "./opportunity.labels.js";
 
 export interface OpportunityPresentation {

@@ -13,8 +13,8 @@
  */
 
 import { StateGraph, START, END, Annotation } from '@langchain/langgraph';
-import type { Id } from '../interfaces/database.interface.js';
-import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
+import type { Id } from '../shared/interfaces/database.interface.js';
+import type { DebugMetaAgent } from '../chat/chat-streaming.types.js';
 import {
   OpportunityGraphState,
   type IndexedIntent,
@@ -24,18 +24,18 @@ import {
   type EvaluatedCandidate,
   type EvaluatedOpportunity,
   type EvaluatedOpportunityActor,
-} from '../states/opportunity.state.js';
+} from './opportunity.state.js';
 import {
   OpportunityEvaluator,
   type CandidateProfile,
   type EvaluatedOpportunityWithActors,
   type EvaluatorEntity,
   type EvaluatorInput,
-} from '../agents/opportunity.evaluator.js';
-import type { OpportunityGraphDatabase } from '../interfaces/database.interface.js';
-import { IntentIndexer } from '../agents/intent.indexer.js';
-import { getModelName } from '../agents/model.config.js';
-import { validateOpportunityActors } from '../support/opportunity.utils.js';
+} from './opportunity.evaluator.js';
+import type { OpportunityGraphDatabase } from '../shared/interfaces/database.interface.js';
+import { IntentIndexer } from '../intent/intent.indexer.js';
+import { getModelName } from '../shared/agent/model.config.js';
+import { validateOpportunityActors } from './opportunity.utils.js';
 
 /** Optional evaluator for testing (avoids LLM calls). */
 export type OpportunityEvaluatorLike = {
@@ -56,19 +56,19 @@ export type OpportunityEvaluatorLike = {
     actors: Array<{ userId: string; role: 'agent' | 'patient' | 'peer'; intentId?: string | null }>;
   }>>;
 };
-import type { Embedder, LensEmbedding } from '../interfaces/embedder.interface.js';
+import type { Embedder, LensEmbedding } from '../shared/interfaces/embedder.interface.js';
 import type {
   CreateOpportunityData,
   Opportunity,
   OpportunityActor,
   ActiveIntent,
-} from '../interfaces/database.interface.js';
-import { persistOpportunities } from '../support/opportunity.persist.js';
-import { negotiateCandidates, type NegotiationCandidate } from "./negotiation.graph.js";
-import type { NegotiationGraphLike } from "../states/negotiation.state.js";
-import { protocolLogger, withCallLogging } from '../support/protocol.logger.js';
-import { timed } from '../support/performance.js';
-import { requestContext } from "../support/request-context.js";
+} from '../shared/interfaces/database.interface.js';
+import { persistOpportunities } from './opportunity.persist.js';
+import { negotiateCandidates, type NegotiationCandidate } from "../negotiation/negotiation.graph.js";
+import type { NegotiationGraphLike } from "../negotiation/negotiation.state.js";
+import { protocolLogger, withCallLogging } from '../shared/observability/protocol.logger.js';
+import { timed } from '../shared/observability/performance.js';
+import { requestContext } from "../shared/observability/request-context.js";
 
 const logger = protocolLogger('OpportunityGraph');
 

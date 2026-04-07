@@ -1,15 +1,15 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { IntentGraphState, VerifiedIntent, ExecutionResult } from "../states/intent.state.js";
-import { ExplicitIntentInferrer } from "../agents/intent.inferrer.js";
-import { SemanticVerifier } from "../agents/intent.verifier.js";
-import { IntentReconciler } from "../agents/intent.reconciler.js";
-import { IntentGraphDatabase } from "../interfaces/database.interface.js";
-import type { EmbeddingGenerator } from "../interfaces/embedder.interface.js";
-import type { IntentGraphQueue } from "../interfaces/queue.interface.js";
-import { protocolLogger } from "../support/protocol.logger.js";
-import { timed } from "../support/performance.js";
-import { requestContext } from "../support/request-context.js";
-import type { DebugMetaAgent } from "../types/chat-streaming.types.js";
+import { IntentGraphState, VerifiedIntent, ExecutionResult } from "./intent.state.js";
+import { ExplicitIntentInferrer } from "./intent.inferrer.js";
+import { SemanticVerifier } from "./intent.verifier.js";
+import { IntentReconciler } from "./intent.reconciler.js";
+import { IntentGraphDatabase } from "../shared/interfaces/database.interface.js";
+import type { EmbeddingGenerator } from "../shared/interfaces/embedder.interface.js";
+import type { IntentGraphQueue } from "../shared/interfaces/queue.interface.js";
+import { protocolLogger } from "../shared/observability/protocol.logger.js";
+import { timed } from "../shared/observability/performance.js";
+import { requestContext } from "../shared/observability/request-context.js";
+import type { DebugMetaAgent } from "../chat/chat-streaming.types.js";
 
 const logger = protocolLogger("IntentGraphFactory");
 const MAX_PERMISSIBLE_ENTROPY = 0.75;

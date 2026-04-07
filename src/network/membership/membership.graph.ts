@@ -1,8 +1,8 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import type { NetworkMembershipGraphDatabase } from "../interfaces/database.interface.js";
-import { protocolLogger } from "../support/protocol.logger.js";
-import { timed } from "../support/performance.js";
-import { NetworkMembershipGraphState } from "../states/network_membership.state.js";
+import type { NetworkMembershipGraphDatabase } from "../../shared/interfaces/database.interface.js";
+import { protocolLogger } from "../../shared/observability/protocol.logger.js";
+import { timed } from "../../shared/observability/performance.js";
+import { NetworkMembershipGraphState } from "./membership.state.js";
 
 const logger = protocolLogger("NetworkMembershipGraphFactory");
 

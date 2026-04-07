@@ -10,8 +10,8 @@ config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
 import { enrichOrCreate } from '../opportunity.enricher.js';
-import type { CreateOpportunityData, Opportunity } from '../../interfaces/database.interface.js';
-import type { Embedder } from '../../interfaces/embedder.interface.js';
+import type { CreateOpportunityData, Opportunity } from '../../shared/interfaces/database.interface.js';
+import type { Embedder } from '../../shared/interfaces/embedder.interface.js';
 
 /**
  * Meaningful test data: intent IDs and domain-rich opportunity reasonings

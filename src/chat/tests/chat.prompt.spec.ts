@@ -16,7 +16,7 @@ import { describe, test, expect } from "bun:test";
 import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import type { BaseMessage } from "@langchain/core/messages";
 
-import type { ResolvedToolContext } from "../../tools/index.js";
+import type { ResolvedToolContext } from "../../shared/agent/tool.factory.js";
 import { buildSystemContent } from "../chat.prompt.js";
 import {
   extractRecentToolCalls,
@@ -414,17 +414,17 @@ import { describe, test, expect, beforeAll } from "bun:test";
 import { HumanMessage, type BaseMessage } from "@langchain/core/messages";
 
 import { assertLLM } from "../../support/tests/llm-assert.js";
-import { ChatGraphFactory } from "../../graphs/chat.graph.js";
-import type { Embedder } from "../../interfaces/embedder.interface.js";
-import type { Scraper } from "../../interfaces/scraper.interface.js";
+import { ChatGraphFactory } from "../chat.graph.js";
+import type { Embedder } from "../../shared/interfaces/embedder.interface.js";
+import type { Scraper } from "../../shared/interfaces/scraper.interface.js";
 import {
   createChatGraphMockDb,
   mockProfile,
   mockActiveIntent,
   createMockProtocolDeps,
 } from "../../graphs/tests/chat.graph.mocks.js";
-import type { ChatSessionReader } from "../../interfaces/chat-session.interface.js";
-import type { NetworkMembership } from "../../interfaces/database.interface.js";
+import type { ChatSessionReader } from "../../shared/interfaces/chat-session.interface.js";
+import type { NetworkMembership } from "../../shared/interfaces/database.interface.js";
 
 /**
  * Checks if any AIMessage in the output messages array made a tool call with the given name.

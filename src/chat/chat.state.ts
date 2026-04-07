@@ -1,7 +1,7 @@
 import { Annotation, messagesStateReducer } from "@langchain/langgraph";
 import type { BaseMessage } from "@langchain/core/messages";
 
-import type { DebugMetaToolCall } from "../types/chat-streaming.types.js";
+import type { DebugMetaToolCall } from "./chat-streaming.types.js";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TYPES (used by legacy subgraph nodes; agent-loop graph does not set these)

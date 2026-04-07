@@ -1,14 +1,14 @@
 import { z } from 'zod';
 
 import type { DefineTool, ResolvedToolContext, ToolDeps, RawToolDefinition, ToolRegistry } from './tool.helpers.js';
-import { createProfileTools } from './profile.tools.js';
-import { createIntentTools } from './intent.tools.js';
-import { createNetworkTools } from './network.tools.js';
-import { createOpportunityTools } from './opportunity.tools.js';
+import { createProfileTools } from '../../profile/profile.tools.js';
+import { createIntentTools } from '../../intent/intent.tools.js';
+import { createNetworkTools } from '../../network/network.tools.js';
+import { createOpportunityTools } from '../../opportunity/opportunity.tools.js';
 import { createUtilityTools } from './utility.tools.js';
-import { createIntegrationTools } from './integration.tools.js';
-import { createContactTools } from './contact.tools.js';
-import { protocolLogger } from '../support/protocol.logger.js';
+import { createIntegrationTools } from '../../integration/integration.tools.js';
+import { createContactTools } from '../../contact/contact.tools.js';
+import { protocolLogger } from '../observability/protocol.logger.js';
 import { error } from './tool.helpers.js';
 
 const logger = protocolLogger('ToolRegistry');

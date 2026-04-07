@@ -7,7 +7,7 @@ config({ path: '.env.test' });
 
 import { describe, test, expect } from "bun:test";
 import { runDiscoverFromQuery } from "../opportunity.discover.js";
-import type { ChatGraphCompositeDatabase } from "../../interfaces/database.interface.js";
+import type { ChatGraphCompositeDatabase } from "../../shared/interfaces/database.interface.js";
 
 describe("opportunity.discover", () => {
   const mockDatabase: ChatGraphCompositeDatabase = {
@@ -629,7 +629,7 @@ describe("opportunity.discover", () => {
 import { describe, test, expect } from "bun:test";
 import { runDiscoverFromQuery } from "../opportunity.discover.js";
 import type { FormattedDiscoveryCandidate } from "../opportunity.discover.js";
-import type { ChatGraphCompositeDatabase } from "../../interfaces/database.interface.js";
+import type { ChatGraphCompositeDatabase } from "../../shared/interfaces/database.interface.js";
 
 const mockDatabase: ChatGraphCompositeDatabase = {
   getProfile: async () => null,

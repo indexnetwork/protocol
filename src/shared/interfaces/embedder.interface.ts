@@ -2,7 +2,7 @@
 // HyDE (Hypothetical Document Embeddings) search types
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type { Lens, HydeTargetCorpus } from '../agents/lens.inferrer.js';
+export type { Lens, HydeTargetCorpus } from '../hyde/lens.inferrer.js';
 
 /** A single lens embedding ready for search. */
 export interface LensEmbedding {

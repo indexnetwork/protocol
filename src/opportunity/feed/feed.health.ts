@@ -1,4 +1,4 @@
-import { FEED_SOFT_TARGETS } from './opportunity.utils.js';
+import { FEED_SOFT_TARGETS } from '../opportunity.utils.js';
 
 /** Input for computing feed health score. */
 export interface FeedHealthInput {

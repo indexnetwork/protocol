@@ -1,10 +1,10 @@
 import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { BaseCheckpointSaver } from "@langchain/langgraph";
-import { protocolLogger } from "../support/protocol.logger.js";
+import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import type {
   ChatStreamEvent,
   DebugMetaToolCall,
-} from "../types/chat-streaming.types.js";
+} from "./chat-streaming.types.js";
 import {
   createAgentEndEvent,
   createAgentStartEvent,
@@ -21,8 +21,8 @@ import {
   createStatusEvent,
   createTokenEvent,
   createToolActivityEvent,
-} from "../types/chat-streaming.types.js";
-import type { AgentStreamEvent } from "../agents/chat.agent.js";
+} from "./chat-streaming.types.js";
+import type { AgentStreamEvent } from "./chat.agent.js";
 
 const logger = protocolLogger("ChatStreamer");
 

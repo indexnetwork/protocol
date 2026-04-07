@@ -5,9 +5,9 @@
  */
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { z } from 'zod';
-import { Timed } from "../support/performance.js";
-import { protocolLogger } from '../support/protocol.logger.js';
-import { createModel } from "./model.config.js";
+import { Timed } from "../observability/performance.js";
+import { protocolLogger } from '../observability/protocol.logger.js';
+import { createModel } from "../agent/model.config.js";
 
 export type HydeTargetCorpus = 'profiles' | 'intents';
 

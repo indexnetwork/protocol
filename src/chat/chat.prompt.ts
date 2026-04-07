@@ -1,4 +1,4 @@
-import type { ResolvedToolContext } from "../tools/index.js";
+import type { ResolvedToolContext } from "../shared/agent/tool.factory.js";
 
 import { resolveModules } from "./chat.prompt.modules.js";
 import type { IterationContext } from "./chat.prompt.modules.js";

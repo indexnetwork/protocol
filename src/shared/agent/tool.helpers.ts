@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { ModelConfig } from "../agents/model.config.js";
-import type { ProfileDocument } from "../agents/profile.generator.js";
+import type { ModelConfig } from "./model.config.js";
+import type { ProfileDocument } from "../../profile/profile.generator.js";
 import type {
   ChatGraphCompositeDatabase,
   NetworkMembership,
@@ -11,7 +11,7 @@ import type {
 } from "../interfaces/database.interface.js";
 import type { Scraper } from "../interfaces/scraper.interface.js";
 import type { Cache, HydeCache } from "../interfaces/cache.interface.js";
-import type { CompiledOpportunityGraph } from "../support/opportunity.discover.js";
+import type { CompiledOpportunityGraph } from "../../opportunity/opportunity.discover.js";
 import type { IntegrationAdapter } from "../interfaces/integration.interface.js";
 import type { ContactServiceAdapter } from "../interfaces/contact.interface.js";
 import type { ProfileEnricher } from "../interfaces/enrichment.interface.js";

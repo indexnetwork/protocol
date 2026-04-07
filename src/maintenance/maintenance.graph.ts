@@ -8,16 +8,16 @@
  */
 import { StateGraph, START, END } from '@langchain/langgraph';
 
-import { MaintenanceGraphState } from '../states/maintenance.state.js';
-import { computeFeedHealth } from '../support/feed.health.js';
-import { canUserSeeOpportunity, classifyOpportunity, isActionableForViewer, FEED_SOFT_TARGETS } from '../support/opportunity.utils.js';
+import { MaintenanceGraphState } from './maintenance.state.js';
+import { computeFeedHealth } from '../opportunity/feed/feed.health.js';
+import { canUserSeeOpportunity, classifyOpportunity, isActionableForViewer, FEED_SOFT_TARGETS } from '../opportunity/opportunity.utils.js';
 import {
   shouldRunIntroducerDiscovery,
   runIntroducerDiscovery,
   type IntroducerDiscoveryDatabase,
   type IntroducerDiscoveryQueue,
-} from '../support/introducer.discovery.js';
-import { protocolLogger } from '../support/protocol.logger.js';
+} from '../opportunity/opportunity.introducer.js';
+import { protocolLogger } from '../shared/observability/protocol.logger.js';
 
 const logger = protocolLogger('MaintenanceGraph');
 

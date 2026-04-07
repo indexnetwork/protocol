@@ -1,16 +1,16 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { ProfileGraphState } from "../states/profile.state.js";
-import { ProfileGenerator, ProfileDocument } from "../agents/profile.generator.js";
-import { HydeGenerator } from "../agents/profile.hyde.generator.js";
-import { ProfileGraphDatabase } from "../interfaces/database.interface.js";
-import { Embedder } from "../interfaces/embedder.interface.js";
-import { Scraper } from "../interfaces/scraper.interface.js";
-import type { ProfileEnricher } from "../interfaces/enrichment.interface.js";
-import { shouldEnrichGhostDisplayNameFromParallel } from "../support/profile.enrichment-display-name.js";
-import { protocolLogger } from "../support/protocol.logger.js";
-import { timed } from "../support/performance.js";
-import { requestContext } from "../support/request-context.js";
-import type { DebugMetaAgent } from "../types/chat-streaming.types.js";
+import { ProfileGraphState } from "./profile.state.js";
+import { ProfileGenerator, ProfileDocument } from "./profile.generator.js";
+import { HydeGenerator } from "./profile.hyde.generator.js";
+import { ProfileGraphDatabase } from "../shared/interfaces/database.interface.js";
+import { Embedder } from "../shared/interfaces/embedder.interface.js";
+import { Scraper } from "../shared/interfaces/scraper.interface.js";
+import type { ProfileEnricher } from "../shared/interfaces/enrichment.interface.js";
+import { shouldEnrichGhostDisplayNameFromParallel } from "./profile.enricher.js";
+import { protocolLogger } from "../shared/observability/protocol.logger.js";
+import { timed } from "../shared/observability/performance.js";
+import { requestContext } from "../shared/observability/request-context.js";
+import type { DebugMetaAgent } from "../chat/chat-streaming.types.js";
 
 const logger = protocolLogger("ProfileGraphFactory");
 

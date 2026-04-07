@@ -9,10 +9,10 @@
 import type { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
-import { log } from "../support/log.js";
-import { Timed } from "../support/performance.js";
+import { log } from "../shared/observability/log.js";
+import { Timed } from "../shared/observability/performance.js";
 
-import { createModel } from "./model.config.js";
+import { createModel } from "../shared/agent/model.config.js";
 
 const logger = log.lib.from("NegotiationInsightsGenerator");
 

@@ -1,15 +1,15 @@
 import { z } from "zod";
 
-import { requestContext } from "../support/request-context.js";
+import { requestContext } from "../shared/observability/request-context.js";
 
-import type { DefineTool, ToolDeps } from "./tool.helpers.js";
-import { success, error, UUID_REGEX } from "./tool.helpers.js";
-import { MINIMAL_MAIN_TEXT_MAX_CHARS, getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from "../support/opportunity.constants.js";
-import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "../support/opportunity.card-text.js";
-import { runDiscoverFromQuery, continueDiscovery } from "../support/opportunity.discover.js";
-import type { EvaluatorEntity } from "../agents/opportunity.evaluator.js";
-import { protocolLogger } from "../support/protocol.logger.js";
-import type { Opportunity } from "../interfaces/database.interface.js";
+import type { DefineTool, ToolDeps } from "../shared/agent/tool.helpers.js";
+import { success, error, UUID_REGEX } from "../shared/agent/tool.helpers.js";
+import { MINIMAL_MAIN_TEXT_MAX_CHARS, getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from "./opportunity.labels.js";
+import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "./opportunity.presentation.js";
+import { runDiscoverFromQuery, continueDiscovery } from "./opportunity.discover.js";
+import type { EvaluatorEntity } from "./opportunity.evaluator.js";
+import { protocolLogger } from "../shared/observability/protocol.logger.js";
+import type { Opportunity } from "../shared/interfaces/database.interface.js";
 
 const logger = protocolLogger("ChatTools:Opportunity");
 

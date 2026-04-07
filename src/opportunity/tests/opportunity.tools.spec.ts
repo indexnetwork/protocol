@@ -2,7 +2,7 @@ import { config } from "dotenv";
 config({ path: ".env.development", override: true });
 
 import { describe, expect, it } from "bun:test";
-import type { Opportunity } from "../../interfaces/database.interface.js";
+import type { Opportunity } from "../../shared/interfaces/database.interface.js";
 import { buildMinimalOpportunityCard } from "../opportunity.tools.js";
 
 describe("buildMinimalOpportunityCard - IND-113", () => {

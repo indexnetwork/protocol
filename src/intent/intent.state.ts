@@ -1,9 +1,9 @@
 import { Annotation } from "@langchain/langgraph";
 import { BaseMessage } from "@langchain/core/messages";
-import { InferredIntent } from "../agents/intent.inferrer.js";
-import { SemanticVerifierOutput } from "../agents/intent.verifier.js";
-import { IntentReconcilerOutput } from "../agents/intent.reconciler.js";
-import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
+import { InferredIntent } from "./intent.inferrer.js";
+import { SemanticVerifierOutput } from "./intent.verifier.js";
+import { IntentReconcilerOutput } from "./intent.reconciler.js";
+import type { DebugMetaAgent } from '../chat/chat-streaming.types.js';
 
 /**
  * Extended InferredIntent that includes verification results.

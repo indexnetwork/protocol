@@ -9,9 +9,9 @@
  * Used by the create_opportunities chat tool.
  */
 
-import type { Opportunity, ChatGraphCompositeDatabase } from "../interfaces/database.interface.js";
-import type { Cache } from "../interfaces/cache.interface.js";
-import type { OpportunityGraphOptions, CandidateMatch } from "../states/opportunity.state.js";
+import type { Opportunity, ChatGraphCompositeDatabase } from "../shared/interfaces/database.interface.js";
+import type { Cache } from "../shared/interfaces/cache.interface.js";
+import type { OpportunityGraphOptions, CandidateMatch } from "./opportunity.state.js";
 import {
   OpportunityPresenter,
   gatherPresenterContext,
@@ -19,16 +19,16 @@ import {
   type HomeCardPresentationResult,
   type HomeCardLLMResult,
   type HomeCardPresenterInput,
-} from "../agents/opportunity.presenter.js";
-import { MINIMAL_MAIN_TEXT_MAX_CHARS, getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from "./opportunity.constants.js";
-import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "./opportunity.card-text.js";
-import { protocolLogger, withCallLogging } from "./protocol.logger.js";
+} from "./opportunity.presenter.js";
+import { MINIMAL_MAIN_TEXT_MAX_CHARS, getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from "./opportunity.labels.js";
+import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "./opportunity.presentation.js";
+import { protocolLogger, withCallLogging } from "../shared/observability/protocol.logger.js";
 
 const logger = protocolLogger("OpportunityDiscover");
 
 /** Compiled opportunity graph (from OpportunityGraphFactory.createGraph()). */
 export type CompiledOpportunityGraph = ReturnType<
-  import("../graphs/opportunity.graph.js").OpportunityGraphFactory["createGraph"]
+  import("./opportunity.graph.js").OpportunityGraphFactory["createGraph"]
 >;
 
 export interface DiscoverInput {

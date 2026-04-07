@@ -4,7 +4,7 @@ config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
 import { presentOpportunity } from '../opportunity.presentation.js';
-import type { Opportunity } from '../../interfaces/database.interface.js';
+import type { Opportunity } from '../../shared/interfaces/database.interface.js';
 
 describe('presentOpportunity', () => {
   const baseOpp: Opportunity = {

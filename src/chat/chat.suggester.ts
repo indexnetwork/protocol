@@ -1,10 +1,10 @@
 import type { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import type { ChatSuggestion } from "../types/chat-streaming.types.js";
-import { protocolLogger } from "../support/protocol.logger.js";
-import { Timed } from "../support/performance.js";
-import { createModel } from "./model.config.js";
+import type { ChatSuggestion } from "./chat-streaming.types.js";
+import { protocolLogger } from "../shared/observability/protocol.logger.js";
+import { Timed } from "../shared/observability/performance.js";
+import { createModel } from "../shared/agent/model.config.js";
 
 const logger = protocolLogger("SuggestionGenerator");
 

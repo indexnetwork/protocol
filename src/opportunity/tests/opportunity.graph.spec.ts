@@ -14,10 +14,10 @@ import type {
   OpportunityGraphDatabase,
   OpportunityActor,
   Opportunity,
-} from '../../interfaces/database.interface.js';
-import type { Embedder } from '../../interfaces/embedder.interface.js';
-import type { EvaluatedOpportunityWithActors } from '../../agents/opportunity.evaluator.js';
-import type { ProfileDocument } from '../../agents/profile.generator.js';
+} from '../../shared/interfaces/database.interface.js';
+import type { Embedder } from '../../shared/interfaces/embedder.interface.js';
+import type { EvaluatedOpportunityWithActors } from '../opportunity.evaluator.js';
+import type { ProfileDocument } from '../../profile/profile.generator.js';
 
 type OpportunityGraphInvokeInput = Parameters<ReturnType<OpportunityGraphFactory['createGraph']>['invoke']>[0];
 type OpportunityGraphInvokeResult = Awaited<ReturnType<ReturnType<OpportunityGraphFactory['createGraph']>['invoke']>>;
@@ -1904,7 +1904,7 @@ describe('Opportunity Graph', () => {
 
 import { describe, expect, it } from "bun:test";
 
-import type { SourceProfileData } from "../../states/opportunity.state.js";
+import type { SourceProfileData } from "../opportunity.state.js";
 
 import { buildDiscovererContext } from "../opportunity.graph.js";
 
@@ -1948,7 +1948,7 @@ import {
   OpportunityEvaluator,
   type EvaluatorInput,
   type EvaluatorEntity,
-} from "../../agents/opportunity.evaluator.js";
+} from "../opportunity.evaluator.js";
 
 import { assertLLM } from "../../support/tests/llm-assert.js";
 
@@ -2047,10 +2047,10 @@ describe('OpportunityEvaluator: direct-connection candidates', () => {
 import { describe, test, expect } from 'bun:test';
 import { OpportunityGraphFactory, type OpportunityEvaluatorLike } from '../opportunity.graph.js';
 import type { Id } from '../../types/common.types.js';
-import type { OpportunityGraphDatabase } from '../../interfaces/database.interface.js';
-import type { Embedder } from '../../interfaces/embedder.interface.js';
-import type { EvaluatedOpportunityWithActors } from '../../agents/opportunity.evaluator.js';
-import { requestContext } from '../../support/request-context.js';
+import type { OpportunityGraphDatabase } from '../../shared/interfaces/database.interface.js';
+import type { Embedder } from '../../shared/interfaces/embedder.interface.js';
+import type { EvaluatedOpportunityWithActors } from '../opportunity.evaluator.js';
+import { requestContext } from '../../shared/observability/request-context.js';
 
 const dummyTraceEmbedding = new Array(2000).fill(0.1);
 

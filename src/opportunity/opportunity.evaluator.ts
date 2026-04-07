@@ -2,12 +2,12 @@ import type { Runnable } from "@langchain/core/runnables";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { protocolLogger } from "../support/protocol.logger.js";
-import type { Lens } from "./lens.inferrer.js";
-import type { OpportunityStatus } from "../interfaces/database.interface.js";
-import { Timed } from "../support/performance.js";
-import { stripUuids } from "../support/opportunity.sanitize.js";
-import { createModel } from "./model.config.js";
+import { protocolLogger } from "../shared/observability/protocol.logger.js";
+import type { Lens } from "../shared/hyde/lens.inferrer.js";
+import type { OpportunityStatus } from "../shared/interfaces/database.interface.js";
+import { Timed } from "../shared/observability/performance.js";
+import { stripUuids } from "./opportunity.presentation.js";
+import { createModel } from "../shared/agent/model.config.js";
 
 const logger = protocolLogger("OpportunityEvaluator");
 

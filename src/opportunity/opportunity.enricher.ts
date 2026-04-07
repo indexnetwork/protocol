@@ -11,10 +11,10 @@ import type {
   OpportunityInterpretation,
   OpportunitySignal,
   OpportunityStatus,
-} from '../interfaces/database.interface.js';
-import type { Embedder } from '../interfaces/embedder.interface.js';
-import type { Id } from '../interfaces/database.interface.js';
-import { protocolLogger } from './protocol.logger.js';
+} from '../shared/interfaces/database.interface.js';
+import type { Embedder } from '../shared/interfaces/embedder.interface.js';
+import type { Id } from '../shared/interfaces/database.interface.js';
+import { protocolLogger } from '../shared/observability/protocol.logger.js';
 
 const logger = protocolLogger('OpportunityEnricher');
 

@@ -13,24 +13,24 @@ import { createHash } from 'crypto';
 
 import { StateGraph, START, END } from '@langchain/langgraph';
 
-import type { HomeGraphDatabase } from '../interfaces/database.interface.js';
-import type { OpportunityCache } from '../interfaces/cache.interface.js';
+import type { HomeGraphDatabase } from '../../shared/interfaces/database.interface.js';
+import type { OpportunityCache } from '../../shared/interfaces/cache.interface.js';
 import {
   HomeGraphState,
   type HomeCardItem,
   type HomeSection,
   type HomeSectionProposal,
   type HomeSectionItem,
-} from '../states/home.state.js';
-import { OpportunityPresenter, gatherPresenterContext, type PresenterDatabase } from '../agents/opportunity.presenter.js';
-import { HomeCategorizerAgent } from '../agents/home.categorizer.js';
-import { canUserSeeOpportunity, isActionableForViewer, selectByComposition } from '../support/opportunity.utils.js';
-import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON } from '../support/lucide.icon-catalog.js';
-import { getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from '../support/opportunity.constants.js';
-import type { DebugMetaAgent } from '../types/chat-streaming.types.js';
-import { protocolLogger } from '../support/protocol.logger.js';
-import { timed } from '../support/performance.js';
-import { requestContext } from "../support/request-context.js";
+} from './feed.state.js';
+import { OpportunityPresenter, gatherPresenterContext, type PresenterDatabase } from '../opportunity.presenter.js';
+import { HomeCategorizerAgent } from './feed.categorizer.js';
+import { canUserSeeOpportunity, isActionableForViewer, selectByComposition } from '../opportunity.utils.js';
+import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON } from '../../shared/ui/lucide.icon-catalog.js';
+import { getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from '../opportunity.labels.js';
+import type { DebugMetaAgent } from '../../chat/chat-streaming.types.js';
+import { protocolLogger } from '../../shared/observability/protocol.logger.js';
+import { timed } from '../../shared/observability/performance.js';
+import { requestContext } from "../../shared/observability/request-context.js";
 
 const logger = protocolLogger('HomeGraph');
 
