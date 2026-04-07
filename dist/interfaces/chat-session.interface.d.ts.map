@@ -1,1 +1,0 @@
-{"version":3,"file":"chat-session.interface.d.ts","sourceRoot":"","sources":["../../src/interfaces/chat-session.interface.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,MAAM,WAAW,iBAAiB;IAChC,kBAAkB,CAAC,SAAS,EAAE,MAAM,EAAE,KAAK,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC,KAAK,CAAC;QACnE,IAAI,EAAE,MAAM,CAAC;QACb,OAAO,EAAE,MAAM,CAAC;KACjB,CAAC,CAAC,CAAC;CACL"}
