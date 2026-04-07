@@ -6,13 +6,23 @@ This is the protocol layer: LangGraph workflows, AI agents, chat tools, and supp
 
 ```
 packages/protocol/src/
-  graphs/           11 LangGraph state machines (NAME.graph.ts)
-  states/           11 graph state definitions (NAME.state.ts)
-  tools/            Chat tool definitions by domain
-  agents/           Flat, domain-prefixed AI agents
-  streamers/        SSE streaming for chat
-  support/          Infrastructure & utilities
-  interfaces/       Adapter contracts (database, embedder, cache, queue, scraper)
+  chat/             Chat graph, agent, prompt, streaming, suggestions, title generation
+  contact/          Contact invites and contact tools
+  integration/      Integration sync tools
+  intent/           Intent graph, inferrer, verifier, reconciler, clarifier, indexer
+  maintenance/      Maintenance graph (feed health, opportunity expiration)
+  mcp/              MCP server
+  negotiation/      Negotiation graph, proposer, responder, insights generator
+  network/          Network (index) graph, membership graph, intent-index (indexer) graph, tools
+  opportunity/      Opportunity graph, evaluator, presenter, enricher, discover, utils
+    feed/           Home feed graph, feed categorizer, feed health
+  profile/          Profile graph, generator, hyde generator, enricher, tools
+  shared/
+    agent/          Model config, response streamer, tool factory/helpers/registry
+    hyde/           HyDE graph, generator, strategies, lens inferrer
+    interfaces/     Adapter contracts (database, embedder, cache, queue, scraper, etc.)
+    observability/  Logger, request context, performance, log utilities
+    ui/             Lucide icon catalog
   docs/             Design papers (linguistic and semantic governance theory)
 ```
 
@@ -20,56 +30,58 @@ packages/protocol/src/
 
 | Graph | File | Purpose |
 |-------|------|---------|
-| Chat | `chat.graph.ts` | ReAct agent loop — LLM calls tools, responds to user |
-| Intent | `intent.graph.ts` | Clarify, infer, verify felicity conditions, reconcile, and persist intents |
-| Profile | `profile.graph.ts` | Generate/update user profiles with scraping and embedding |
-| Opportunity | `opportunity.graph.ts` | HyDE-based discovery: search, evaluate (valency), rank, persist |
-| HyDE | `hyde.graph.ts` | Generate hypothetical documents (Mirror, Reciprocal, Neighborhood) and embed them (cache-aware) |
-| Index | `index.graph.ts` | Manage index CRUD |
-| Index Membership | `index_membership.graph.ts` | Manage index member join/leave |
-| Intent Index | `intent_index.graph.ts` | Evaluate and assign/unassign intents to indexes |
-| Home | `home.graph.ts` | Categorize and curate home feed content |
-| Maintenance | `maintenance.graph.ts` | Periodic maintenance tasks (feed health, opportunity expiration) |
-| Negotiation | `negotiation.graph.ts` | Multi-turn bilateral negotiation flows |
+| Chat | `chat/chat.graph.ts` | ReAct agent loop — LLM calls tools, responds to user |
+| Intent | `intent/intent.graph.ts` | Clarify, infer, verify felicity conditions, reconcile, and persist intents |
+| Profile | `profile/profile.graph.ts` | Generate/update user profiles with scraping and embedding |
+| Opportunity | `opportunity/opportunity.graph.ts` | HyDE-based discovery: search, evaluate (valency), rank, persist |
+| HyDE | `shared/hyde/hyde.graph.ts` | Generate hypothetical documents (Mirror, Reciprocal, Neighborhood) and embed them (cache-aware) |
+| Network | `network/network.graph.ts` | Manage index CRUD |
+| Network Membership | `network/membership/membership.graph.ts` | Manage index member join/leave |
+| Intent Indexer | `network/indexer/indexer.graph.ts` | Evaluate and assign/unassign intents to indexes |
+| Feed | `opportunity/feed/feed.graph.ts` | Categorize and curate home feed content |
+| Maintenance | `maintenance/maintenance.graph.ts` | Periodic maintenance tasks (feed health, opportunity expiration) |
+| Negotiation | `negotiation/negotiation.graph.ts` | Multi-turn bilateral negotiation flows |
 
 ## Agents
 
 | Agent | File | Used By |
 |-------|------|---------|
-| ChatAgent | `chat.agent.ts` | Chat graph — orchestrates ReAct loop and tool calls |
-| Chat Prompt | `chat.prompt.ts` | Chat graph — system prompt and context builder |
-| Chat Prompt Modules | `chat.prompt.modules.ts` | Chat graph — composable prompt modules |
-| Title Generator | `chat.title.generator.ts` | Chat service — generates conversation titles |
-| Intent Clarifier | `intent.clarifier.ts` | Intent tools — checks specificity (entropy threshold) before persisting |
-| Intent Inferrer | `intent.inferrer.ts` | Intent graph — extracts structured intents from free text |
-| Intent Reconciler | `intent.reconciler.ts` | Intent graph — determines create/update/expire action (Donnellan's distinction) |
-| Intent Verifier | `intent.verifier.ts` | Intent graph — classifies speech act type; scores felicity conditions and semantic entropy |
-| Intent Indexer | `intent.indexer.ts` | Intent Index graph — scores intent-index fit as relevancy score |
-| Profile Generator | `profile.generator.ts` | Profile graph — generates structured identity from raw data |
-| Profile HyDE Generator | `profile.hyde.generator.ts` | Profile graph — generates HyDE documents for profiles |
-| HyDE Generator | `hyde.generator.ts` | HyDE graph — generates hypothetical match documents per strategy |
-| HyDE Strategies | `hyde.strategies.ts` | HyDE graph — LLM-selected strategy registry |
-| Opportunity Evaluator | `opportunity.evaluator.ts` | Opportunity graph — scores matches; assigns valency role (Agent/Patient/Peer) |
-| Opportunity Presenter | `opportunity.presenter.ts` | Home graph, opportunity tools — generates role-appropriate descriptions (Grice's Maxim of Relation) |
-| Home Categorizer | `home.categorizer.ts` | Home graph — classifies and curates feed items |
-| Suggestion Generator | `suggestion.generator.ts` | Chat — generates proactive reply suggestions |
-| Lens Inferrer | `lens.inferrer.ts` | HyDE graph — infers target corpus (profiles vs. intents) per strategy |
-| Negotiation Proposer | `negotiation.proposer.ts` | Negotiation graph — drafts negotiation proposals |
-| Negotiation Responder | `negotiation.responder.ts` | Negotiation graph — evaluates and responds to proposals |
-| Negotiation Insights Generator | `negotiation.insights.generator.ts` | Negotiation graph — synthesizes negotiation session insights |
-| Invite Generator | `invite.generator.ts` | Invite flow — generates personalized invite messages |
+| ChatAgent | `chat/chat.agent.ts` | Chat graph — orchestrates ReAct loop and tool calls |
+| Chat Prompt | `chat/chat.prompt.ts` | Chat graph — system prompt and context builder |
+| Chat Prompt Modules | `chat/chat.prompt.modules.ts` | Chat graph — composable prompt modules |
+| Title Generator | `chat/chat.title.generator.ts` | Chat service — generates conversation titles |
+| Chat Suggester | `chat/chat.suggester.ts` | Chat — generates proactive reply suggestions |
+| Intent Clarifier | `intent/intent.clarifier.ts` | Intent tools — checks specificity (entropy threshold) before persisting |
+| Intent Inferrer | `intent/intent.inferrer.ts` | Intent graph — extracts structured intents from free text |
+| Intent Reconciler | `intent/intent.reconciler.ts` | Intent graph — determines create/update/expire action (Donnellan's distinction) |
+| Intent Verifier | `intent/intent.verifier.ts` | Intent graph — classifies speech act type; scores felicity conditions and semantic entropy |
+| Intent Indexer | `intent/intent.indexer.ts` | Intent Index graph — scores intent-index fit as relevancy score |
+| Profile Generator | `profile/profile.generator.ts` | Profile graph — generates structured identity from raw data |
+| Profile HyDE Generator | `profile/profile.hyde.generator.ts` | Profile graph — generates HyDE documents for profiles |
+| Profile Enricher | `profile/profile.enricher.ts` | Profile enrichment — display name and metadata enrichment |
+| HyDE Generator | `shared/hyde/hyde.generator.ts` | HyDE graph — generates hypothetical match documents per strategy |
+| HyDE Strategies | `shared/hyde/hyde.strategies.ts` | HyDE graph — LLM-selected strategy registry |
+| Lens Inferrer | `shared/hyde/lens.inferrer.ts` | HyDE graph — infers target corpus (profiles vs. intents) per strategy |
+| Opportunity Evaluator | `opportunity/opportunity.evaluator.ts` | Opportunity graph — scores matches; assigns valency role (Agent/Patient/Peer) |
+| Opportunity Presenter | `opportunity/opportunity.presenter.ts` | Home graph, opportunity tools — generates role-appropriate descriptions (Grice's Maxim of Relation) |
+| Feed Categorizer | `opportunity/feed/feed.categorizer.ts` | Feed graph — classifies and curates feed items |
+| Opportunity Introducer | `opportunity/opportunity.introducer.ts` | Introducer-driven contact-pair discovery |
+| Contact Inviter | `contact/contact.inviter.ts` | Invite flow — generates personalized invite messages |
+| Negotiation Proposer | `negotiation/negotiation.proposer.ts` | Negotiation graph — drafts negotiation proposals |
+| Negotiation Responder | `negotiation/negotiation.responder.ts` | Negotiation graph — evaluates and responds to proposals |
+| Negotiation Insights Generator | `negotiation/negotiation.insights.generator.ts` | Negotiation graph — synthesizes negotiation session insights |
 
 ## Tools (Chat)
 
 | File | Tools |
 |------|-------|
-| `profile.tools.ts` | `read_user_profiles`, `create_user_profile`, `update_user_profile`, `complete_onboarding` |
-| `intent.tools.ts` | `read_intents`, `create_intent`, `update_intent`, `delete_intent`, `create_intent_index`, `read_intent_indexes`, `delete_intent_index` |
-| `index.tools.ts` | `read_indexes`, `read_index_memberships`, `create_index`, `update_index`, `delete_index`, `create_index_membership`, `delete_index_membership` |
-| `opportunity.tools.ts` | `create_opportunities`, `list_opportunities`, `update_opportunity` |
-| `contact.tools.ts` | `import_contacts`, `list_contacts`, `add_contact`, `remove_contact` |
-| `integration.tools.ts` | `import_gmail_contacts` |
-| `utility.tools.ts` | `scrape_url`, `read_docs` |
+| `profile/profile.tools.ts` | `read_user_profiles`, `create_user_profile`, `update_user_profile`, `complete_onboarding` |
+| `intent/intent.tools.ts` | `read_intents`, `create_intent`, `update_intent`, `delete_intent`, `create_intent_index`, `read_intent_indexes`, `delete_intent_index` |
+| `network/network.tools.ts` | `read_indexes`, `read_index_memberships`, `create_index`, `update_index`, `delete_index`, `create_index_membership`, `delete_index_membership` |
+| `opportunity/opportunity.tools.ts` | `create_opportunities`, `list_opportunities`, `update_opportunity` |
+| `contact/contact.tools.ts` | `import_contacts`, `list_contacts`, `add_contact`, `remove_contact` |
+| `integration/integration.tools.ts` | `import_gmail_contacts` |
+| `shared/agent/utility.tools.ts` | `scrape_url`, `read_docs` |
 
 ## Core Concepts
 
@@ -251,7 +263,7 @@ flowchart LR
     subgraph tools [Chat Tools]
         PT[profile.tools]
         IT[intent.tools]
-        IdxT[index.tools]
+        IdxT[network.tools]
         OT[opportunity.tools]
         CT[contact.tools]
         IntT[integration.tools]
@@ -261,9 +273,9 @@ flowchart LR
     subgraph graphs [SubGraphs]
         PG[Profile Graph]
         IG[Intent Graph]
-        IxG[Index Graph]
-        IMG[Index Membership Graph]
-        IIG[Intent Index Graph]
+        IxG[Network Graph]
+        IMG[Membership Graph]
+        IIG[Indexer Graph]
         OG[Opportunity Graph]
         HG[HyDE Graph]
     end
@@ -320,19 +332,21 @@ The **Chat Graph** is a ReAct loop: one `agent_loop` node where the LLM decides 
 - **Role-based visibility**: Opportunity reveal follows a tiered cascade; agent visibility is deferred when a patient or introducer is present
 - **Encoding bottleneck**: HyDE hallucinations are never stored or shown — only their embeddings are used
 
-## Support Files
+## Shared Infrastructure
 
 | File | Purpose |
 |------|---------|
-| `protocol.logger.ts` | Protocol-layer logging with call-scoped tracing |
-| `chat.checkpointer.ts` | PostgresSaver singleton for LangGraph state persistence |
-| `chat.utils.ts` | Token counting and context window management |
-| `opportunity.discover.ts` | Ad-hoc discovery from chat queries |
-| `opportunity.card-text.ts` | Pure card text generation for opportunity display |
-| `opportunity.enricher.ts` | Enrich opportunity records with profile data |
-| `opportunity.utils.ts` | HyDE strategy selection and actor role derivation |
-| `introducer.discovery.ts` | Introducer-driven contact-pair discovery |
-| `feed.health.ts` | Feed health metrics computation |
+| `shared/observability/protocol.logger.ts` | Protocol-layer logging with call-scoped tracing |
+| `shared/agent/model.config.ts` | Centralized model and OpenRouter configuration |
+| `shared/agent/response.streamer.ts` | SSE streaming for chat responses |
+| `chat/chat.utils.ts` | Token counting and context window management |
+| `opportunity/opportunity.discover.ts` | Ad-hoc discovery from chat queries |
+| `opportunity/opportunity.presentation.ts` | Pure card text generation for opportunity display |
+| `opportunity/opportunity.enricher.ts` | Enrich opportunity records with profile data |
+| `opportunity/opportunity.utils.ts` | HyDE strategy selection and actor role derivation |
+| `opportunity/opportunity.introducer.ts` | Introducer-driven contact-pair discovery |
+| `opportunity/feed/feed.health.ts` | Feed health metrics computation |
+| `opportunity/opportunity.labels.ts` | Opportunity status and role label constants |
 
 ## Data Model
 
