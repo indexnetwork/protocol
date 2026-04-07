@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "../opportunity.card-text.js";
+import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "../opportunity.presentation.js";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // viewerCentricCardSummary
