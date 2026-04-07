@@ -4,7 +4,7 @@ config({ path: '.env.test' });
 
 import { describe, it, expect } from "bun:test";
 import { ResponseStreamer } from "../response.streamer.js";
-import type { TokenEvent, ErrorEvent } from "../../chat/chat-streaming.types.js";
+import type { TokenEvent, ErrorEvent } from "../../../chat/chat-streaming.types.js";
 
 describe('ResponseStreamer', () => {
   const streamer = new ResponseStreamer();
