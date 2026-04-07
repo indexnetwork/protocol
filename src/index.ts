@@ -29,7 +29,7 @@ export type * from "./shared/interfaces/queue.interface.js";
 export type * from "./shared/interfaces/scraper.interface.js";
 export type * from "./shared/interfaces/storage.interface.js";
 
-// ─── Graph factories (used by the protocol app; advanced use for external consumers) ──
+// ─── Graph factories ──────────────────────────────────────────────────────────
 
 export { ChatGraphFactory } from "./chat/chat.graph.js";
 export { HomeGraphFactory } from "./opportunity/feed/feed.graph.js";
@@ -48,7 +48,7 @@ export { NegotiationGraphFactory, createDefaultNegotiationGraph, negotiateCandid
 export { OpportunityGraphFactory } from "./opportunity/opportunity.graph.js";
 export { ProfileGraphFactory } from "./profile/profile.graph.js";
 
-// ─── Agents (used by the protocol app; advanced use for external consumers) ───
+// ─── Agents ───────────────────────────────────────────────────────────────────
 
 export { ChatTitleGenerator } from "./chat/chat.title.generator.js";
 export { HydeGenerator } from "./shared/hyde/hyde.generator.js";
@@ -70,7 +70,7 @@ export type {
 export { OpportunityPresenter, gatherPresenterContext } from "./opportunity/opportunity.presenter.js";
 export type { PresenterDatabase } from "./opportunity/opportunity.presenter.js";
 
-// ─── Support utilities (used by the protocol app) ─────────────────────────────
+// ─── Support utilities ────────────────────────────────────────────────────────
 
 export {
   canUserSeeOpportunity,
@@ -101,7 +101,7 @@ export { presentOpportunity } from "./opportunity/opportunity.presentation.js";
 export type { UserInfo } from "./opportunity/opportunity.presentation.js";
 export { stripUuids, stripIntroducerMentions } from "./opportunity/opportunity.presentation.js";
 
-// ─── Tools (used by the protocol app) ────────────────────────────────────────
+// ─── Tools ────────────────────────────────────────────────────────────────────
 
 export { createToolRegistry } from "./shared/agent/tool.registry.js";
 
