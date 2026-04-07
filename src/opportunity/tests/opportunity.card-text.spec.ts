@@ -1,3 +1,6 @@
+import { config } from 'dotenv';
+config({ path: '.env.test' });
+
 import { describe, expect, it } from "bun:test";
 
 import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "../opportunity.presentation.js";
