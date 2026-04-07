@@ -6,7 +6,7 @@ import { describe, expect, it } from "bun:test";
 import type { Runnable } from "@langchain/core/runnables";
 import { OpportunityEvaluator, CandidateProfile, EvaluatorInput, type EvaluatorEntity } from "../opportunity.evaluator.js";
 
-import { assertLLM } from "../../support/tests/llm-assert.js";
+import { assertLLM } from "../../shared/agent/tests/llm-assert.js";
 
 describe('OpportunityEvaluator', () => {
   const evaluator = new OpportunityEvaluator();

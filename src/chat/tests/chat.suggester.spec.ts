@@ -6,7 +6,7 @@ import { config } from "dotenv";
 config({ path: ".env.test" });
 
 import { describe, test, expect } from "bun:test";
-import { SuggestionGenerator } from "../suggestion.generator.js";
+import { SuggestionGenerator } from "../chat.suggester.js";
 import type { ChatSuggestion } from "../chat-streaming.types.js";
 
 const HAS_OPENROUTER_KEY = !!process.env.OPENROUTER_API_KEY;

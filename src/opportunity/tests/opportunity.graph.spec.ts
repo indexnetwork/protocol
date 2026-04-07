@@ -1950,7 +1950,7 @@ import {
   type EvaluatorEntity,
 } from "../opportunity.evaluator.js";
 
-import { assertLLM } from "../../support/tests/llm-assert.js";
+import { assertLLM } from "../../shared/agent/tests/llm-assert.js";
 
 const DISCOVERER_ID = 'user-yanki';
 const TARGET_ID = 'user-sam';

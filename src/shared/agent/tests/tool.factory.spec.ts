@@ -169,7 +169,7 @@ mock.module("../../support/opportunity.discover", () => ({
 }));
 
 import { describe, test, expect, beforeAll } from "bun:test";
-import { createChatTools, type ToolContext } from "../index";
+import { createChatTools, type ToolContext } from "../tool.factory";
 import type { ChatGraphCompositeDatabase, Opportunity, SystemDatabase } from "../../interfaces/database.interface.js";
 import type { ActiveIntent, IndexMemberDetails, IndexedIntentDetails } from "../../interfaces/database.interface.js";
 import type { Embedder } from "../../interfaces/embedder.interface.js";
@@ -1866,7 +1866,7 @@ describe("list_opportunities tool (CHAT_DISPLAY_LIMIT cap)", () => {
     // by temporarily adding getOpportunitiesForUser and using createChatTools' underlying factory.
     // Instead, we import createOpportunityTools and wire a minimal defineTool.
     const { tool: lcTool } = await import("@langchain/core/tools");
-    const { createOpportunityTools } = await import("../opportunity.tools.js");
+    const { createOpportunityTools } = await import("../../../opportunity/opportunity.tools.js");
     const { z } = await import("zod");
 
     const resolvedContext = {

@@ -4,7 +4,7 @@ config({ path: '.env.test' });
 
 import { describe, it, expect } from "bun:test";
 import { NegotiationInsightsGenerator } from "../negotiation.insights.generator.js";
-import { assertLLM } from "../../support/tests/llm-assert.js";
+import { assertLLM } from "../../shared/agent/tests/llm-assert.js";
 
 describe('NegotiationInsightsGenerator', () => {
   const generator = new NegotiationInsightsGenerator();

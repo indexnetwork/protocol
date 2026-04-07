@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, it, expect } from "bun:test";
-import { computeFeedHealth } from "../feed.health.js";
+import { computeFeedHealth } from "../feed/feed.health.js";
 
 const WINDOW_12H = 12 * 60 * 60 * 1000;
 

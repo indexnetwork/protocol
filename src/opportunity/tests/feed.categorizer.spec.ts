@@ -5,7 +5,7 @@ import { config } from 'dotenv';
 config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { HomeCategorizerAgent } from '../home.categorizer.js';
+import { HomeCategorizerAgent } from '../feed/feed.categorizer.js';
 import { resolveHomeSectionIcon } from '../../shared/ui/lucide.icon-catalog.js';
 
 describe('HomeCategorizerAgent', () => {

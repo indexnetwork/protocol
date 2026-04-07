@@ -1,44 +1,44 @@
 // ─── Public API (recommended for external consumers) ──────────────────────────
-export { createChatTools } from "./tools/index.js";
-export { configureProtocol } from "./agents/model.config.js";
-export { ChatContextAccessError, resolveChatContext } from "./tools/tool.helpers.js";
-// ─── Graph factories (used by the protocol app; advanced use for external consumers) ──
-export { ChatGraphFactory } from "./graphs/chat.graph.js";
-export { HomeGraphFactory } from "./graphs/home.graph.js";
-export { HydeGraphFactory } from "./graphs/hyde.graph.js";
-export { NetworkGraphFactory } from "./graphs/network.graph.js";
-export { NetworkMembershipGraphFactory } from "./graphs/network_membership.graph.js";
-export { IntentGraphFactory } from "./graphs/intent.graph.js";
-export { IntentNetworkGraphFactory } from "./graphs/intent_network.graph.js";
-export { MaintenanceGraphFactory } from "./graphs/maintenance.graph.js";
-export { NegotiationGraphFactory, createDefaultNegotiationGraph, negotiateCandidates } from "./graphs/negotiation.graph.js";
-export { OpportunityGraphFactory } from "./graphs/opportunity.graph.js";
-export { ProfileGraphFactory } from "./graphs/profile.graph.js";
-// ─── Agents (used by the protocol app; advanced use for external consumers) ───
-export { ChatTitleGenerator } from "./agents/chat.title.generator.js";
-export { HydeGenerator } from "./agents/hyde.generator.js";
-export { SuggestionGenerator } from "./agents/suggestion.generator.js";
-export { generateInviteMessage } from "./agents/invite.generator.js";
-export { IntentIndexer } from "./agents/intent.indexer.js";
-export { LensInferrer } from "./agents/lens.inferrer.js";
-export { NegotiationInsightsGenerator } from "./agents/negotiation.insights.generator.js";
-export { NegotiationProposer } from "./agents/negotiation.proposer.js";
-export { NegotiationResponder } from "./agents/negotiation.responder.js";
-export { OpportunityEvaluator } from "./agents/opportunity.evaluator.js";
-export { OpportunityPresenter, gatherPresenterContext } from "./agents/opportunity.presenter.js";
-// ─── Support utilities (used by the protocol app) ─────────────────────────────
-export { canUserSeeOpportunity, isActionableForViewer, validateOpportunityActors, classifyOpportunity, selectByComposition, FEED_SOFT_TARGETS, } from "./support/opportunity.utils.js";
-export { getPrimaryActionLabel } from "./support/opportunity.constants.js";
-export { computeFeedHealth } from "./support/feed.health.js";
-export { selectContactsForDiscovery, shouldRunIntroducerDiscovery, runIntroducerDiscovery, MAX_CONTACTS_PER_CYCLE, MAX_CANDIDATES_PER_CONTACT, INTRODUCER_DISCOVERY_SOURCE, } from "./support/introducer.discovery.js";
-export { persistOpportunities } from "./support/opportunity.persist.js";
-export { presentOpportunity } from "./support/opportunity.presentation.js";
-export { stripUuids, stripIntroducerMentions } from "./support/opportunity.sanitize.js";
-// ─── Tools (used by the protocol app) ────────────────────────────────────────
-export { createToolRegistry } from "./tools/tool.registry.js";
+export { createChatTools } from "./shared/agent/tool.factory.js";
+export { configureProtocol } from "./shared/agent/model.config.js";
+export { ChatContextAccessError, resolveChatContext } from "./shared/agent/tool.helpers.js";
+// ─── Graph factories ──────────────────────────────────────────────────────────
+export { ChatGraphFactory } from "./chat/chat.graph.js";
+export { HomeGraphFactory } from "./opportunity/feed/feed.graph.js";
+export { HydeGraphFactory } from "./shared/hyde/hyde.graph.js";
+export { NetworkGraphFactory } from "./network/network.graph.js";
+export { NetworkMembershipGraphFactory } from "./network/membership/membership.graph.js";
+export { IntentGraphFactory } from "./intent/intent.graph.js";
+export { IntentNetworkGraphFactory } from "./network/indexer/indexer.graph.js";
+export { MaintenanceGraphFactory } from "./maintenance/maintenance.graph.js";
+export { NegotiationGraphFactory, createDefaultNegotiationGraph, negotiateCandidates } from "./negotiation/negotiation.graph.js";
+export { OpportunityGraphFactory } from "./opportunity/opportunity.graph.js";
+export { ProfileGraphFactory } from "./profile/profile.graph.js";
+// ─── Agents ───────────────────────────────────────────────────────────────────
+export { ChatTitleGenerator } from "./chat/chat.title.generator.js";
+export { HydeGenerator } from "./shared/hyde/hyde.generator.js";
+export { SuggestionGenerator } from "./chat/chat.suggester.js";
+export { generateInviteMessage } from "./contact/contact.inviter.js";
+export { IntentIndexer } from "./intent/intent.indexer.js";
+export { LensInferrer } from "./shared/hyde/lens.inferrer.js";
+export { NegotiationInsightsGenerator } from "./negotiation/negotiation.insights.generator.js";
+export { NegotiationProposer } from "./negotiation/negotiation.proposer.js";
+export { NegotiationResponder } from "./negotiation/negotiation.responder.js";
+export { OpportunityEvaluator } from "./opportunity/opportunity.evaluator.js";
+export { OpportunityPresenter, gatherPresenterContext } from "./opportunity/opportunity.presenter.js";
+// ─── Support utilities ────────────────────────────────────────────────────────
+export { canUserSeeOpportunity, isActionableForViewer, validateOpportunityActors, classifyOpportunity, selectByComposition, FEED_SOFT_TARGETS, } from "./opportunity/opportunity.utils.js";
+export { getPrimaryActionLabel } from "./opportunity/opportunity.labels.js";
+export { computeFeedHealth } from "./opportunity/feed/feed.health.js";
+export { selectContactsForDiscovery, shouldRunIntroducerDiscovery, runIntroducerDiscovery, MAX_CONTACTS_PER_CYCLE, MAX_CANDIDATES_PER_CONTACT, INTRODUCER_DISCOVERY_SOURCE, } from "./opportunity/opportunity.introducer.js";
+export { persistOpportunities } from "./opportunity/opportunity.persist.js";
+export { presentOpportunity } from "./opportunity/opportunity.presentation.js";
+export { stripUuids, stripIntroducerMentions } from "./opportunity/opportunity.presentation.js";
+// ─── Tools ────────────────────────────────────────────────────────────────────
+export { createToolRegistry } from "./shared/agent/tool.registry.js";
 // ─── MCP ──────────────────────────────────────────────────────────────────────
 export { createMcpServer } from "./mcp/mcp.server.js";
 // ─── Streamers ────────────────────────────────────────────────────────────────
-export { ChatStreamer } from "./streamers/chat.streamer.js";
-export { ResponseStreamer } from "./streamers/response.streamer.js";
+export { ChatStreamer } from "./chat/chat.streamer.js";
+export { ResponseStreamer } from "./shared/agent/response.streamer.js";
 //# sourceMappingURL=index.js.map

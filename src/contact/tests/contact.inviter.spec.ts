@@ -3,8 +3,8 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, it, expect } from "bun:test";
-import { generateInviteMessage } from "../invite.generator.js";
-import { assertLLM } from "../../support/tests/llm-assert.js";
+import { generateInviteMessage } from "../contact.inviter.js";
+import { assertLLM } from "../../shared/agent/tests/llm-assert.js";
 
 describe('generateInviteMessage', () => {
   it('generates a human, specific invite message', async () => {

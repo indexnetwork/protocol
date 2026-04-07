@@ -9,7 +9,7 @@ import {
   PRIMARY_ACTION_LABEL_DEFAULT,
   SECONDARY_ACTION_LABEL,
   getPrimaryActionLabel,
-} from "../opportunity.constants.js";
+} from "../opportunity.labels.js";
 
 describe('opportunity.constants', () => {
   it('MINIMAL_MAIN_TEXT_MAX_CHARS is a positive number', () => {

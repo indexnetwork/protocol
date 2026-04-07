@@ -5,7 +5,7 @@ import { config } from 'dotenv';
 config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { HomeGraphFactory, stripLeadingNarratorName } from '../home.graph.js';
+import { HomeGraphFactory, stripLeadingNarratorName } from '../feed/feed.graph.js';
 import type { HomeGraphDatabase } from '../../shared/interfaces/database.interface.js';
 import type { Opportunity } from '../../shared/interfaces/database.interface.js';
 import type { OpportunityCache } from '../../shared/interfaces/cache.interface.js';
@@ -752,7 +752,7 @@ describe('home feed fetch limit bug', () => {
 
 
 import { describe, test, expect } from 'bun:test';
-import { HomeGraphFactory } from '../home.graph.js';
+import { HomeGraphFactory } from '../feed/feed.graph.js';
 import type { HomeGraphDatabase } from '../../shared/interfaces/database.interface.js';
 import type { Opportunity } from '../../shared/interfaces/database.interface.js';
 import type { OpportunityCache } from '../../shared/interfaces/cache.interface.js';

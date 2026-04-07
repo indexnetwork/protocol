@@ -9,7 +9,7 @@ import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import type { ChatSessionReader } from "../shared/interfaces/chat-session.interface.js";
 import type { ProtocolDeps } from "../shared/agent/tool.helpers.js";
 import { truncateToTokenLimit, MAX_CONTEXT_TOKENS } from "./chat.utils.js";
-import { ChatStreamer } from "../streamers/index.js";
+import { ChatStreamer } from "./chat.streamer.js";
 import { timed } from "../shared/observability/performance.js";
 
 const logger = protocolLogger("ChatGraphFactory");
