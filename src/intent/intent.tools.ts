@@ -269,7 +269,8 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
 
           createTimings.push({ name: 'intent-create', durationMs: _createGraphMs, agents: createResult.agentTimings ?? [] });
 
-          if (createResult.executionResult?.success) {
+          const succeeded = createResult.executionResults?.some((r: ExecutionResult) => r.success);
+          if (succeeded) {
             createdIntents.push({
               description: v.description,
               confidence: v.score != null ? Math.round(v.score * 100) / 100 : null,
