@@ -287,7 +287,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
             return dp?.data as NegotiationTurn;
           }).filter(Boolean);
 
-          const outcome = buildNegotiationOutcome(history, newTurnCount, query.action, meta.sourceUserId!, meta.candidateUserId!, currentSpeaker);
+          const nextSpeaker = currentSpeaker === 'source' ? 'candidate' : 'source';
+          const outcome = buildNegotiationOutcome(history, newTurnCount, query.action, meta.sourceUserId!, meta.candidateUserId!, nextSpeaker);
 
           await negotiationDatabase.updateTaskState(task.id, 'completed');
           await negotiationDatabase.createArtifact({
@@ -337,7 +338,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
             return dp?.data as NegotiationTurn;
           }).filter(Boolean);
 
-          const outcome = buildNegotiationOutcome(history, newTurnCount, 'counter', meta.sourceUserId!, meta.candidateUserId!, currentSpeaker);
+          const nextSpeakerForCap = currentSpeaker === 'source' ? 'candidate' : 'source';
+          const outcome = buildNegotiationOutcome(history, newTurnCount, 'counter', meta.sourceUserId!, meta.candidateUserId!, nextSpeakerForCap);
 
           await negotiationDatabase.updateTaskState(task.id, 'completed');
           await negotiationDatabase.createArtifact({
@@ -593,7 +595,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
  * @param lastAction - The last turn's action (accept/reject/counter)
  * @param sourceUserId - Source user ID
  * @param candidateUserId - Candidate user ID
- * @param currentSpeaker - Who would speak next (used to derive who just spoke)
+ * @param currentSpeaker - Who would speak next (the person after the accepter/rejector)
  */
 function buildNegotiationOutcome(
   history: NegotiationTurn[],

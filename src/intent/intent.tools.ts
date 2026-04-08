@@ -280,7 +280,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         }
 
         return success({
-          created: true,
+          created: createdIntents.length > 0,
           count: createdIntents.length,
           intents: createdIntents,
           message: createdIntents.length > 0
