@@ -30,6 +30,17 @@ export type * from "./shared/interfaces/scraper.interface.js";
 export type * from "./shared/interfaces/storage.interface.js";
 export type * from "./shared/interfaces/webhook.interface.js";
 export type * from "./shared/interfaces/negotiation-events.interface.js";
+export type {
+  AgentRecord,
+  AgentTransportRecord,
+  AgentPermissionRecord,
+  AgentWithRelations,
+  CreateAgentInput,
+  CreateTransportInput,
+  GrantPermissionInput,
+  AgentDatabase,
+} from './shared/interfaces/agent.interface.js';
+export { SYSTEM_AGENT_IDS } from './shared/interfaces/agent.interface.js';
 
 // ─── Graph factories ──────────────────────────────────────────────────────────
 
