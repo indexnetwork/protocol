@@ -99,11 +99,14 @@ const server = createMcpServer(
 
 ## Publishing
 
-Publishing is handled via CI. Tag a release to trigger the workflow:
+Publishing is handled via CI:
 
 ```bash
-git tag protocol-vX.Y.Z
-git push upstream protocol-vX.Y.Z
+# dev pushes run a build only
+git push <remote> dev
+
+# main pushes build and publish if the package version is new
+git push <remote> main
 ```
 
 Or publish manually from `packages/protocol/`:
