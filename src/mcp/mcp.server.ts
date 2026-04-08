@@ -108,7 +108,7 @@ export interface ScopedDepsFactory {
  * Tools resolve auth per-request via the HTTP request available in ServerContext.
  *
  * @param deps - Shared tool dependencies (graphs, database, embedder, etc.)
- * @param authResolver - Resolves authenticated user ID from the HTTP request
+ * @param authResolver - Resolves authenticated identity from the HTTP request
  * @param scopedDepsFactory - Factory for creating per-request scoped databases
  * @returns A configured McpServer ready to be connected to a transport
  */
@@ -147,12 +147,15 @@ export function createMcpServer(
             };
           }
 
-          // Resolve authenticated user
-          const userId = await authResolver.resolveUserId(httpReq);
+          // Resolve authenticated identity (userId + optional agentId)
+          const { userId, agentId } = await authResolver.resolveIdentity(httpReq);
 
           // Resolve chat context for the user (mark as MCP — no interactive UI available)
           const context = await resolveChatContext({ database: deps.database, userId });
           context.isMcp = true;
+          if (agentId) {
+            context.agentId = agentId;
+          }
 
           // Build per-request scoped databases via injected factory
           const indexScope = context.userNetworks.map((m) => m.networkId);

@@ -21,7 +21,7 @@ function isMeaningfulEnrichment(enrichment: EnrichmentResult | null): enrichment
 }
 
 export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
-  const { userDb, systemDb, database, graphs, enricher } = deps;
+  const { userDb, systemDb, database, graphs, enricher, grantDefaultSystemPermissions } = deps;
 
   async function enrichFromUserRecord(user: { name?: string | null; email?: string | null; socials?: { linkedin?: string; x?: string; github?: string; websites?: string[] } | null }) {
     return enricher.enrichUserProfile({
@@ -575,6 +575,17 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
           completedAt: new Date().toISOString(),
         },
       });
+
+      if (grantDefaultSystemPermissions) {
+        try {
+          await grantDefaultSystemPermissions(context.userId);
+        } catch (err) {
+          logger.warn('Default system agent permission grant failed (non-fatal)', {
+            userId: context.userId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
 
       const autoJoinIds = (process.env.AUTO_JOIN_INDEX_IDS ?? '')
         .split(',')

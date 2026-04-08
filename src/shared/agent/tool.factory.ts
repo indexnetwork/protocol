@@ -31,6 +31,7 @@ import { createOpportunityTools } from "../../opportunity/opportunity.tools.js";
 import { createUtilityTools } from "./utility.tools.js";
 import { createIntegrationTools } from "../../integration/integration.tools.js";
 import { createContactTools } from "../../contact/contact.tools.js";
+import { createAgentTools } from "../../agent/agent.tools.js";
 import { createWebhookTools } from "../../webhook/webhook.tools.js";
 import { createNegotiationTools } from "../../negotiation/negotiation.tools.js";
 
@@ -169,6 +170,8 @@ export async function createChatTools(
     webhookLookup: deps.webhookLookup,
     negotiationEvents: deps.negotiationEvents,
     negotiationTimeoutQueue: deps.negotiationTimeoutQueue,
+    agentDatabase: deps.agentDatabase,
+    grantDefaultSystemPermissions: deps.grantDefaultSystemPermissions,
     graphs: {
       profile: profileGraph,
       intent: intentGraph,
@@ -186,6 +189,7 @@ export async function createChatTools(
   const opportunityTools = createOpportunityTools(defineTool, toolDeps);
   const utilityTools = createUtilityTools(defineTool, toolDeps);
   const contactTools = createContactTools(defineTool, toolDeps);
+  const agentTools = createAgentTools(defineTool, toolDeps);
   const integrationTools = createIntegrationTools(defineTool, toolDeps);
   const webhookTools = createWebhookTools(defineTool, toolDeps);
   const negotiationTools = createNegotiationTools(defineTool, toolDeps);
@@ -204,6 +208,7 @@ export async function createChatTools(
     ...utilityTools,
     ...integrationTools,
     ...contactTools,
+    ...agentTools,
     ...webhookTools,
     ...negotiationTools,
   ];

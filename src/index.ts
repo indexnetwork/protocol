@@ -117,6 +117,7 @@ export { stripUuids, stripIntroducerMentions } from "./opportunity/opportunity.p
 // ─── Tools ────────────────────────────────────────────────────────────────────
 
 export { createToolRegistry } from "./shared/agent/tool.registry.js";
+export { createAgentTools } from './agent/agent.tools.js';
 
 // ─── MCP ──────────────────────────────────────────────────────────────────────
 

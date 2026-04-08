@@ -18,6 +18,7 @@ import type { ProfileEnricher } from "../interfaces/enrichment.interface.js";
 import type { IntentGraphQueue } from "../interfaces/queue.interface.js";
 import type { ChatSessionReader } from "../interfaces/chat-session.interface.js";
 import type { Embedder } from "../interfaces/embedder.interface.js";
+import type { AgentDatabase } from "../interfaces/agent.interface.js";
 import type { WebhookAdapter } from "../interfaces/webhook.interface.js";
 import type { WebhookLookup, NegotiationEventEmitter, NegotiationTimeoutQueue } from "../interfaces/negotiation-events.interface.js";
 
@@ -69,6 +70,8 @@ export interface ResolvedToolContext {
   sessionId?: string;
   /** True when the request originates from an MCP transport (no interactive UI available). */
   isMcp?: boolean;
+  /** Agent ID when the request originates from an API key linked to an agent. */
+  agentId?: string;
 }
 
 /**
@@ -133,6 +136,10 @@ export interface ToolContext {
   negotiationEvents?: NegotiationEventEmitter;
   /** Manages negotiation timeout jobs (optional — enables AI fallback on external agent timeout). */
   negotiationTimeoutQueue?: NegotiationTimeoutQueue;
+  /** Agent registry database adapter (optional — absent when host does not support agents). */
+  agentDatabase?: AgentDatabase;
+  /** Grants the default system-agent permissions after onboarding (optional). */
+  grantDefaultSystemPermissions?: (userId: string) => Promise<void>;
 }
 
 /**
@@ -330,6 +337,10 @@ export interface ToolDeps {
   negotiationEvents?: NegotiationEventEmitter;
   /** Manages negotiation timeout jobs (optional — enables AI fallback on external agent timeout). */
   negotiationTimeoutQueue?: NegotiationTimeoutQueue;
+  /** Agent registry database adapter (optional — absent when host does not support agents). */
+  agentDatabase?: AgentDatabase;
+  /** Grants the default system-agent permissions after onboarding (optional). */
+  grantDefaultSystemPermissions?: (userId: string) => Promise<void>;
   graphs: {
     profile: CompiledGraph;
     intent: CompiledGraph;
