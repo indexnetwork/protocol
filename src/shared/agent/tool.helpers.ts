@@ -19,6 +19,7 @@ import type { IntentGraphQueue } from "../interfaces/queue.interface.js";
 import type { ChatSessionReader } from "../interfaces/chat-session.interface.js";
 import type { Embedder } from "../interfaces/embedder.interface.js";
 import type { WebhookAdapter } from "../interfaces/webhook.interface.js";
+import type { WebhookLookup, NegotiationEventEmitter, NegotiationTimeoutQueue } from "../interfaces/negotiation-events.interface.js";
 
 /** Profile without embedding — used in resolved context to avoid bloating prompts and memory. */
 export type ProfileContext = Omit<ProfileDocument, "embedding"> | null;
@@ -124,6 +125,12 @@ export interface ToolContext {
   modelConfig?: ModelConfig;
   /** Webhook adapter for managing webhook registrations (optional). */
   webhook?: WebhookAdapter;
+  /** Checks if a user has webhooks for a given event (optional — enables external agent yield). */
+  webhookLookup?: WebhookLookup;
+  /** Emits negotiation lifecycle events (optional — enables webhook delivery for negotiations). */
+  negotiationEvents?: NegotiationEventEmitter;
+  /** Manages negotiation timeout jobs (optional — enables AI fallback on external agent timeout). */
+  negotiationTimeoutQueue?: NegotiationTimeoutQueue;
 }
 
 /**
@@ -315,6 +322,12 @@ export interface ToolDeps {
   negotiationDatabase: NegotiationDatabase;
   /** Webhook adapter for managing webhook registrations (optional — absent when host does not support webhooks). */
   webhook?: WebhookAdapter;
+  /** Checks if a user has webhooks for a given event (optional — enables external agent yield). */
+  webhookLookup?: WebhookLookup;
+  /** Emits negotiation lifecycle events (optional — enables webhook delivery for negotiations). */
+  negotiationEvents?: NegotiationEventEmitter;
+  /** Manages negotiation timeout jobs (optional — enables AI fallback on external agent timeout). */
+  negotiationTimeoutQueue?: NegotiationTimeoutQueue;
   graphs: {
     profile: CompiledGraph;
     intent: CompiledGraph;

@@ -121,6 +121,9 @@ export async function createChatTools(
     deps.negotiationDatabase,
     new NegotiationProposer(),
     new NegotiationResponder(),
+    deps.webhookLookup,
+    deps.negotiationEvents,
+    deps.negotiationTimeoutQueue,
   ).createGraph();
   const opportunityGraph = new OpportunityGraphFactory(
     database,
@@ -163,6 +166,9 @@ export async function createChatTools(
     enricher: deps.enricher,
     negotiationDatabase: deps.negotiationDatabase,
     webhook: deps.webhook,
+    webhookLookup: deps.webhookLookup,
+    negotiationEvents: deps.negotiationEvents,
+    negotiationTimeoutQueue: deps.negotiationTimeoutQueue,
     graphs: {
       profile: profileGraph,
       intent: intentGraph,

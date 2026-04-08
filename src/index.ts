@@ -29,6 +29,7 @@ export type * from "./shared/interfaces/queue.interface.js";
 export type * from "./shared/interfaces/scraper.interface.js";
 export type * from "./shared/interfaces/storage.interface.js";
 export type * from "./shared/interfaces/webhook.interface.js";
+export type * from "./shared/interfaces/negotiation-events.interface.js";
 
 // ─── Graph factories ──────────────────────────────────────────────────────────
 
@@ -116,6 +117,7 @@ export type { ScopedDepsFactory } from "./mcp/mcp.server.js";
 export type {
   UserNegotiationContext,
   NegotiationTurn,
+  NegotiationOutcome,
   SeedAssessment,
   NegotiationGraphLike,
 } from "./negotiation/negotiation.state.js";
