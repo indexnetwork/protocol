@@ -150,8 +150,9 @@ export function createMcpServer(
           // Resolve authenticated user
           const userId = await authResolver.resolveUserId(httpReq);
 
-          // Resolve chat context for the user
+          // Resolve chat context for the user (mark as MCP — no interactive UI available)
           const context = await resolveChatContext({ database: deps.database, userId });
+          context.isMcp = true;
 
           // Build per-request scoped databases via injected factory
           const indexScope = context.userNetworks.map((m) => m.networkId);

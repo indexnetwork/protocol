@@ -67,6 +67,8 @@ export interface ResolvedToolContext {
   hasName: boolean;
   /** Chat session ID when tools are used in a chat; used for draft opportunities (context.conversationId). */
   sessionId?: string;
+  /** True when the request originates from an MCP transport (no interactive UI available). */
+  isMcp?: boolean;
 }
 
 /**

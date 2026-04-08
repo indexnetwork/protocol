@@ -206,6 +206,9 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       logger.debug("Intent graph propose response", { result });
 
       const verified = result.verifiedIntents || [];
+
+      // MCP contexts have no interactive UI for proposal cards — default to auto-approve
+      const shouldAutoApprove = query.autoApprove ?? context.isMcp ?? false;
       
       // Extract trace from graph and convert to debugSteps
       const trace = Array.isArray(result.trace) ? result.trace : [];
@@ -245,8 +248,8 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         );
       }
 
-      // ── Auto-approve path (for MCP agents) ──
-      if (query.autoApprove) {
+      // ── Auto-approve path (for MCP agents or explicit opt-in) ──
+      if (shouldAutoApprove) {
         const createdIntents: Array<{ description: string; confidence: number | null; speechActType: string | null }> = [];
         const createTimings: Array<{ name: string; durationMs: number; agents: unknown[] }> = [];
 
