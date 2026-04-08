@@ -616,6 +616,17 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         ...(result.debugSteps ?? []),
       ];
 
+      // Extract negotiation timing from trace (if negotiation ran)
+      const negotiateStep = (result.debugSteps ?? []).find(
+        s => s.step === 'negotiate' && s.data?.durationMs != null
+      );
+      const _allGraphTimings = [
+        ..._discoverGraphTimings,
+        ...(negotiateStep?.data?.durationMs != null
+          ? [{ name: 'negotiation', durationMs: negotiateStep.data.durationMs as number, agents: [] }]
+          : []),
+      ];
+
       const isIntroducerFlow = !!query.introTargetUserId?.trim();
 
       if (result.createIntentSuggested && result.suggestedIntentDescription && !isIntroducerFlow) {
@@ -629,7 +640,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           summary: "No matches found",
           ...(result.pagination ? { pagination: result.pagination } : {}),
           debugSteps: allDebugSteps,
-          _graphTimings: _discoverGraphTimings,
+          _graphTimings: _allGraphTimings,
         });
       }
 
@@ -641,7 +652,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           summary: "No matches found",
           ...(result.pagination ? { pagination: result.pagination } : {}),
           debugSteps: allDebugSteps,
-          _graphTimings: _discoverGraphTimings,
+          _graphTimings: _allGraphTimings,
         });
       }
 
@@ -659,7 +670,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           existingConnections: result.existingConnections,
           summary: "No new matches (existing connections only)",
           debugSteps: allDebugSteps,
-          _graphTimings: _discoverGraphTimings,
+          _graphTimings: _allGraphTimings,
         });
       }
 
@@ -739,7 +750,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
               suggestedIntentDescription: searchQuery,
             }
           : {}),
-        _graphTimings: _discoverGraphTimings,
+        _graphTimings: _allGraphTimings,
       });
     },
   });
