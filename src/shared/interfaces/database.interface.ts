@@ -1762,6 +1762,64 @@ export interface NegotiationDatabase {
    * @returns The created artifact with its id
    */
   createArtifact(data: { taskId: string; name?: string; parts: unknown[]; metadata?: Record<string, unknown> | null }): Promise<{ id: string }>;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Query Operations (used by negotiation MCP tools)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Lists negotiation tasks where the given user is source or candidate.
+   * @param userId - The user ID to filter by (matches sourceUserId or candidateUserId in task metadata)
+   * @param options - Optional status filter
+   * @returns Array of task records with metadata
+   */
+  getTasksForUser(userId: string, options?: { state?: string }): Promise<Array<{
+    id: string;
+    conversationId: string;
+    state: string;
+    metadata: Record<string, unknown> | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }>>;
+
+  /**
+   * Gets a specific task by ID.
+   * @param taskId - The task ID to look up
+   * @returns The task record or null if not found
+   */
+  getTask(taskId: string): Promise<{
+    id: string;
+    conversationId: string;
+    state: string;
+    metadata: Record<string, unknown> | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null>;
+
+  /**
+   * Gets all messages for a conversation, ordered by creation time.
+   * @param conversationId - The conversation to fetch messages for
+   * @returns Array of message records
+   */
+  getMessagesForConversation(conversationId: string): Promise<Array<{
+    id: string;
+    senderId: string;
+    role: 'user' | 'agent';
+    parts: unknown[];
+    createdAt: Date;
+  }>>;
+
+  /**
+   * Gets artifacts for a task (e.g. negotiation outcome).
+   * @param taskId - The task to fetch artifacts for
+   * @returns Array of artifact records
+   */
+  getArtifactsForTask(taskId: string): Promise<Array<{
+    id: string;
+    name: string | null;
+    parts: unknown[];
+    metadata: Record<string, unknown> | null;
+  }>>;
 }
 
 /**

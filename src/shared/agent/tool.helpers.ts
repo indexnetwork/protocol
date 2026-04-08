@@ -311,6 +311,8 @@ export interface ToolDeps {
     }>;
   };
   enricher: ProfileEnricher;
+  /** Database adapter for negotiation/conversation operations. */
+  negotiationDatabase: NegotiationDatabase;
   /** Webhook adapter for managing webhook registrations (optional — absent when host does not support webhooks). */
   webhook?: WebhookAdapter;
   graphs: {

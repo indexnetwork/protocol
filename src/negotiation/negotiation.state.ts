@@ -115,6 +115,18 @@ export const NegotiationGraphState = Annotation.Root({
     default: () => null,
   }),
 
+  /**
+   * Graph status. Tracks whether the negotiation is actively running, waiting
+   * for an external response (e.g. user input via MCP tool), or finished.
+   * - `active` — agents are exchanging turns (default)
+   * - `waiting_for_external` — graph has yielded; awaiting external response or timeout
+   * - `completed` — negotiation finalized (accept/reject/turn-cap)
+   */
+  status: Annotation<'active' | 'waiting_for_external' | 'completed'>({
+    reducer: (curr, next) => next ?? curr,
+    default: () => 'active' as const,
+  }),
+
   outcome: Annotation<NegotiationOutcome | null>({
     reducer: (curr, next) => next ?? curr,
     default: () => null,

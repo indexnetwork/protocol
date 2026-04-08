@@ -32,6 +32,7 @@ import { createUtilityTools } from "./utility.tools.js";
 import { createIntegrationTools } from "../../integration/integration.tools.js";
 import { createContactTools } from "../../contact/contact.tools.js";
 import { createWebhookTools } from "../../webhook/webhook.tools.js";
+import { createNegotiationTools } from "../../negotiation/negotiation.tools.js";
 
 // Re-export types for consumers
 export type { ToolContext, ResolvedToolContext, ProtocolDeps } from "./tool.helpers.js";
@@ -160,6 +161,7 @@ export async function createChatTools(
     contactService: deps.contactService,
     integrationImporter: deps.integrationImporter,
     enricher: deps.enricher,
+    negotiationDatabase: deps.negotiationDatabase,
     webhook: deps.webhook,
     graphs: {
       profile: profileGraph,
@@ -180,6 +182,7 @@ export async function createChatTools(
   const contactTools = createContactTools(defineTool, toolDeps);
   const integrationTools = createIntegrationTools(defineTool, toolDeps);
   const webhookTools = createWebhookTools(defineTool, toolDeps);
+  const negotiationTools = createNegotiationTools(defineTool, toolDeps);
 
   // Chat only proposes opportunities from the conversation (create_opportunities).
   // Other opportunities are shown on the home view; do not give the agent list_opportunities.
@@ -196,6 +199,7 @@ export async function createChatTools(
     ...integrationTools,
     ...contactTools,
     ...webhookTools,
+    ...negotiationTools,
   ];
 }
 
