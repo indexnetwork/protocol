@@ -102,12 +102,14 @@ const server = createMcpServer(
 Publishing is handled via CI:
 
 ```bash
-# dev pushes run a build only
+# dev pushes publish an rc prerelease
 git push <remote> dev
 
-# main pushes build and publish if the package version is new
+# main pushes publish the stable release if the package version is new
 git push <remote> main
 ```
+
+`dev` publishes prerelease versions derived from `package.json` using npm's `rc` tag, for example `0.4.0-rc.123.1`. `main` publishes the base version from `package.json` to `latest`.
 
 Or publish manually from `packages/protocol/`:
 
