@@ -21,14 +21,17 @@ export function createIntegrationTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const import_gmail_contacts = defineTool({
     name: 'import_gmail_contacts',
-    description: `Import contacts from the user's Gmail/Google account into their network.
-
-If the user hasn't connected their Gmail account yet, returns an auth URL they need to visit first.
-
-After successful import, contacts are added to the user's network as ghost users
-(enriched with public profile data) and can be matched in opportunity discovery.
-
-Returns import statistics or an auth URL if authentication is needed.`,
+    description:
+      "Imports contacts from the user's connected Gmail/Google account into their personal network. " +
+      "This is the preferred method for importing Google Contacts — handles OAuth authentication, pagination, and deduplication automatically.\n\n" +
+      "**Authentication flow:** If Gmail is not yet connected, returns an `authUrl` the user must visit to grant access. " +
+      "After they complete OAuth, call this tool again to perform the actual import.\n\n" +
+      "**What happens on import:** All Gmail contacts with valid name+email are imported. " +
+      "Contacts without existing platform accounts become ghost users (enriched with public profile data from LinkedIn, GitHub, etc.). " +
+      "All imported contacts are added to the user's personal index for opportunity discovery.\n\n" +
+      "**When to use:** When the user asks to import or sync their Gmail/Google contacts. No parameters needed.\n\n" +
+      "**Returns:** Either `{ requiresAuth: true, authUrl }` (user needs to authenticate) or import statistics: " +
+      "imported (total), newContacts (ghost users created), existingContacts (already in network), skipped (invalid entries).",
     querySchema: z.object({}),
     handler: async ({ context }) => {
       try {

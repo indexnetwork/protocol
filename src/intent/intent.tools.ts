@@ -40,12 +40,21 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
   const readIntents = defineTool({
     name: "read_intents",
     description:
-      "Reads intents (what people are looking for). No networkId: returns the user's own active intents. With networkId: returns all intents in that network; add userId to filter to one user. To find other members' intents, use read_network_memberships first, then read_intents per network.",
+      "Retrieves intents (signals of interest/need, e.g. 'Looking for a React developer in Berlin'). " +
+      "Intents are the core unit of discovery — they represent what users are seeking and drive semantic matching for opportunities.\n\n" +
+      "**Usage modes:**\n" +
+      "- No parameters: returns the authenticated user's own active intents across all indexes.\n" +
+      "- With networkId: returns all intents in that index (community). Add userId to filter to one member's intents.\n" +
+      "- With userId alone: only works for the current user (cannot read another user's global intents without an index scope).\n\n" +
+      "**Workflow:** To explore what members of an index are looking for, first call read_network_memberships(networkId) to list members, " +
+      "then read_intents(networkId) to see all intents in that community. " +
+      "Each intent includes: id, description (payload), summary, confidence (0-1), inferenceType (explicit/implicit), status, and linked indexes.\n\n" +
+      "**Returns:** Paginated list of intents with count. Use the intent IDs in subsequent calls to update_intent, delete_intent, or create_intent_index.",
     querySchema: z.object({
-      networkId: z.string().optional().describe("Index UUID — filters intents to this index. Defaults to current index when scoped."),
-      userId: z.string().optional().describe("User ID — filters to this user's intents. Combined with networkId: that user's intents in that index."),
-      limit: z.number().int().min(1).max(100).optional().describe("Page size (1-100)."),
-      page: z.number().int().min(1).optional().describe("Page number (1-based)."),
+      networkId: z.string().optional().describe("Index UUID — filters intents to this index (community). When in an index-scoped chat, defaults to the scoped index. Get index IDs from read_networks."),
+      userId: z.string().optional().describe("User ID — filters to this user's intents. Must be combined with networkId when looking up another user. Omit to get the current user's intents."),
+      limit: z.number().int().min(1).max(100).optional().describe("Page size (1-100). Defaults to returning all results if omitted."),
+      page: z.number().int().min(1).optional().describe("Page number (1-based). Only used when limit is also provided."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);
@@ -140,10 +149,20 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
   const createIntent = defineTool({
     name: "create_intent",
     description:
-      "Proposes a new intent for the user to approve. Returns a proposal widget (intent_proposal code block) that you MUST include verbatim in your response. The user will see an interactive card and can approve or skip. Pass a clear, concept-based description. The orchestrator should handle URL scraping and vagueness checks BEFORE calling this tool.",
+      "Creates a new intent (signal of interest/need) for the authenticated user. Intents drive the discovery engine — once created, " +
+      "the system automatically evaluates them against indexes the user belongs to, links them to relevant communities, and begins " +
+      "searching for matching opportunities (complementary intents from other users).\n\n" +
+      "**What to pass:** A clear, concept-based description of what the user is looking for (e.g. 'Looking for an AI/ML co-founder in Berlin', " +
+      "'Need a designer for a mobile app project'). If the user provided a URL, scrape it with scrape_url first and synthesize the content into a description.\n\n" +
+      "**What happens:** The system runs inference (extracting structured intents), verification (checking specificity and speech-act type), " +
+      "and returns a proposal widget. The proposal is NOT yet persisted — the user must approve it first.\n\n" +
+      "**Returns:** An intent_proposal code block that MUST be included verbatim in the response. The frontend renders it as an interactive " +
+      "card the user can approve or skip. On approval, the intent is persisted, indexed, and discovery begins.\n\n" +
+      "**Next steps after approval:** The intent is automatically linked to relevant indexes. Call create_opportunities(searchQuery) to explicitly trigger discovery, " +
+      "or wait for background processing to find matches.",
     querySchema: z.object({
-      description: z.string().describe("The intent in conceptual terms (scrape URLs and check specificity before calling)"),
-      networkId: z.string().optional().describe("Index UUID to link the intent to. Defaults to current index when scoped."),
+      description: z.string().describe("A clear, specific description of what the user is looking for. Should be concept-based, not a raw URL. If the user shared a URL, scrape it first with scrape_url and pass the synthesized content here. Vague descriptions will be rejected — include what kind, what for, and/or timeframe."),
+      networkId: z.string().optional().describe("Index UUID to link the intent to upon creation. Defaults to the scoped index in index-scoped chats. Get index IDs from read_networks. If omitted, the system auto-assigns to relevant indexes based on their prompts."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);
@@ -259,10 +278,15 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const updateIntent = defineTool({
     name: "update_intent",
-    description: "Updates an existing intent's description. Requires intentId from read_intents. When chat is index-scoped, can only update intents linked to that index.",
+    description:
+      "Updates an existing intent's description. After updating, the system re-processes the intent through inference and verification, " +
+      "re-evaluates its index assignments, and triggers fresh opportunity discovery with the new description.\n\n" +
+      "**When to use:** When the user wants to refine or change what they're looking for — e.g. narrowing scope, adding specificity, " +
+      "or pivoting to a different need. Prefer updating over delete+create to preserve the intent's history and existing index links.\n\n" +
+      "**Returns:** Confirmation of update. The intent's embeddings and index relevancy scores are recalculated automatically.",
     querySchema: z.object({
-      intentId: z.string().describe("Intent UUID from read_intents"),
-      newDescription: z.string().describe("New description for the intent"),
+      intentId: z.string().describe("The UUID of the intent to update. Get this from read_intents results."),
+      newDescription: z.string().describe("The updated description of what the user is looking for. Same guidelines as create_intent — should be clear and specific."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);
@@ -320,9 +344,14 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const deleteIntent = defineTool({
     name: "delete_intent",
-    description: "Deletes (archives) an intent. Requires intentId from read_intents. When chat is index-scoped, can only delete intents linked to that index.",
+    description:
+      "Archives (soft-deletes) an intent, removing it from active discovery. The intent is not permanently deleted — it is marked as archived " +
+      "and no longer participates in opportunity matching or index evaluation.\n\n" +
+      "**When to use:** When the user's need has been fulfilled, is no longer relevant, or was created by mistake. " +
+      "If the user wants to change the description instead, use update_intent to preserve history.\n\n" +
+      "**Returns:** Confirmation that the intent was archived. Previously created opportunities from this intent remain but won't generate new ones.",
     querySchema: z.object({
-      intentId: z.string().describe("Intent UUID from read_intents"),
+      intentId: z.string().describe("The UUID of the intent to archive. Get this from read_intents results."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);
@@ -372,10 +401,15 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const createIntentIndex = defineTool({
     name: "create_intent_index",
-    description: "Links an intent to an index. Requires intentId and networkId. When chat is index-scoped, can only link to the scoped index.",
+    description:
+      "Manually links an intent to an index (community), making it visible to other members and eligible for opportunity discovery within that index. " +
+      "Normally intents are auto-assigned to relevant indexes on creation, but use this to explicitly add an intent to an additional index.\n\n" +
+      "**When to use:** When the user wants to share an existing intent with a specific community they belong to, " +
+      "or when auto-assignment missed an index the user considers relevant.\n\n" +
+      "**Returns:** Confirmation that the link was created. The intent will now appear in that index's intent list and participate in discovery within that community.",
     querySchema: z.object({
-      intentId: z.string().describe("Intent UUID from read_intents"),
-      networkId: z.string().optional().describe("Network UUID from read_networks. Defaults to current network when scoped."),
+      intentId: z.string().describe("The UUID of the intent to link. Get this from read_intents results."),
+      networkId: z.string().optional().describe("The UUID of the index to link the intent to. Get this from read_networks. Defaults to the scoped index in index-scoped chats."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);
@@ -423,11 +457,19 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
   const readIntentIndexes = defineTool({
     name: "read_intent_indexes",
     description:
-      "Reads intent-index links. Pass networkId to list intents in that index (add userId to filter). Pass intentId to check if it's linked to an index. When chat is index-scoped, only the scoped index can be queried.",
+      "Reads the many-to-many links between intents and indexes. Use this to understand which intents are shared in which communities, " +
+      "and which indexes a specific intent belongs to.\n\n" +
+      "**Usage modes:**\n" +
+      "- With networkId: lists all intents linked to that index. Add userId to filter to one member's intents in that index.\n" +
+      "- With intentId + networkId: checks whether a specific intent is linked to a specific index.\n" +
+      "- intentId alone requires a networkId (the system won't reveal all indexes an intent is in).\n\n" +
+      "**When to use:** To audit which intents are active in a community, verify an intent's index assignment before unlinking, " +
+      "or check if a newly created intent was auto-assigned to the expected index.\n\n" +
+      "**Returns:** List of intent-index links with relevancy scores (0-1, how well the intent fits the index's purpose).",
     querySchema: z.object({
-      intentId: z.string().optional().describe("Intent UUID — checks if linked to the current/specified index."),
-      networkId: z.string().optional().describe("Index UUID — returns intents in this index. Defaults to current index when scoped."),
-      userId: z.string().optional().describe("Filter by user when listing by index."),
+      intentId: z.string().optional().describe("Intent UUID — check if this specific intent is linked to the specified index. Must be combined with networkId."),
+      networkId: z.string().optional().describe("Index UUID — list all intents linked to this index. Get this from read_networks. Defaults to scoped index in index-scoped chats."),
+      userId: z.string().optional().describe("Filter results to this user's intents within the specified index. Omit to see all members' intents."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);
@@ -491,10 +533,15 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const deleteIntentIndex = defineTool({
     name: "delete_intent_index",
-    description: "Unlinks an intent from an index. Does not delete the intent itself. When chat is index-scoped, can only unlink from the scoped index.",
+    description:
+      "Removes the link between an intent and an index. The intent itself is NOT deleted — it just stops being visible in that community " +
+      "and no longer participates in opportunity discovery within that index. The intent may still be linked to other indexes.\n\n" +
+      "**When to use:** When the user wants to withdraw an intent from a specific community without archiving it entirely. " +
+      "Use read_intent_indexes first to verify the link exists.\n\n" +
+      "**Returns:** Confirmation that the link was removed. To fully remove an intent, use delete_intent instead.",
     querySchema: z.object({
-      intentId: z.string().describe("Intent UUID"),
-      networkId: z.string().optional().describe("Index UUID. Defaults to current index when scoped."),
+      intentId: z.string().describe("The UUID of the intent to unlink. Get this from read_intents or read_intent_indexes."),
+      networkId: z.string().optional().describe("The UUID of the index to unlink from. Get this from read_networks. Defaults to the scoped index in index-scoped chats."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);

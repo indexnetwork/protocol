@@ -10,9 +10,17 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const readIndexes = defineTool({
     name: "read_networks",
-    description: "Lists indexes the user is a member of and indexes they own. Optional userId (omit for current user). When chat is index-scoped, returns only that index.",
+    description:
+      "Lists all indexes (communities) the authenticated user belongs to, including ones they own. Indexes are shared spaces " +
+      "where members post intents and discover opportunities with each other.\n\n" +
+      "**When to use:** To find available index IDs for scoping other operations (read_intents, create_opportunities, read_network_memberships), " +
+      "or to show the user which communities they're part of.\n\n" +
+      "**Returns:** Two lists — `memberOf` (indexes the user joined) and `ownerOf` (indexes the user created). " +
+      "Each entry includes networkId (UUID), title, prompt (purpose description), memberCount, and joinPolicy ('anyone' or 'invite_only'). " +
+      "Personal indexes (isPersonal=true) are the user's private network and cannot be deleted or renamed.\n\n" +
+      "**Note:** In index-scoped chats, only the scoped index is returned.",
     querySchema: z.object({
-      userId: z.string().optional().describe("Omit for current user."),
+      userId: z.string().optional().describe("Must be the current user's ID or omitted. Cannot list another user's indexes."),
     }),
     handler: async ({ context, query }) => {
       if (query.userId && query.userId.trim() !== context.userId) {
@@ -56,10 +64,19 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   const readIndexMemberships = defineTool({
     name: "read_network_memberships",
     description:
-      "Reads index membership data. Two modes: (1) Pass networkId to list all members of that index (returns userId, name, avatar, permissions, intentCount, joinedAt). (2) Pass userId (or omit for current user) to list all indexes that user belongs to (returns networkId, networkTitle, permissions, joinedAt). Pass both to check whether a specific user is in a specific index. When chat is index-scoped, only that index can be queried.",
+      "Reads index membership information — who is in which community. Essential for understanding the social graph before " +
+      "creating introductions or exploring intents.\n\n" +
+      "**Usage modes:**\n" +
+      "- With `networkId` only: lists ALL members of that index — returns userId, name, avatar, permissions (owner/member), intentCount, and joinedAt. " +
+      "Use this to see who's in a community before browsing their intents or creating introductions.\n" +
+      "- With `userId` only (or omit for self): lists all indexes that user belongs to — returns networkId, networkTitle, permissions, joinedAt.\n" +
+      "- With both `networkId` and `userId`: checks whether that specific user is a member of that specific index (returns isMember boolean).\n\n" +
+      "**When to use:** Before creating introductions (need to verify shared index membership), to explore community members, " +
+      "or to check if a user belongs to a specific index.\n\n" +
+      "**Returns:** Member list with user details, or membership list with index details, or a membership check result.",
     querySchema: z.object({
-      networkId: z.string().optional().describe("Index UUID — when provided, lists members of this index."),
-      userId: z.string().optional().describe("User ID — when provided, lists that user's index memberships. Omit to default to current user."),
+      networkId: z.string().optional().describe("Index UUID — lists all members of this index. Get from read_networks. In index-scoped chats, only the scoped index can be queried."),
+      userId: z.string().optional().describe("User ID — lists that user's index memberships. Omit to get the current user's memberships. When combined with networkId, checks if this user is in that specific index."),
     }),
     handler: async ({ context, query }) => {
       const networkId = query.networkId?.trim() || undefined;
@@ -262,10 +279,18 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const updateNetwork = defineTool({
     name: "update_network",
-    description: "Updates an index (owner only). Pass networkId or omit when index-scoped.",
+    description:
+      "Updates settings of an existing index (community). Only the index owner can perform updates.\n\n" +
+      "**Updatable fields:** title (display name), prompt (purpose description used for intent auto-assignment), " +
+      "imageUrl (community avatar), joinPolicy ('anyone' for open or 'invite_only'), allowGuestVibeCheck (allow non-members to preview).\n\n" +
+      "**When to use:** When an index owner wants to change their community's settings — e.g. update the purpose description, " +
+      "change from invite-only to open, or update the community image.\n\n" +
+      "**Important:** Changing the prompt affects how future intents are evaluated for auto-assignment to this index. " +
+      "Existing intent-index links are not re-evaluated automatically.\n\n" +
+      "**Returns:** Confirmation with the list of settings that were updated.",
     querySchema: z.object({
-      networkId: z.string().optional().describe("Index UUID; defaults to current index when scoped."),
-      settings: updateNetworkSettingsSchema.describe("Fields to update: title?, prompt?, imageUrl?, joinPolicy?, allowGuestVibeCheck?"),
+      networkId: z.string().optional().describe("Index UUID to update. Get from read_networks. Defaults to the scoped index in index-scoped chats."),
+      settings: updateNetworkSettingsSchema.describe("Object with fields to update. All fields are optional — only include the ones to change. title: display name. prompt: purpose description (used for intent auto-assignment). imageUrl: community image URL (null to remove). joinPolicy: 'anyone' or 'invite_only'. allowGuestVibeCheck: boolean."),
     }),
     handler: async ({ context, query }) => {
       const effectiveIndexId = (query.networkId?.trim() || context.networkId) ?? null;
@@ -301,12 +326,18 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const createNetwork = defineTool({
     name: "create_network",
-    description: "Creates a new index (community). You become the owner. Pass title; optional prompt, imageUrl, and joinPolicy ('anyone' | 'invite_only').",
+    description:
+      "Creates a new index (community/group). The authenticated user becomes the owner with full control over settings and membership.\n\n" +
+      "**What is an index?** A shared space where members post intents (what they're looking for) and the system discovers opportunities " +
+      "(complementary matches) between members. The index's prompt guides what kinds of intents belong.\n\n" +
+      "**When to use:** When the user wants to create a new community — e.g. a professional network, interest group, or project team.\n\n" +
+      "**Returns:** The new index's networkId (UUID) and title. Use the networkId to add members (create_network_membership), " +
+      "link intents (create_intent_index), or run discovery (create_opportunities with networkId).",
     querySchema: z.object({
-      title: z.string().describe("Display name of the index"),
-      prompt: z.string().optional().describe("What the community is about"),
-      imageUrl: z.string().url().optional().describe("URL of the index image (optional)"),
-      joinPolicy: z.enum(['anyone', 'invite_only']).optional().describe("Who can join; default invite_only"),
+      title: z.string().describe("Display name of the index (e.g. 'AI Founders Berlin', 'Design Co-op'). Required."),
+      prompt: z.string().optional().describe("Description of what this community is about (e.g. 'Early-stage AI/ML founders in Berlin looking for co-founders, advisors, and investors'). Used by the system to evaluate which intents belong in this index. Highly recommended for better auto-assignment."),
+      imageUrl: z.string().url().optional().describe("URL for the community's avatar/image. Optional."),
+      joinPolicy: z.enum(['anyone', 'invite_only']).optional().describe("'anyone' = open (any user can self-join), 'invite_only' = only the owner can add members. Defaults to 'invite_only'."),
     }),
     handler: async ({ context, query }) => {
       if (!query.title?.trim()) {
@@ -347,9 +378,14 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const deleteNetwork = defineTool({
     name: "delete_network",
-    description: "Deletes an index (owner only, must be sole member). When chat is index-scoped, can only delete that index.",
+    description:
+      "Permanently deletes an index (community). Only the owner can delete, and the index must have no other members " +
+      "(remove all members first with delete_network_membership). Personal indexes cannot be deleted.\n\n" +
+      "**When to use:** When the owner wants to disband a community. This is irreversible — all intent-index links to this index are removed.\n\n" +
+      "**Prerequisites:** Must be the owner. Must be the sole remaining member (remove others first).\n\n" +
+      "**Returns:** Confirmation that the index was deleted.",
     querySchema: z.object({
-      networkId: z.string().optional().describe("Index UUID from read_networks. Defaults to current index when scoped."),
+      networkId: z.string().optional().describe("Index UUID to delete. Get from read_networks. Defaults to the scoped index in index-scoped chats. Cannot be a personal index."),
     }),
     handler: async ({ context, query }) => {
       const networkId = query.networkId?.trim() || context.networkId;
@@ -384,10 +420,18 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const createNetworkMembership = defineTool({
     name: "create_network_membership",
-    description: "Adds a user as a member of an index. Omit userId to join the index yourself (self-join works only for public indexes with joinPolicy 'anyone'). For invite_only indexes only the owner can add members.",
+    description:
+      "Adds a user as a member of an index (community). Membership enables the user to post intents in the index and be discovered " +
+      "by other members through opportunity matching.\n\n" +
+      "**Usage modes:**\n" +
+      "- Omit userId: self-join (only works for indexes with joinPolicy 'anyone').\n" +
+      "- With userId: add another user (only the index owner can do this for 'invite_only' indexes).\n\n" +
+      "**When to use:** When the user wants to join an open community, or when an index owner wants to invite someone.\n\n" +
+      "**Returns:** Confirmation that the member was added (or a note that they were already a member). " +
+      "After joining, the user's existing intents with autoAssign=true may be evaluated against the new index.",
     querySchema: z.object({
-      userId: z.string().optional().describe("User ID to add as a member. Omit to join the index yourself."),
-      networkId: z.string().optional().describe("Index UUID from read_networks. Defaults to current index when scoped."),
+      userId: z.string().optional().describe("User ID to add as a member. Omit to join the index yourself. Get user IDs from read_user_profiles(query=name) or read_network_memberships."),
+      networkId: z.string().optional().describe("Index UUID to add the member to. Get from read_networks. Defaults to the scoped index in index-scoped chats."),
     }),
     handler: async ({ context, query }) => {
       const networkId = query.networkId?.trim() || context.networkId;
@@ -432,10 +476,16 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const deleteNetworkMembership = defineTool({
     name: "delete_network_membership",
-    description: "Removes a user from an index. Only the index owner can remove members. Cannot remove the owner themselves.",
+    description:
+      "Removes a user from an index (community). After removal, the user's intents are unlinked from this index " +
+      "and they can no longer participate in opportunity discovery within it.\n\n" +
+      "**Permissions:** Only the index owner can remove members. The owner themselves cannot be removed (delete the index instead).\n\n" +
+      "**When to use:** When an index owner wants to remove a member from the community. " +
+      "Use read_network_memberships(networkId) first to get the userId of the member to remove.\n\n" +
+      "**Returns:** Confirmation that the member was removed.",
     querySchema: z.object({
-      userId: z.string().describe("User ID to remove from the index"),
-      networkId: z.string().optional().describe("Index UUID. Defaults to current index when scoped."),
+      userId: z.string().describe("User ID of the member to remove. Get from read_network_memberships(networkId). Cannot be the index owner."),
+      networkId: z.string().optional().describe("Index UUID to remove the member from. Get from read_networks. Defaults to the scoped index in index-scoped chats."),
     }),
     handler: async ({ context, query }) => {
       const networkId = query.networkId?.trim() || context.networkId;

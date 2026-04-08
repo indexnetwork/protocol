@@ -139,51 +139,55 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
   const createOpportunities = defineTool({
     name: "create_opportunities",
     description:
-      "Creates opportunities (connections). NOT for looking up a specific person by name — use read_user_profiles(query=name) for that.\n\n" +
-      "Four modes:\n" +
-      "1. **Discovery**: pass searchQuery and/or networkId. Finds matching people based on intent overlap.\n" +
-      "2. **Introduction**: pass partyUserIds (2+ user IDs) + entities (pre-gathered profiles and intents). " +
-      "You MUST gather profiles and intents from shared indexes BEFORE calling this. " +
-      "Optionally pass hint (the user's reason for the introduction).\n" +
-      "3. **Direct connection**: pass targetUserId (a single user ID) + searchQuery (reason for connecting). " +
-      "Creates an opportunity between the current user and the target user.\n" +
-      "4. **Introducer discovery**: pass introTargetUserId (user ID to find matches FOR). " +
-      "Discovers matches for that person; current user becomes the introducer. " +
-      "Use when user asks 'who should I introduce to @Person'.\n\n" +
-      "Results are saved as drafts; use update_opportunity(status='pending') to send.",
+      "Creates opportunities — discovered connections between users based on complementary intents. Opportunities are the core output " +
+      "of the discovery engine, representing potential valuable connections between people.\n\n" +
+      "**NOT for person lookup** — use read_user_profiles(query=name) to find people by name.\n\n" +
+      "**Four modes:**\n" +
+      "1. **Discovery** (most common): pass `searchQuery` and/or `networkId`. The system finds other users in shared indexes " +
+      "whose intents semantically complement the query. Uses HyDE embeddings and LLM evaluation for scoring.\n" +
+      "2. **Introduction**: pass `partyUserIds` (2+ user IDs) + `entities` (pre-gathered profiles and intents from shared indexes). " +
+      "You MUST call read_user_profiles and read_intents for each party BEFORE calling this. " +
+      "Optionally pass `hint` with the user's reason for the introduction.\n" +
+      "3. **Direct connection**: pass `targetUserId` + `searchQuery`. Creates an opportunity between the current user and one specific person.\n" +
+      "4. **Introducer discovery**: pass `introTargetUserId` (find matches FOR that person; current user becomes the introducer). " +
+      "Use when user asks 'who should I introduce to [person]?'\n\n" +
+      "**Returns:** Opportunity code blocks (render as interactive cards) with opportunityId, match reasoning, confidence score, and status. " +
+      "All results start as drafts. Supports pagination via `continueFrom` for large result sets.\n\n" +
+      "**Next steps:** Use update_opportunity(opportunityId, status='pending') to send a draft to the other party.",
     querySchema: z.object({
       continueFrom: z
         .string()
         .optional()
-        .describe("Discovery pagination: pass the discoveryId from a previous result to evaluate more candidates."),
+        .describe("Pagination token: pass the discoveryId from a previous create_opportunities result to evaluate the next batch of candidates. Do not combine with other mode parameters."),
       searchQuery: z
         .string()
         .optional()
-        .describe("Discovery mode: what to look for."),
+        .describe("Discovery mode: natural language description of what to look for (e.g. 'AI/ML engineers', 'startup advisors in fintech'). Drives semantic matching against other users' intents and profiles."),
       networkId: z
         .string()
         .optional()
-        .describe("Index UUID; optional when index-scoped. Pass the personal index ID (\"My Network\") to scope discovery to the user's contacts only."),
+        .describe("Index UUID to scope discovery to a specific community. Get from read_networks. Defaults to the scoped index in index-scoped chats. Pass the personal index ID (from read_networks, isPersonal=true) to scope to the user's contacts only."),
       intentId: z
         .string()
         .optional()
-        .describe("Discovery mode: optional intent to use as source and for triggeredBy (e.g. from queue)."),
+        .describe("Optional intent UUID to use as the discovery source. The intent's description drives matching instead of searchQuery. Get from read_intents. Typically used by background processing, not direct agent calls."),
       targetUserId: z
         .string()
         .optional()
-        .describe("Direct connection mode: create opportunity with this specific user ID. Used when the user wants to connect with a named person."),
+        .describe("Direct connection mode: create an opportunity with this specific user. Get the userId from read_user_profiles(query=name). Combine with searchQuery to explain the connection reason."),
       introTargetUserId: z
         .string()
         .optional()
         .describe(
           "Introducer discovery mode: find matches FOR this user ID (the current user becomes the introducer). " +
-          "Use when the user asks 'who should I introduce to @Person'. " +
+          "Get the userId from read_user_profiles(query=name). " +
+          "Use when the user asks 'who should I introduce to [person]?'. " +
           "Do NOT combine with partyUserIds (that's full introduction mode)."
         ),
       partyUserIds: z
         .array(z.string())
         .optional()
-        .describe("Introduction mode: user IDs to introduce (at least 2)."),
+        .describe("Introduction mode: array of 2+ user IDs to introduce to each other. Get user IDs from read_user_profiles or read_network_memberships. Must also provide entities with pre-gathered profile/intent data."),
       entities: z
         .array(
           z.object({
@@ -214,13 +218,17 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         )
         .optional()
         .describe(
-          "Introduction mode: pre-gathered profiles + intents per party. Gather via read_user_profiles + read_intents before calling.",
+          "Introduction mode: pre-gathered profile and intent data for each party being introduced. " +
+          "Each entry needs userId, networkId (the shared index), and optionally profile (name, bio, skills, interests) and intents (intentId, payload). " +
+          "Gather this data by calling read_user_profiles and read_intents for each party BEFORE calling create_opportunities. " +
+          "All entities must share the same networkId (the shared index where both parties are members).",
         ),
       hint: z
         .string()
         .optional()
         .describe(
-          "Introduction mode: the user's reason for the intro (e.g. 'both AI devs').",
+          "Introduction mode: the user's reason for making this introduction (e.g. 'both working on AI in healthcare', " +
+          "'complementary skills for a startup'). Helps the evaluator produce better match reasoning.",
         ),
     }),
     handler: async ({ context, query }) => {
@@ -739,12 +747,18 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
   const listOpportunities = defineTool({
     name: "list_opportunities",
     description:
-      "Lists the user's opportunities (suggested connections). Returns opportunity cards to display. When chat is index-scoped, only shows opportunities from that index.",
+      "Lists the authenticated user's existing opportunities (discovered connections). Returns opportunity cards ready for display.\n\n" +
+      "**What are opportunities?** Matches between users whose intents complement each other within shared indexes. " +
+      "Each opportunity has a status: draft (not yet sent), pending (sent, awaiting response), accepted, rejected, or expired.\n\n" +
+      "**When to use:** When the user wants to see their current connections/matches, check the status of previously discovered opportunities, " +
+      "or review what's waiting for their response.\n\n" +
+      "**Returns:** Up to 3 opportunity code blocks (interactive cards) with counterpart name, match reasoning, confidence score, " +
+      "and current status. Use update_opportunity to act on them (send, accept, reject).",
     querySchema: z.object({
       networkId: z
         .string()
         .optional()
-        .describe("Index UUID filter; defaults to current index when scoped."),
+        .describe("Index UUID to filter opportunities to a specific community. Get from read_networks. Defaults to the scoped index in index-scoped chats. Omit to see opportunities across all indexes."),
     }),
     handler: async ({ context, query }) => {
       // Strict scope enforcement: when chat is index-scoped, only allow that index
@@ -958,15 +972,25 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
   const updateOpportunity = defineTool({
     name: "update_opportunity",
     description:
-      "Updates an opportunity's status. Use 'pending' to send a draft (notifies next person). Use 'accepted'/'rejected' to respond to a received opportunity. When chat is index-scoped, can only update opportunities from that index.",
+      "Updates an opportunity's status, advancing it through the connection lifecycle.\n\n" +
+      "**Status transitions:**\n" +
+      "- `pending`: Sends a draft opportunity to the other party. They'll be notified and can accept or reject. " +
+      "This is the primary action after create_opportunities returns a draft.\n" +
+      "- `accepted`: Accept a received opportunity — signals interest in connecting. Both parties can now communicate.\n" +
+      "- `rejected`: Decline a received opportunity.\n" +
+      "- `expired`: Mark as expired (typically done by the system after timeout).\n\n" +
+      "**When to use:** After create_opportunities or list_opportunities returns opportunity cards. " +
+      "The user clicks 'Send' (pending), 'Accept', or 'Reject' on the card, and the agent calls this tool.\n\n" +
+      "**Returns:** Confirmation with the new status and notification details (who was notified).",
     querySchema: z.object({
       opportunityId: z
         .string()
-        .describe("Opportunity ID from list_opportunities"),
+        .describe("The UUID of the opportunity to update. Get from create_opportunities or list_opportunities results."),
       status: z
         .enum(["pending", "accepted", "rejected", "expired"])
         .describe(
-          "New status: pending (send draft), accepted, rejected, expired",
+          "New status: 'pending' = send the draft to the other party, 'accepted' = accept the connection, " +
+          "'rejected' = decline, 'expired' = mark as timed out.",
         ),
     }),
     handler: async ({ context, query }) => {

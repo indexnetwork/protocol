@@ -11,17 +11,21 @@ export function createContactTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const import_contacts = defineTool({
     name: 'import_contacts',
-    description: `Import contacts into the user's network from any integration or manual input.
-
-Each contact needs a name and email. Contacts without existing accounts become "ghost users"
-that are enriched with public profile data and can be matched in opportunity discovery.
-
-Returns import statistics including how many were imported, skipped, and how many new ghost users were created.`,
+    description:
+      "Bulk-imports contacts into the authenticated user's personal network (personal index). Contacts become members of the user's " +
+      "personal index with 'contact' permission, making them available for opportunity discovery.\n\n" +
+      "**What happens:** Each contact is matched by email. If the email belongs to an existing user, they're linked directly. " +
+      "If not, a 'ghost user' is created — a placeholder account enriched with public profile data (from LinkedIn, GitHub, etc.) " +
+      "that participates in opportunity matching even before the person joins the platform.\n\n" +
+      "**When to use:** When the user provides a list of contacts to add (from CSV, manual input, or any source other than Gmail). " +
+      "For Gmail specifically, use import_gmail_contacts instead.\n\n" +
+      "**Returns:** Import statistics: imported (total processed), skipped (invalid), newContacts (ghost users created), " +
+      "existingContacts (already in network). Use list_contacts to see all contacts after import.",
     querySchema: z.object({
       contacts: z.array(z.object({
-        name: z.string().describe('Contact name'),
-        email: z.string().describe('Contact email address'),
-      })).describe('Array of contacts to import'),
+        name: z.string().describe('Full name of the contact (e.g. "Jane Smith")'),
+        email: z.string().describe('Email address — used as the unique identifier for matching existing users'),
+      })).describe('Array of contact objects to import. Each must have name and email. Duplicates (by email) are skipped.'),
     }),
     handler: async ({ context, query }) => {
       try {
@@ -44,12 +48,16 @@ Returns import statistics including how many were imported, skipped, and how man
 
   const list_contacts = defineTool({
     name: 'list_contacts',
-    description: `List the user's network contacts. Returns all contacts with their details.
-Each contact includes userId, name, email, avatar, and isGhost flag.
-Ghost users (contacts without accounts) are marked with isGhost: true.
-Use the userId field with read_user_profiles to look up a contact's full profile.`,
+    description:
+      "Lists all contacts in the authenticated user's personal network. Contacts are people the user has added " +
+      "(via import_contacts, add_contact, or import_gmail_contacts) stored as members of their personal index.\n\n" +
+      "**When to use:** To see who's in the user's network, find a contact's userId for other operations, " +
+      "or check if a specific person is already a contact.\n\n" +
+      "**Returns:** Array of contacts, each with: userId (use with read_user_profiles or create_opportunities), " +
+      "name, email, avatar URL, and isGhost (true = no account yet, profile enriched from public data). " +
+      "Use the userId with read_user_profiles(userId) to get the full profile, or with create_opportunities(targetUserId) to connect.",
     querySchema: z.object({
-      limit: z.number().optional().describe('Maximum number of contacts to return (default: all)'),
+      limit: z.number().optional().describe('Maximum number of contacts to return. Omit to return all contacts. Use for large networks to paginate results.'),
     }),
     handler: async ({ context, query }) => {
       try {
@@ -77,12 +85,18 @@ Use the userId field with read_user_profiles to look up a contact's full profile
 
   const add_contact = defineTool({
     name: 'add_contact',
-    description: `Manually add a single contact to the user's network by email.
-Use this when the user wants to add a specific person to their network.
-If no account exists for that email, a ghost user is created and enriched with public data.`,
+    description:
+      "Adds a single contact to the authenticated user's personal network by email address. " +
+      "For bulk imports, use import_contacts instead.\n\n" +
+      "**What happens:** Looks up the email. If an account exists, links that user as a contact. " +
+      "If not, creates a ghost user (placeholder enriched with public profile data) and adds them. " +
+      "The contact can then appear in opportunity discovery within the user's personal index.\n\n" +
+      "**When to use:** When the user wants to add a specific person (e.g. 'add john@example.com to my network').\n\n" +
+      "**Returns:** Confirmation with the contact's userId and whether a new ghost user was created (isNewGhost). " +
+      "Use the userId with create_opportunities(targetUserId) to find connection opportunities.",
     querySchema: z.object({
-      email: z.string().describe('Email address of the contact to add'),
-      name: z.string().optional().describe('Name of the contact (optional, will use email prefix if not provided)'),
+      email: z.string().describe('Email address of the person to add. Used as unique identifier — if already a contact, the operation is idempotent.'),
+      name: z.string().optional().describe('Full name of the contact. Optional — if omitted, the email prefix is used as name. Provide when known for better profile enrichment.'),
     }),
     handler: async ({ context, query }) => {
       try {
@@ -104,10 +118,15 @@ If no account exists for that email, a ghost user is created and enriched with p
 
   const remove_contact = defineTool({
     name: 'remove_contact',
-    description: `Remove a contact from the user's network.
-Use the contact's userId from list_contacts. This removes the contact relationship.`,
+    description:
+      "Removes a contact from the authenticated user's personal network. The contact relationship is deleted — " +
+      "the person is no longer a member of the user's personal index and won't appear in personal-index-scoped discovery.\n\n" +
+      "**When to use:** When the user wants to remove someone from their network (e.g. 'remove John from my contacts').\n\n" +
+      "**Note:** This only removes the contact relationship. If the contact is a real user (not a ghost), " +
+      "they still exist on the platform and may appear in shared index discovery.\n\n" +
+      "**Returns:** Confirmation that the contact was removed.",
     querySchema: z.object({
-      contactUserId: z.string().describe('The user ID of the contact to remove (from list_contacts)'),
+      contactUserId: z.string().describe('The userId of the contact to remove. Get this from list_contacts results.'),
     }),
     handler: async ({ context, query }) => {
       try {

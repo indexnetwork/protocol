@@ -37,11 +37,21 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
   const readUserProfiles = defineTool({
     name: "read_user_profiles",
     description:
-      "Find or read user profiles. When the user asks to find, look up, or learn about a specific person by name, use `query` — this is the primary way to look up people by name. With `query`: finds members by name (case-insensitive) across the user's indexes (or a specific index if `networkId` also provided). With `userId`: returns that user's profile. With `networkId` alone: returns profiles of all members in that index. In an index-scoped chat, no args returns the current user's profile. Outside an index-scoped chat, at least one parameter is required.",
+      "Retrieves user profiles containing identity info (name, bio, location), skills, and interests. Profiles are used for semantic matching " +
+      "in opportunity discovery — richer profiles produce better matches.\n\n" +
+      "**Usage modes:**\n" +
+      "- With `query` (name search): finds members by name (case-insensitive substring) across the user's indexes. " +
+      "This is the primary way to look up a person by name. Add `networkId` to restrict search to one index.\n" +
+      "- With `userId`: returns that specific user's full profile (name, bio, skills, interests, location).\n" +
+      "- With `networkId` alone: returns profiles of ALL members in that index.\n" +
+      "- No parameters (index-scoped chat only): returns the current user's own profile.\n\n" +
+      "**When to use:** Before creating introductions (need profiles of both parties), when the user asks about a person, " +
+      "or to check if a profile exists before suggesting create_user_profile.\n\n" +
+      "**Returns:** Profile objects with name, bio, location, skills[], interests[]. Use userId from results with other tools like read_intents(userId, networkId).",
     querySchema: z.object({
-      userId: z.string().optional().describe("Optional user ID to fetch a specific user's profile"),
-      networkId: z.string().optional().describe("Optional index ID to fetch profiles of all members in that index"),
-      query: z.string().optional().describe("Name to find (case-insensitive substring match). Searches across the user's indexes, or within a specific index if networkId is also provided."),
+      userId: z.string().optional().describe("Fetch a specific user's profile by their user ID. Get user IDs from read_network_memberships or list_contacts."),
+      networkId: z.string().optional().describe("Index UUID — fetch profiles of all members in this index, or narrow a name search to this index. Get from read_networks."),
+      query: z.string().optional().describe("Name to search for (case-insensitive substring match). Searches across all the user's indexes unless networkId is also provided. Use this when the user asks to 'find' or 'look up' someone."),
     }),
     handler: async ({ context, query }) => {
       const effectiveIndexId = query.networkId?.trim() || undefined;
@@ -238,16 +248,26 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
   const createUserProfile = defineTool({
     name: "create_user_profile",
     description:
-      "Auto-generates (or regenerates) a profile from the user's account data (name, email, social links) via web lookup, or from explicit text when the user provides a short description (e.g. role, skills, location). When the user provides a profile URL in their message, pass it in the matching parameter (e.g. linkedinUrl) so that URL is used for this request, not their saved links. Works whether or not the user already has a profile. Call with no args first; if it returns missing fields, ask the user conversationally for their full name and/or social URLs, then call again with those fields filled in. During onboarding, the first call returns a preview without saving. When the user confirms, call again with confirm=true to save.",
+      "Creates or regenerates the authenticated user's profile. Profiles are essential for discovery — they provide the semantic context " +
+      "used to match users with complementary intents. A richer profile means better opportunity matches.\n\n" +
+      "**How it works:** The system enriches profile data from public web sources (LinkedIn, GitHub, Twitter) and/or explicit user input, " +
+      "then generates a structured profile with bio, skills, interests, location, and narrative context.\n\n" +
+      "**Usage patterns:**\n" +
+      "- No args: attempts auto-generation from account data. If insufficient info, returns `missingFields` — ask the user for name/social URLs and retry.\n" +
+      "- With social URLs (linkedinUrl, githubUrl, etc.): enriches from those specific URLs.\n" +
+      "- With bioOrDescription: creates profile from explicit text only (no web scraping).\n" +
+      "- During onboarding: first call returns a preview (not saved). Call again with confirm=true after user approval to persist.\n\n" +
+      "**Returns:** The generated profile (name, bio, location, skills, interests) or a `needsClarification` response listing missing fields.\n\n" +
+      "**Next steps:** After profile creation, the user can create intents (create_intent) and join indexes (create_network_membership) to start discovering opportunities.",
     querySchema: z.object({
-      name: z.string().optional().describe("User's full name (first and last), if provided by the user"),
-      linkedinUrl: z.string().optional().describe("LinkedIn profile URL"),
-      githubUrl: z.string().optional().describe("GitHub profile URL"),
-      twitterUrl: z.string().optional().describe("X/Twitter profile URL"),
-      websites: z.array(z.string()).optional().describe("Personal or portfolio website URLs"),
-      location: z.string().optional().describe("User's location (city, country)"),
-      bioOrDescription: z.string().optional().describe("Explicit profile text from the user (e.g. 'software engineer, AI/ML, SF Bay Area'); creates or updates profile from this text only, no scraping"),
-      confirm: z.boolean().optional().describe("Pass true to save a previously previewed profile during onboarding"),
+      name: z.string().optional().describe("User's full name (first and last). Pass when the user explicitly provides their name."),
+      linkedinUrl: z.string().optional().describe("LinkedIn profile URL (e.g. 'https://linkedin.com/in/username'). Pass when user shares a LinkedIn link."),
+      githubUrl: z.string().optional().describe("GitHub profile URL (e.g. 'https://github.com/username'). Pass when user shares a GitHub link."),
+      twitterUrl: z.string().optional().describe("X/Twitter profile URL (e.g. 'https://x.com/username'). Pass when user shares a Twitter/X link."),
+      websites: z.array(z.string()).optional().describe("Personal or portfolio website URLs. Pass when user shares website links."),
+      location: z.string().optional().describe("User's location (e.g. 'Berlin, Germany' or 'SF Bay Area'). Pass when the user mentions where they are based."),
+      bioOrDescription: z.string().optional().describe("Explicit profile text from the user (e.g. 'software engineer focused on AI/ML, based in SF'). When provided, creates/updates profile from this text only — no web scraping. Use when user describes themselves in chat."),
+      confirm: z.boolean().optional().describe("Set to true to save a previously previewed profile. Only used during onboarding flow after the user approves the preview."),
     }),
     handler: async ({ context, query }) => {
       // Persist user-info fields (name, location, socials) to users table before any branching.
@@ -473,11 +493,17 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
   const updateUserProfile = defineTool({
     name: "update_user_profile",
     description:
-      "Updates the user's existing profile. For the current user's profile, profileId can be omitted and the tool will use their profile. Use ONE call per request with all changes in action (and details if needed). For profile URLs call scrape_url first, then pass scraped content in details.",
+      "Updates the authenticated user's existing profile with specific changes. Unlike create_user_profile (which regenerates the whole profile), " +
+      "this tool applies targeted modifications — updating bio text, adding/removing skills, changing location, etc.\n\n" +
+      "**When to use:** When the user wants to make specific changes to their profile (e.g. 'add Python to my skills', 'update my bio', " +
+      "'change my location to Berlin'). For full profile regeneration from social URLs, use create_user_profile instead.\n\n" +
+      "**Important:** If the user provides a URL to update from, call scrape_url first, then pass the scraped content in `details`.\n\n" +
+      "**Returns:** Confirmation that the profile was updated. The profile's semantic embeddings are automatically recalculated, " +
+      "which may surface new opportunity matches.",
     querySchema: z.object({
-      profileId: z.string().optional().describe("Optional profile id from read_user_profiles; omit for current user's profile"),
-      action: z.string().describe("What to do: one or more changes, e.g. 'update bio to X', 'add Python to skills'"),
-      details: z.string().optional().describe("Additional context or pasted content"),
+      profileId: z.string().optional().describe("Profile UUID from read_user_profiles. Omit to update the current user's own profile (most common usage)."),
+      action: z.string().describe("Natural language description of ALL changes to make in a single call. Examples: 'update bio to focus on AI research', 'add Python and Rust to skills', 'change location to Berlin and add machine learning to interests'."),
+      details: z.string().optional().describe("Additional context or content to incorporate. Use this to pass scraped URL content (from scrape_url) or longer text the user provided."),
     }),
     handler: async ({ context, query }) => {
       // Use profileGraph query mode to validate profile existence and get id
@@ -529,7 +555,13 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
   const completeOnboarding = defineTool({
     name: "complete_onboarding",
     description:
-      "Marks onboarding as complete. Call this ONLY after the user has explicitly confirmed their profile is correct. Do NOT call this until the user says 'yes', 'looks good', 'that's right', or similar confirmation.",
+      "Marks the user's onboarding as complete, unlocking full platform access. This is the final step in the new-user setup flow.\n\n" +
+      "**Prerequisites:** The user must have a profile (created via create_user_profile) AND must have explicitly confirmed it " +
+      "(said 'yes', 'looks good', 'that's right', or similar). Do NOT call this until the user confirms.\n\n" +
+      "**What happens:** Sets completedAt timestamp on the user's onboarding record. May also auto-join the user to preconfigured indexes " +
+      "(communities) based on server configuration.\n\n" +
+      "**Workflow:** create_user_profile() -> user confirms preview -> create_user_profile(confirm=true) -> user confirms saved profile -> complete_onboarding()\n\n" +
+      "**Returns:** Confirmation that onboarding is complete. No parameters needed.",
     querySchema: z.object({}),
     handler: async ({ context }) => {
       const currentOnboarding = context.user.onboarding ?? {};
