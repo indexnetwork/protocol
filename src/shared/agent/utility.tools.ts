@@ -52,13 +52,14 @@ export function createUtilityTools(defineTool: DefineTool, deps: ToolDeps) {
     description:
       "Returns comprehensive documentation about the Index Network protocol — entity model, workflows, tool usage guidance, and domain concepts. " +
       "This is the primary way for an external agent to bootstrap understanding of the system.\n\n" +
-      "**When to use:** Call this FIRST when you're unfamiliar with the protocol, or when you need to understand:\n" +
+      "**When to use:** Call this FIRST when starting a new session. MCP agents MUST call read_docs(topic='mcp_agent_guide') at the start of every conversation to learn proper output formatting and workflow rules.\n" +
+      "Also call when you need to understand:\n" +
       "- What entities exist and how they relate (intents, indexes, opportunities, profiles, contacts)\n" +
       "- The discovery workflow (how intents become opportunities)\n" +
       "- Which tools to call in what order for common tasks\n" +
       "- Authentication and API patterns\n\n" +
       "**Returns:** Markdown documentation. Pass `topic` to get a specific section, or omit for the full reference.\n\n" +
-      "**Available topics:** 'entities', 'intents', 'opportunities', 'indexes', 'profiles', 'contacts', 'discovery', 'workflows', 'authentication'",
+      "**Available topics:** 'entities', 'intents', 'opportunities', 'indexes', 'profiles', 'contacts', 'discovery', 'workflows', 'authentication', 'mcp_agent_guide'",
     querySchema: z.object({
       topic: z.string().optional().describe("Narrow to a specific topic: 'entities', 'intents', 'opportunities', 'indexes', 'profiles', 'contacts', 'discovery', 'workflows', or 'authentication'. Omit to get the full documentation."),
     }),
@@ -251,6 +252,33 @@ Discovery is the process of finding meaningful connections between users based o
 - Avoid unnecessary read_intents/read_networks calls — cache results within a conversation
 - Use pagination (limit/page) for large result sets
 - Call read_docs once at the start to understand the domain`,
+
+        mcp_agent_guide: `## MCP Agent Integration Guide
+
+**IMPORTANT: Read this section if you are an AI agent accessing Index Network via MCP tools.**
+
+### Output Formatting
+- Tool results often contain structured JSON data (proposals, opportunities, cards). **Do NOT dump raw JSON to the user.** Parse the JSON and present information in natural language with clear formatting.
+- Some tool results contain interactive card markup (code blocks with \`intent_proposal\`, \`opportunity_card\` language tags). These are designed for the Index Network web UI. **As an MCP agent, ignore card markup.** Instead, extract the meaningful data from the JSON and present it conversationally.
+- When presenting opportunities or intents, use bullet points or short paragraphs — not raw JSON objects.
+
+### Intent Creation Workflow
+- **Always pass \`autoApprove: true\` when calling \`create_intent\`.** This persists intents directly without returning proposal cards that require manual UI approval.
+- The tool will return a list of created intents with their descriptions and confidence scores. Present these in natural language.
+- Do not tell the user to "click on cards" or "approve above" — there is no UI. Intents are created immediately with autoApprove.
+- After creating intents, proactively suggest or run discovery to find matches.
+
+### Discovery Workflow
+- After creating intents, proactively suggest running discovery: \`create_opportunities(searchQuery=...)\`
+- Present discovered opportunities in natural language with the counterpart's name, match reasoning, and suggested next steps.
+- Do not reference "cards", "panels", or any web UI elements.
+
+### General MCP Agent Rules
+- You are operating via API tools, not a web interface. Never reference clicking, scrolling, cards, panels, or any visual UI elements.
+- Be proactive: if a logical next step exists (e.g., running discovery after creating intents), suggest or execute it.
+- Use \`list_opportunities\` to check existing matches, \`list_negotiations\` for ongoing negotiations.
+- Use \`read_networks\` to understand which communities the user belongs to before scoping operations.
+- When errors occur, provide clear technical context rather than vague "backend issue" messages.`,
       };
 
       if (topic) {

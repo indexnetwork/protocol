@@ -163,6 +163,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
     querySchema: z.object({
       description: z.string().describe("A clear, specific description of what the user is looking for. Should be concept-based, not a raw URL. If the user shared a URL, scrape it first with scrape_url and pass the synthesized content here. Vague descriptions will be rejected — include what kind, what for, and/or timeframe."),
       networkId: z.string().optional().describe("Index UUID to link the intent to upon creation. Defaults to the scoped index in index-scoped chats. Get index IDs from read_networks. If omitted, the system auto-assigns to relevant indexes based on their prompts."),
+      autoApprove: z.boolean().optional().describe("When true, automatically persists all verified intents without returning proposal cards for manual approval. MCP agents SHOULD set this to true since there is no UI for card-based approval. Web chat agents should omit or set to false to get interactive proposal cards."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);
@@ -244,6 +245,53 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         );
       }
 
+      // ── Auto-approve path (for MCP agents) ──
+      if (query.autoApprove) {
+        const createdIntents: Array<{ description: string; confidence: number | null; speechActType: string | null }> = [];
+        const createTimings: Array<{ name: string; durationMs: number; agents: unknown[] }> = [];
+
+        for (const v of verified as VerifiedIntent[]) {
+          const _createGraphStart = Date.now();
+          const _createTraceEmitter = requestContext.getStore()?.traceEmitter;
+          _createTraceEmitter?.({ type: "graph_start", name: "intent" });
+          const createResult = await graphs.intent.invoke({
+            userId: context.userId,
+            userProfile,
+            inputContent: v.description,
+            operationMode: 'create' as const,
+            ...(effectiveIndexId ? { networkId: effectiveIndexId } : {}),
+          });
+          const _createGraphMs = Date.now() - _createGraphStart;
+          _createTraceEmitter?.({ type: "graph_end", name: "intent", durationMs: _createGraphMs });
+
+          createTimings.push({ name: 'intent-create', durationMs: _createGraphMs, agents: createResult.agentTimings ?? [] });
+
+          if (createResult.executionResult?.success) {
+            createdIntents.push({
+              description: v.description,
+              confidence: v.score != null ? Math.round(v.score * 100) / 100 : null,
+              speechActType: v.verification?.classification ?? null,
+            });
+          }
+        }
+
+        return success({
+          created: true,
+          count: createdIntents.length,
+          intents: createdIntents,
+          message: createdIntents.length > 0
+            ? `Created ${createdIntents.length} intent${createdIntents.length > 1 ? 's' : ''} successfully. The system will automatically index them and begin searching for matching opportunities.`
+            : 'Intent creation failed — the intents could not be persisted.',
+          debugSteps,
+          _graphTimings: [
+            { name: 'profile', durationMs: _profileGraphMs1, agents: profileResult.agentTimings ?? [] },
+            { name: 'intent-propose', durationMs: _intentGraphMs1, agents: result.agentTimings ?? [] },
+            ...createTimings,
+          ],
+        });
+      }
+
+      // ── Proposal path (for web chat with interactive cards) ──
       // Build intent_proposal code fences for each verified intent
       const proposalBlocks = verified.map((v: VerifiedIntent) => {
         const proposalId = crypto.randomUUID();
