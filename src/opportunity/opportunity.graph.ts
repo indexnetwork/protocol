@@ -1753,12 +1753,58 @@ export class OpportunityGraphFactory {
             return negResult ? { ...opp, score: negResult.negotiationScore } : opp;
           });
 
+        // --- Build trace entries for Channel B (debug export) ---
+        const acceptedUserIds = new Set(acceptedResults.map(r => r.userId));
+        const negotiationDurationMs = Date.now() - graphStart;
+
+        const candidateTraceEntries = candidates.map(c => {
+          const accepted = acceptedUserIds.has(c.userId);
+          const result = accepted ? acceptedResults.find(r => r.userId === c.userId) : null;
+          const name = c.candidateUser.profile?.name ?? c.userId;
+          const outcome = accepted ? 'accepted' : 'rejected';
+          const scoreStr = result?.negotiationScore != null ? ` (${result.negotiationScore})` : '';
+          return {
+            node: 'negotiate_candidate',
+            detail: `${name}: ${outcome}${scoreStr}`,
+            data: {
+              userId: c.userId,
+              name,
+              outcome,
+              ...(result?.negotiationScore != null && { score: result.negotiationScore }),
+              turns: result?.turnCount ?? 0,
+            },
+          };
+        });
+
+        const acceptedCount = acceptedResults.length;
+        const rejectedCount = candidates.length - acceptedCount;
+        const negotiateTrace = [
+          {
+            node: 'negotiate',
+            detail: `${candidates.length} candidate(s) -> ${acceptedCount} accepted, ${rejectedCount} rejected`,
+            data: {
+              durationMs: negotiationDurationMs,
+              candidateCount: candidates.length,
+              acceptedCount,
+              rejectedCount,
+            },
+          },
+          ...candidateTraceEntries,
+        ];
+
         traceEmitter?.({ type: "graph_end", name: "Negotiation graph", durationMs: Date.now() - graphStart });
-        return { evaluatedOpportunities: updatedOpportunities };
+        return { evaluatedOpportunities: updatedOpportunities, trace: negotiateTrace };
       } catch (err) {
         logger.error("[Graph:Negotiate] Negotiation stage failed", { error: err });
         traceEmitter?.({ type: "graph_end", name: "Negotiation graph", durationMs: Date.now() - graphStart });
-        return { evaluatedOpportunities: [] };
+        return {
+          evaluatedOpportunities: [],
+          trace: [{
+            node: 'negotiate',
+            detail: 'Negotiation failed',
+            data: { durationMs: Date.now() - graphStart, error: true },
+          }],
+        };
       }
     };
 
