@@ -54,6 +54,8 @@ export interface NegotiationGraphLike {
     indexContext: { networkId: string; prompt: string };
     seedAssessment: Omit<SeedAssessment, "actors">;
     maxTurns?: number;
+    /** When false, always run the built-in AI agent instead of yielding for external agents (webhooks). Defaults to true. */
+    yieldForExternal?: boolean;
   }): Promise<{ outcome: NegotiationOutcome | null; messages?: NegotiationMessage[] }>;
 }
 
@@ -125,6 +127,12 @@ export const NegotiationGraphState = Annotation.Root({
   status: Annotation<'active' | 'waiting_for_external' | 'completed'>({
     reducer: (curr, next) => next ?? curr,
     default: () => 'active' as const,
+  }),
+
+  /** When false, always run the built-in AI agent instead of yielding for external agents (webhooks). */
+  yieldForExternal: Annotation<boolean>({
+    reducer: (curr, next) => next ?? curr,
+    default: () => true,
   }),
 
   outcome: Annotation<NegotiationOutcome | null>({

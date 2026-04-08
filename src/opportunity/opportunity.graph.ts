@@ -1730,12 +1730,14 @@ export class OpportunityGraphFactory {
           }),
         );
 
-        // Run negotiations per candidate with their actual index context
+        // Run negotiations per candidate with their actual index context.
+        // Chat-initiated discovery runs AI agents directly — no webhook yields.
         const acceptedResults = await negotiateCandidates(
           this.negotiationGraph, sourceUser, candidates,
           { networkId: '', prompt: '' }, // base context, overridden per-candidate below
           { maxTurns, traceEmitter: traceEmitter ?? undefined,
-            indexContextOverrides: indexContextMap },
+            indexContextOverrides: indexContextMap,
+            yieldForExternal: !isChatPath },
         );
 
         // Filter opportunities to only those with an opportunity outcome, update scores

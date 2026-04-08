@@ -74,7 +74,8 @@ export class NegotiationGraphFactory {
         const otherUser = isSource ? state.candidateUser : state.sourceUser;
 
         // ── Yield check: if the active party has an external agent (webhook), pause ──
-        if (webhookLookup) {
+        // Skip when yieldForExternal is false (e.g. chat-initiated negotiations need real-time results).
+        if (webhookLookup && state.yieldForExternal !== false) {
           const hasExternalAgent = await webhookLookup.hasWebhookForEvent(ownUser.id, 'negotiation.turn_received');
           if (hasExternalAgent) {
             logger.info("[Graph:Turn] External agent available, yielding", { userId: ownUser.id, turnCount: state.turnCount });
@@ -94,9 +95,10 @@ export class NegotiationGraphFactory {
               deadline,
             });
 
-            // Enqueue timeout fallback
+            // Enqueue timeout fallback (fire-and-forget to avoid blocking if Redis is down)
             if (timeoutQueue) {
-              await timeoutQueue.enqueueTimeout(state.taskId, state.turnCount, DEFAULT_EXTERNAL_TIMEOUT_MS);
+              timeoutQueue.enqueueTimeout(state.taskId, state.turnCount, DEFAULT_EXTERNAL_TIMEOUT_MS)
+                .catch((err) => logger.error("[Graph:Turn] Failed to enqueue timeout", { taskId: state.taskId, error: err instanceof Error ? err.message : String(err) }));
             }
 
             // Return early — graph yields. No new message, no turn increment.
@@ -285,9 +287,9 @@ export async function negotiateCandidates(
   sourceUser: UserNegotiationContext,
   candidates: NegotiationCandidate[],
   indexContext: { networkId: string; prompt: string },
-  opts?: { maxTurns?: number; traceEmitter?: TraceEmitter; indexContextOverrides?: Map<string, string> },
+  opts?: { maxTurns?: number; traceEmitter?: TraceEmitter; indexContextOverrides?: Map<string, string>; yieldForExternal?: boolean },
 ): Promise<NegotiationResult[]> {
-  const { maxTurns, traceEmitter, indexContextOverrides } = opts ?? {};
+  const { maxTurns, traceEmitter, indexContextOverrides, yieldForExternal } = opts ?? {};
 
   const results = await Promise.all(
     candidates.map(async (candidate) => {
@@ -310,6 +312,7 @@ export async function negotiateCandidates(
             valencyRole: candidate.valencyRole,
           },
           ...(maxTurns !== undefined && { maxTurns }),
+          ...(yieldForExternal !== undefined && { yieldForExternal }),
         });
 
         const durationMs = Date.now() - start;
