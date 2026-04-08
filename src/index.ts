@@ -28,6 +28,7 @@ export type * from "./shared/interfaces/integration.interface.js";
 export type * from "./shared/interfaces/queue.interface.js";
 export type * from "./shared/interfaces/scraper.interface.js";
 export type * from "./shared/interfaces/storage.interface.js";
+export type * from "./shared/interfaces/webhook.interface.js";
 
 // ─── Graph factories ──────────────────────────────────────────────────────────
 

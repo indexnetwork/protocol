@@ -18,6 +18,7 @@ import type { ProfileEnricher } from "../interfaces/enrichment.interface.js";
 import type { IntentGraphQueue } from "../interfaces/queue.interface.js";
 import type { ChatSessionReader } from "../interfaces/chat-session.interface.js";
 import type { Embedder } from "../interfaces/embedder.interface.js";
+import type { WebhookAdapter } from "../interfaces/webhook.interface.js";
 
 /** Profile without embedding — used in resolved context to avoid bloating prompts and memory. */
 export type ProfileContext = Omit<ProfileDocument, "embedding"> | null;
@@ -121,6 +122,8 @@ export interface ToolContext {
   createSystemDatabase: (db: ChatGraphCompositeDatabase, userId: string, indexScope: string[], embedder?: Embedder) => SystemDatabase;
   /** Optional runtime LLM config. Pass to override env vars for API key, model, etc. */
   modelConfig?: ModelConfig;
+  /** Webhook adapter for managing webhook registrations (optional). */
+  webhook?: WebhookAdapter;
 }
 
 /**
@@ -308,6 +311,8 @@ export interface ToolDeps {
     }>;
   };
   enricher: ProfileEnricher;
+  /** Webhook adapter for managing webhook registrations (optional — absent when host does not support webhooks). */
+  webhook?: WebhookAdapter;
   graphs: {
     profile: CompiledGraph;
     intent: CompiledGraph;
