@@ -1737,7 +1737,7 @@ export class OpportunityGraphFactory {
           { networkId: '', prompt: '' }, // base context, overridden per-candidate below
           { maxTurns, traceEmitter: traceEmitter ?? undefined,
             indexContextOverrides: indexContextMap,
-            yieldForExternal: !isChatPath },
+            timeoutMs: isChatPath ? 30_000 : 24 * 60 * 60 * 1000 },
         );
 
         // Filter opportunities to only those with an opportunity outcome, update scores
@@ -1747,11 +1747,7 @@ export class OpportunityGraphFactory {
             const candidateActor = opp.actors.find(a => a.userId !== discoveryUserId);
             return candidateActor && acceptedMap.has(candidateActor.userId as string);
           })
-          .map(opp => {
-            const candidateActor = opp.actors.find(a => a.userId !== discoveryUserId);
-            const negResult = candidateActor && acceptedMap.get(candidateActor.userId as string);
-            return negResult ? { ...opp, score: negResult.negotiationScore } : opp;
-          });
+          .map(opp => opp);
 
         // --- Build trace entries for Channel B (debug export) ---
         const acceptedUserIds = new Set(acceptedResults.map(r => r.userId));
@@ -1762,15 +1758,13 @@ export class OpportunityGraphFactory {
           const result = accepted ? acceptedResults.find(r => r.userId === c.userId) : null;
           const name = c.candidateUser.profile?.name ?? c.userId;
           const outcome = accepted ? 'accepted' : 'rejected';
-          const scoreStr = result?.negotiationScore != null ? ` (${result.negotiationScore})` : '';
           return {
             node: 'negotiate_candidate',
-            detail: `${name}: ${outcome}${scoreStr}`,
+            detail: `${name}: ${outcome}`,
             data: {
               userId: c.userId,
               name,
               outcome,
-              ...(result?.negotiationScore != null && { score: result.negotiationScore }),
               turns: result?.turnCount ?? 0,
             },
           };
