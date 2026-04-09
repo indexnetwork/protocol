@@ -1,43 +1,8 @@
 /**
  * Interfaces for negotiation yield/resume support.
- * Used by the negotiation graph and tools to pause for external agents
- * and resume when they respond or when a timeout fires.
+ * Used by the negotiation graph and dispatcher to manage timeouts
+ * for external agents that haven't responded yet.
  */
-
-/**
- * Checks whether a user has an active webhook subscription for a given event.
- * Used by the negotiation graph to decide whether to yield for an external agent
- * or run the built-in AI agent.
- */
-export interface WebhookLookup {
-  hasWebhookForEvent(userId: string, event: string): Promise<boolean>;
-}
-
-/**
- * Emits negotiation lifecycle events.
- * The host application wires this to trigger webhook delivery
- * and other side-effects (e.g. notifications).
- */
-export interface NegotiationEventEmitter {
-  /** Emitted when a negotiation yields and is waiting for an external response. */
-  emitTurnReceived(data: {
-    negotiationId: string;
-    userId: string;
-    turnNumber: number;
-    counterpartyAction: string;
-    counterpartyMessage?: string;
-    deadline: string;
-  }): void;
-
-  /** Emitted when a negotiation reaches a terminal state (accept/reject/turn-cap). */
-  emitCompleted(data: {
-    negotiationId: string;
-    userId: string;
-    outcome: string;
-    finalScore?: number;
-    turnCount: number;
-  }): void;
-}
 
 /**
  * Manages delayed timeout jobs for negotiations waiting on external agents.
