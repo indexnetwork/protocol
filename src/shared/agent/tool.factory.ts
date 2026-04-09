@@ -116,11 +116,13 @@ export async function createChatTools(
     lensInferrer,
     hydeGenerator
   ).createGraph();
-  const negotiationGraph = new NegotiationGraphFactory(
-    deps.negotiationDatabase,
-    deps.agentDispatcher!,
-    deps.negotiationTimeoutQueue,
-  ).createGraph();
+  const negotiationGraph = deps.agentDispatcher
+    ? new NegotiationGraphFactory(
+        deps.negotiationDatabase,
+        deps.agentDispatcher,
+        deps.negotiationTimeoutQueue,
+      ).createGraph()
+    : undefined;
   const opportunityGraph = new OpportunityGraphFactory(
     database,
     embedder,
@@ -186,7 +188,9 @@ export async function createChatTools(
   const agentTools = createAgentTools(defineTool, toolDeps);
   const integrationTools = createIntegrationTools(defineTool, toolDeps);
   const webhookTools = createWebhookTools(defineTool, toolDeps);
-  const negotiationTools = createNegotiationTools(defineTool, toolDeps);
+  const negotiationTools = deps.agentDispatcher
+    ? createNegotiationTools(defineTool, toolDeps)
+    : [];
 
   // Chat only proposes opportunities from the conversation (create_opportunities).
   // Other opportunities are shown on the home view; do not give the agent list_opportunities.
