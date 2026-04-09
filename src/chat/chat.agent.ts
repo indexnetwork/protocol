@@ -443,6 +443,7 @@ export class ChatAgent {
   private detectHallucinatedBlock(
     text: string,
     toolsUsed: Array<{ name: string; success: boolean; resultSummary?: string }>,
+    userMessage?: string,
   ): { type: string; tool: string; description: string } | null {
     // Only trust successful tool calls that actually returned results.
     // A call that returned "Found 0 match(es)" doesn't produce valid blocks.
@@ -467,10 +468,11 @@ export class ChatAgent {
 
     // Check for hallucinated opportunity blocks
     if (text.includes("```opportunity") && !hasSuccessfulCreateOpportunities) {
-      // Extract a search query from the hallucinated block for the correction call
-      const nameMatch = text.match(/```opportunity\s*\n\s*\{[^}]*"name"\s*:\s*"([^"]+)"/);
-      const reasoningMatch = text.match(/```opportunity\s*\n\s*\{[^}]*"reasoning"\s*:\s*"([^"]+)"/);
-      const description = nameMatch?.[1] || reasoningMatch?.[1] || "find connections";
+      // Use the user's original message as the search query — NOT fields from the
+      // hallucinated JSON. The model fabricates person names and reasoning that have
+      // nothing to do with the user's actual request, leading to wrong results and
+      // the model re-calling the tool with the correct query (doubling negotiation cost).
+      const description = userMessage?.trim() || "find connections";
       return { type: "opportunity", tool: "create_opportunities", description };
     }
 
@@ -946,7 +948,7 @@ export class ChatAgent {
       // directly instead of calling the corresponding tool. These blocks
       // lack valid proposalIds / data and won't work in the frontend.
       // Auto-invoke the correct tool directly instead of re-asking the LLM.
-      const hallucinatedBlock = this.detectHallucinatedBlock(iterationText, toolsDebug);
+      const hallucinatedBlock = this.detectHallucinatedBlock(iterationText, toolsDebug, iterCtx.currentMessage);
       if (hallucinatedBlock && iterationCount < HARD_ITERATION_LIMIT - 1) {
         logger.warn("Streaming: detected hallucinated block, auto-invoking tool", {
           iteration: iterationCount,

@@ -248,7 +248,7 @@ I've created an intent for you!`;
       writer,
     );
 
-    // create_opportunities auto-invoked with searchQuery from block name
+    // create_opportunities auto-invoked with searchQuery from user's message (not hallucinated block)
     const createOpsTool = capturedTools.find(
       (t) => t.name === "create_opportunities",
     )!;
@@ -257,7 +257,7 @@ I've created an intent for you!`;
       string,
       string
     >;
-    expect(callArgs.searchQuery).toBe("Blockchain developer meetup");
+    expect(callArgs.searchQuery).toBe("Find me connections in blockchain");
 
     // response_reset emitted
     const resetEvents = events.filter((e) => e.type === "response_reset");
