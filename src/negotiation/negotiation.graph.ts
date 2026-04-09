@@ -32,14 +32,7 @@ export class NegotiationGraphFactory {
           { participantId: `agent:${state.candidateUser.id}`, participantType: "agent" },
         ]);
 
-        const task = await database.createTask(conversation.id, {
-          type: "negotiation",
-          sourceUserId: state.sourceUser.id,
-          candidateUserId: state.candidateUser.id,
-          ...(state.opportunityId && { opportunityId: state.opportunityId }),
-        });
-
-        // Determine scenario-based maxTurns
+        // Determine scenario-based maxTurns before creating the task
         const scope = { action: 'manage:negotiations', scopeType: 'network', scopeId: state.indexContext.networkId };
         const [sourceHasAgent, candidateHasAgent] = await Promise.all([
           dispatcher.hasPersonalAgent(state.sourceUser.id, scope),
@@ -57,6 +50,14 @@ export class NegotiationGraphFactory {
             maxTurns = 6; // both system agents: default cap
           }
         }
+
+        const task = await database.createTask(conversation.id, {
+          type: "negotiation",
+          sourceUserId: state.sourceUser.id,
+          candidateUserId: state.candidateUser.id,
+          ...(state.opportunityId && { opportunityId: state.opportunityId }),
+          maxTurns,
+        });
 
         return {
           conversationId: conversation.id,

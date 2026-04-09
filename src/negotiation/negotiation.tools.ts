@@ -45,7 +45,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         const tasks = await negotiationDatabase.getTasksForUser(context.userId, dbState ? { state: dbState } : undefined);
 
         const negotiations = await Promise.all(tasks.map(async (task) => {
-          const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string } | null;
+          const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string; maxTurns?: number } | null;
           if (meta?.type !== 'negotiation') return null;
 
           const isSource = meta.sourceUserId === context.userId;
@@ -117,7 +117,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           return error('Negotiation not found.');
         }
 
-        const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string } | null;
+        const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string; maxTurns?: number } | null;
         if (meta?.type !== 'negotiation') {
           return error('Negotiation not found.');
         }
@@ -222,7 +222,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           return error('Negotiation not found.');
         }
 
-        const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string } | null;
+        const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string; maxTurns?: number } | null;
         if (meta?.type !== 'negotiation') {
           return error('Negotiation not found.');
         }
@@ -311,7 +311,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         }
 
         // ── Handle counter/question: check if under max turns ──
-        const maxTurns = 6; // Default max turns (matches graph default)
+        const maxTurns = meta.maxTurns ?? 6; // Read from task metadata; fallback to system default
         if (newTurnCount >= maxTurns) {
           // Max turns reached — finalize with turn_cap
           const allMessages = [...messages, { id: turnMessage.id, senderId: turnMessage.senderId, role: turnMessage.role, parts: turnMessage.parts as unknown[], createdAt: turnMessage.createdAt }];
