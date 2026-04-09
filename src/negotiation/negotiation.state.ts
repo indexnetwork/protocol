@@ -3,15 +3,41 @@ import { z } from "zod";
 
 /** Zod schema for a single negotiation turn (DataPart payload in A2A message). */
 export const NegotiationTurnSchema = z.object({
-  action: z.enum(["propose", "accept", "reject", "counter"]),
+  action: z.enum(["propose", "accept", "reject", "counter", "question"]),
   assessment: z.object({
-    fitScore: z.number().min(0).max(100),
     reasoning: z.string(),
     suggestedRoles: z.object({
       ownUser: z.enum(["agent", "patient", "peer"]),
       otherUser: z.enum(["agent", "patient", "peer"]),
     }),
   }),
+  message: z.string().optional(),
+});
+
+/** Restricted turn schema for the system agent (no question action). */
+export const SystemNegotiationTurnSchema = z.object({
+  action: z.enum(["propose", "accept", "reject", "counter"]),
+  assessment: z.object({
+    reasoning: z.string(),
+    suggestedRoles: z.object({
+      ownUser: z.enum(["agent", "patient", "peer"]),
+      otherUser: z.enum(["agent", "patient", "peer"]),
+    }),
+  }),
+  message: z.string().optional(),
+});
+
+/** Turn schema for system agent's final allowed turn (must decide). */
+export const FinalNegotiationTurnSchema = z.object({
+  action: z.enum(["accept", "reject"]),
+  assessment: z.object({
+    reasoning: z.string(),
+    suggestedRoles: z.object({
+      ownUser: z.enum(["agent", "patient", "peer"]),
+      otherUser: z.enum(["agent", "patient", "peer"]),
+    }),
+  }),
+  message: z.string().optional(),
 });
 
 export type NegotiationTurn = z.infer<typeof NegotiationTurnSchema>;
@@ -19,14 +45,13 @@ export type NegotiationTurn = z.infer<typeof NegotiationTurnSchema>;
 /** Zod schema for the negotiation outcome (Artifact payload on COMPLETED task). */
 export const NegotiationOutcomeSchema = z.object({
   hasOpportunity: z.boolean(),
-  finalScore: z.number().min(0).max(100),
   agreedRoles: z.array(z.object({
     userId: z.string(),
     role: z.enum(["agent", "patient", "peer"]),
   })),
   reasoning: z.string(),
   turnCount: z.number(),
-  reason: z.string().optional(),
+  reason: z.enum(["turn_cap", "timeout"]).optional(),
 });
 
 export type NegotiationOutcome = z.infer<typeof NegotiationOutcomeSchema>;
@@ -53,9 +78,9 @@ export interface NegotiationGraphLike {
     candidateUser: UserNegotiationContext;
     indexContext: { networkId: string; prompt: string };
     seedAssessment: Omit<SeedAssessment, "actors">;
+    opportunityId?: string;
     maxTurns?: number;
-    /** When false, always run the built-in AI agent instead of yielding for external agents (webhooks). Defaults to true. */
-    yieldForExternal?: boolean;
+    timeoutMs?: number;
   }): Promise<{ outcome: NegotiationOutcome | null; messages?: NegotiationMessage[] }>;
 }
 
@@ -87,6 +112,10 @@ export const NegotiationGraphState = Annotation.Root({
     default: () => ({ score: 0, reasoning: "", valencyRole: "" }),
   }),
 
+  opportunityId: Annotation<string>({
+    reducer: (curr, next) => next ?? curr,
+    default: () => "",
+  }),
   conversationId: Annotation<string>({
     reducer: (curr, next) => next ?? curr,
     default: () => "",
@@ -107,6 +136,11 @@ export const NegotiationGraphState = Annotation.Root({
     reducer: (curr, next) => next ?? curr,
     default: () => 6,
   }),
+  /** Timeout per dispatch attempt in milliseconds. Short for chat (30s), long for background (24h). */
+  timeoutMs: Annotation<number>({
+    reducer: (curr, next) => next ?? curr,
+    default: () => 24 * 60 * 60 * 1000,
+  }),
 
   currentSpeaker: Annotation<"source" | "candidate">({
     reducer: (curr, next) => next ?? curr,
@@ -118,21 +152,14 @@ export const NegotiationGraphState = Annotation.Root({
   }),
 
   /**
-   * Graph status. Tracks whether the negotiation is actively running, waiting
-   * for an external response (e.g. user input via MCP tool), or finished.
+   * Graph status.
    * - `active` — agents are exchanging turns (default)
-   * - `waiting_for_external` — graph has yielded; awaiting external response or timeout
-   * - `completed` — negotiation finalized (accept/reject/turn-cap)
+   * - `waiting_for_agent` — graph suspended; awaiting external agent response or timeout
+   * - `completed` — negotiation finalized (accept/reject/turn-cap/timeout)
    */
-  status: Annotation<'active' | 'waiting_for_external' | 'completed'>({
+  status: Annotation<'active' | 'waiting_for_agent' | 'completed'>({
     reducer: (curr, next) => next ?? curr,
     default: () => 'active' as const,
-  }),
-
-  /** When false, always run the built-in AI agent instead of yielding for external agents (webhooks). */
-  yieldForExternal: Annotation<boolean>({
-    reducer: (curr, next) => next ?? curr,
-    default: () => true,
   }),
 
   outcome: Annotation<NegotiationOutcome | null>({
