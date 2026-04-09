@@ -12,8 +12,7 @@ import { NetworkMembershipGraphFactory } from "../../network/membership/membersh
 import { IntentNetworkGraphFactory } from "../../network/indexer/indexer.graph.js";
 import { IntentIndexer } from "../../intent/intent.indexer.js";
 import { NegotiationGraphFactory } from "../../negotiation/negotiation.graph.js";
-import { NegotiationProposer } from "../../negotiation/negotiation.proposer.js";
-import { NegotiationResponder } from "../../negotiation/negotiation.responder.js";
+import { IndexNegotiator } from "../../negotiation/negotiation.agent.js";
 import { protocolLogger } from "../observability/protocol.logger.js";
 import { configureProtocol } from "./model.config.js";
 
@@ -118,10 +117,11 @@ export async function createChatTools(
     lensInferrer,
     hydeGenerator
   ).createGraph();
+  const negotiator = new IndexNegotiator();
   const negotiationGraph = new NegotiationGraphFactory(
     deps.negotiationDatabase,
-    new NegotiationProposer(),
-    new NegotiationResponder(),
+    negotiator,
+    negotiator,
     deps.webhookLookup,
     deps.negotiationEvents,
     deps.negotiationTimeoutQueue,

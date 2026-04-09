@@ -2,8 +2,7 @@ import { z } from 'zod';
 
 import type { DefineTool, ToolDeps } from '../shared/agent/tool.helpers.js';
 import { success, error } from '../shared/agent/tool.helpers.js';
-import { NegotiationProposer } from './negotiation.proposer.js';
-import { NegotiationResponder } from './negotiation.responder.js';
+import { IndexNegotiator } from './negotiation.agent.js';
 import type { NegotiationTurn, UserNegotiationContext, SeedAssessment, NegotiationOutcome } from './negotiation.state.js';
 import { protocolLogger } from '../shared/observability/protocol.logger.js';
 
@@ -426,7 +425,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         // Note: we use minimal context here since we don't have full user profiles in the tool.
         // The AI agent will work with the history which contains all the reasoning.
         const counterpartyIsSource = counterpartySpeaker === 'source';
-        const agent = counterpartyIsSource ? new NegotiationProposer() : new NegotiationResponder();
+        const agent = new IndexNegotiator();
 
         const ownUserCtx: UserNegotiationContext = { id: counterpartyUserId, intents: [], profile: {} };
         const otherUserCtx: UserNegotiationContext = { id: context.userId, intents: [], profile: {} };

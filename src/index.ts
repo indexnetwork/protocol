@@ -74,8 +74,8 @@ export { IntentIndexer } from "./intent/intent.indexer.js";
 export { LensInferrer } from "./shared/hyde/lens.inferrer.js";
 export { NegotiationInsightsGenerator } from "./negotiation/negotiation.insights.generator.js";
 export type { NegotiationDigest } from "./negotiation/negotiation.insights.generator.js";
-export { NegotiationProposer } from "./negotiation/negotiation.proposer.js";
-export { NegotiationResponder } from "./negotiation/negotiation.responder.js";
+export { IndexNegotiator } from "./negotiation/negotiation.agent.js";
+export type { NegotiationAgentInput } from "./negotiation/negotiation.agent.js";
 export { OpportunityEvaluator } from "./opportunity/opportunity.evaluator.js";
 export type {
   EvaluatorInput,
