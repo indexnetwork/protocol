@@ -47,14 +47,15 @@ export class NegotiationGraphFactory {
         ]);
 
         let maxTurns = state.maxTurns;
-        if (maxTurns === 6) {
-          // Only override if using the default — explicit caller overrides take precedence
+        if (maxTurns == null) {
+          // No explicit override from caller — choose based on agent presence
           if (sourceHasAgent && candidateHasAgent) {
             maxTurns = 0; // unlimited — 24h timeout is the safety valve
           } else if (sourceHasAgent || candidateHasAgent) {
             maxTurns = 8;
+          } else {
+            maxTurns = 6; // both system agents: default cap
           }
-          // else both system: keep 6
         }
 
         return {

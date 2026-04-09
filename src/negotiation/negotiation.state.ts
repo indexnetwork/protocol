@@ -137,9 +137,9 @@ export const NegotiationGraphState = Annotation.Root({
     reducer: (curr, next) => next ?? curr,
     default: () => 0,
   }),
-  maxTurns: Annotation<number>({
+  maxTurns: Annotation<number | undefined>({
     reducer: (curr, next) => next ?? curr,
-    default: () => 6,
+    default: () => undefined,
   }),
   /** Timeout per dispatch attempt in milliseconds. Short for chat (30s), long for background (24h). */
   timeoutMs: Annotation<number>({
