@@ -88,7 +88,8 @@ export class NegotiationGraphFactory {
         const otherUser = isSource ? state.candidateUser : state.sourceUser;
 
         // Determine if this is the system agent's final allowed turn
-        const isFinalTurn = state.maxTurns > 0 && (state.turnCount + 1) >= state.maxTurns;
+        const maxTurns = state.maxTurns ?? 0;
+        const isFinalTurn = maxTurns > 0 && (state.turnCount + 1) >= maxTurns;
 
         const payload: NegotiationTurnPayload = {
           negotiationId: state.taskId,
@@ -183,7 +184,7 @@ export class NegotiationGraphFactory {
       if (state.lastTurn.action === "accept") return "finalize";
       if (state.lastTurn.action === "reject") return "finalize";
       // question routes same as counter — next turn
-      if (state.maxTurns > 0 && state.turnCount >= state.maxTurns) return "finalize";
+      if ((state.maxTurns ?? 0) > 0 && state.turnCount >= state.maxTurns!) return "finalize";
       return "turn";
     };
 
@@ -199,7 +200,7 @@ export class NegotiationGraphFactory {
 
       const lastTurn = state.lastTurn;
       const hasOpportunity = lastTurn?.action === "accept";
-      const atCap = state.maxTurns > 0 && state.turnCount >= state.maxTurns && lastTurn?.action !== "accept" && lastTurn?.action !== "reject";
+      const atCap = (state.maxTurns ?? 0) > 0 && state.turnCount >= state.maxTurns! && lastTurn?.action !== "accept" && lastTurn?.action !== "reject";
 
       let agreedRoles: NegotiationOutcome["agreedRoles"] = [];
       if (hasOpportunity && history.length >= 2) {
