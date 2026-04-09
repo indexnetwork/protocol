@@ -2,41 +2,28 @@ import { StateGraph } from "@langchain/langgraph";
 
 import { requestContext, type TraceEmitter } from "../shared/observability/request-context.js";
 import type { NegotiationDatabase } from "../shared/interfaces/database.interface.js";
-import type { WebhookLookup, NegotiationEventEmitter, NegotiationTimeoutQueue } from "../shared/interfaces/negotiation-events.interface.js";
+import type { NegotiationTimeoutQueue } from "../shared/interfaces/negotiation-events.interface.js";
+import type { AgentDispatcher, NegotiationTurnPayload } from "../shared/interfaces/agent-dispatcher.interface.js";
 import { NegotiationGraphState, type NegotiationTurn, type NegotiationOutcome, type UserNegotiationContext, type SeedAssessment, type NegotiationGraphLike } from "./negotiation.state.js";
+import { IndexNegotiator } from "./negotiation.agent.js";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 
 const logger = protocolLogger("NegotiationGraph");
 
-interface NegotiationAgentLike {
-  invoke(input: {
-    ownUser: UserNegotiationContext;
-    otherUser: UserNegotiationContext;
-    indexContext: { networkId: string; prompt: string };
-    seedAssessment: SeedAssessment;
-    history: NegotiationTurn[];
-  }): Promise<NegotiationTurn>;
-}
-
-/** Default timeout for external agent responses (24 hours). */
-const DEFAULT_EXTERNAL_TIMEOUT_MS = 24 * 60 * 60 * 1000;
-
 /**
  * Factory for the bilateral negotiation LangGraph state machine.
- * @remarks Accepts dependencies via constructor for testability.
+ * @remarks Accepts an AgentDispatcher for per-turn agent resolution.
  */
 export class NegotiationGraphFactory {
   constructor(
     private database: NegotiationDatabase,
-    private proposer: NegotiationAgentLike,
-    private responder: NegotiationAgentLike,
-    private webhookLookup?: WebhookLookup,
-    private eventEmitter?: NegotiationEventEmitter,
+    private dispatcher: AgentDispatcher,
     private timeoutQueue?: NegotiationTimeoutQueue,
   ) {}
 
   createGraph() {
-    const { database, proposer, responder, webhookLookup, eventEmitter, timeoutQueue } = this;
+    const { database, dispatcher, timeoutQueue } = this;
+    const systemAgent = new IndexNegotiator();
 
     const initNode = async (state: typeof NegotiationGraphState.State) => {
       try {
@@ -49,13 +36,33 @@ export class NegotiationGraphFactory {
           type: "negotiation",
           sourceUserId: state.sourceUser.id,
           candidateUserId: state.candidateUser.id,
+          ...(state.opportunityId && { opportunityId: state.opportunityId }),
         });
+
+        // Determine scenario-based maxTurns
+        const scope = { action: 'manage:negotiations', scopeType: 'network', scopeId: state.indexContext.networkId };
+        const [sourceHasAgent, candidateHasAgent] = await Promise.all([
+          dispatcher.hasPersonalAgent(state.sourceUser.id, scope),
+          dispatcher.hasPersonalAgent(state.candidateUser.id, scope),
+        ]);
+
+        let maxTurns = state.maxTurns;
+        if (maxTurns === 6) {
+          // Only override if using the default — explicit caller overrides take precedence
+          if (sourceHasAgent && candidateHasAgent) {
+            maxTurns = 0; // unlimited — 24h timeout is the safety valve
+          } else if (sourceHasAgent || candidateHasAgent) {
+            maxTurns = 8;
+          }
+          // else both system: keep 6
+        }
 
         return {
           conversationId: conversation.id,
           taskId: task.id,
           currentSpeaker: "source" as const,
           turnCount: 0,
+          maxTurns,
         };
       } catch (err) {
         return { error: `Init failed: ${err instanceof Error ? err.message : String(err)}` };
@@ -73,68 +80,63 @@ export class NegotiationGraphFactory {
         const ownUser = isSource ? state.sourceUser : state.candidateUser;
         const otherUser = isSource ? state.candidateUser : state.sourceUser;
 
-        // ── Yield check: if the active party has an external agent (webhook), pause ──
-        // Skip when yieldForExternal is false (e.g. chat-initiated negotiations need real-time results).
-        if (webhookLookup && state.yieldForExternal !== false) {
-          const hasExternalAgent = await webhookLookup.hasWebhookForEvent(ownUser.id, 'negotiation.turn_received');
-          if (hasExternalAgent) {
-            logger.info("[Graph:Turn] External agent available, yielding", { userId: ownUser.id, turnCount: state.turnCount });
+        // Determine if this is the system agent's final allowed turn
+        const isFinalTurn = state.maxTurns > 0 && (state.turnCount + 1) >= state.maxTurns;
 
-            await database.updateTaskState(state.taskId, "waiting_for_external");
-
-            // Determine the last counterparty action for the event payload
-            const lastTurnData = history[history.length - 1];
-            const deadline = new Date(Date.now() + DEFAULT_EXTERNAL_TIMEOUT_MS).toISOString();
-
-            eventEmitter?.emitTurnReceived({
-              negotiationId: state.taskId,
-              userId: ownUser.id,
-              turnNumber: state.turnCount + 1,
-              counterpartyAction: lastTurnData?.action ?? 'propose',
-              counterpartyMessage: lastTurnData?.assessment?.reasoning,
-              deadline,
-            });
-
-            // Enqueue timeout fallback (fire-and-forget to avoid blocking if Redis is down)
-            if (timeoutQueue) {
-              timeoutQueue.enqueueTimeout(state.taskId, state.turnCount, DEFAULT_EXTERNAL_TIMEOUT_MS)
-                .catch((err) => logger.error("[Graph:Turn] Failed to enqueue timeout", { taskId: state.taskId, error: err instanceof Error ? err.message : String(err) }));
-            }
-
-            // Return early — graph yields. No new message, no turn increment.
-            return { status: 'waiting_for_external' as const };
-          }
-        }
-
-        // ── No external agent: run the built-in AI agent ──
-        const agent = isSource ? proposer : responder;
-        const senderId = `agent:${ownUser.id}`;
-
-        const traceEmitter = requestContext.getStore()?.traceEmitter;
-        const agentName = isSource ? "Negotiation proposer agent" : "Negotiation responder agent";
-        const agentStart = Date.now();
-        traceEmitter?.({ type: "agent_start", name: agentName });
-
-        const turn = await agent.invoke({
+        const payload: NegotiationTurnPayload = {
+          negotiationId: state.taskId,
           ownUser,
           otherUser,
           indexContext: state.indexContext,
           seedAssessment: state.seedAssessment,
           history,
-        });
+          isFinalTurn,
+        };
 
-        traceEmitter?.({ type: "agent_end", name: agentName, durationMs: Date.now() - agentStart, summary: `${turn.action}:${turn.assessment.fitScore}` });
+        const scope = { action: 'manage:negotiations', scopeType: 'network', scopeId: state.indexContext.networkId };
+
+        // ── Dispatch: try personal agent, fall back to system ──
+        const traceEmitter = requestContext.getStore()?.traceEmitter;
+        const agentName = "Index negotiator";
+        const agentStart = Date.now();
+        traceEmitter?.({ type: "agent_start", name: agentName });
+
+        const dispatchResult = await dispatcher.dispatch(ownUser.id, scope, payload, { timeoutMs: state.timeoutMs });
+
+        let turn: NegotiationTurn;
+
+        if (dispatchResult.handled) {
+          // Personal agent responded
+          turn = dispatchResult.turn;
+        } else if (dispatchResult.reason === 'waiting') {
+          // Long timeout — graph suspends
+          traceEmitter?.({ type: "agent_end", name: agentName, durationMs: Date.now() - agentStart, summary: "waiting_for_agent" });
+          await database.updateTaskState(state.taskId, "waiting_for_agent");
+          return { status: 'waiting_for_agent' as const };
+        } else {
+          // No personal agent or timeout — run system agent
+          turn = await systemAgent.invoke({
+            ownUser,
+            otherUser,
+            indexContext: state.indexContext,
+            seedAssessment: state.seedAssessment,
+            history,
+            isFinalTurn,
+          });
+        }
+
+        traceEmitter?.({ type: "agent_end", name: agentName, durationMs: Date.now() - agentStart, summary: `${turn.action}` });
 
         // First turn must be "propose"
         if (state.turnCount === 0 && turn.action !== "propose") {
-          logger.warn("[Graph:Turn] Proposer returned unexpected action on turn 0, forcing to propose", { action: turn.action });
+          logger.warn("[Graph:Turn] Agent returned unexpected action on turn 0, forcing to propose", { action: turn.action });
           turn.action = "propose";
         }
 
         const parts = [{ kind: "data" as const, data: turn }];
         const message = await database.createMessage({
           conversationId: state.conversationId,
-          senderId,
+          senderId: `agent:${ownUser.id}`,
           role: "agent",
           parts,
           taskId: state.taskId,
@@ -158,7 +160,7 @@ export class NegotiationGraphFactory {
         return {
           lastTurn: {
             action: "reject" as const,
-            assessment: { fitScore: 0, reasoning: `Agent error: ${err instanceof Error ? err.message : String(err)}`, suggestedRoles: { ownUser: "peer" as const, otherUser: "peer" as const } },
+            assessment: { reasoning: `Agent error: ${err instanceof Error ? err.message : String(err)}`, suggestedRoles: { ownUser: "peer" as const, otherUser: "peer" as const } },
           },
           turnCount: state.turnCount + 1,
           error: `Turn failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -167,20 +169,18 @@ export class NegotiationGraphFactory {
     };
 
     const evaluateNode = (state: typeof NegotiationGraphState.State): string => {
-      // When the graph yielded for an external agent, go straight to finalize (no-op exit)
-      if (state.status === 'waiting_for_external') return "finalize";
+      if (state.status === 'waiting_for_agent') return "finalize";
       if (state.error) return "finalize";
       if (!state.lastTurn) return "finalize";
       if (state.lastTurn.action === "accept") return "finalize";
       if (state.lastTurn.action === "reject") return "finalize";
-      if (state.turnCount >= state.maxTurns) return "finalize";
+      // question routes same as counter — next turn
+      if (state.maxTurns > 0 && state.turnCount >= state.maxTurns) return "finalize";
       return "turn";
     };
 
     const finalizeNode = async (state: typeof NegotiationGraphState.State) => {
-      // When yielding for an external agent, skip outcome persistence — the graph
-      // will be resumed via respond_to_negotiation or the timeout worker.
-      if (state.status === 'waiting_for_external') {
+      if (state.status === 'waiting_for_agent') {
         return {};
       }
 
@@ -191,19 +191,12 @@ export class NegotiationGraphFactory {
 
       const lastTurn = state.lastTurn;
       const hasOpportunity = lastTurn?.action === "accept";
-      const atCap = state.turnCount >= state.maxTurns && lastTurn?.action === "counter";
-
-      const scores = history.map((t) => t.assessment.fitScore);
-      const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      const atCap = state.maxTurns > 0 && state.turnCount >= state.maxTurns && lastTurn?.action !== "accept" && lastTurn?.action !== "reject";
 
       let agreedRoles: NegotiationOutcome["agreedRoles"] = [];
       if (hasOpportunity && history.length >= 2) {
-        // The accept turn is always last; the preceding turn is from the other side.
-        // Use currentSpeaker (who would speak NEXT) to determine who spoke last.
         const acceptTurn = history[history.length - 1];
         const precedingTurn = history[history.length - 2];
-        // currentSpeaker flips after each turn; after the accept turn it points to who would go next.
-        // The accepter is the one who just spoke (opposite of currentSpeaker).
         const accepterIsSource = state.currentSpeaker === "candidate";
         const [sourceRole, candidateRole] = accepterIsSource
           ? [acceptTurn.assessment.suggestedRoles.ownUser, precedingTurn.assessment.suggestedRoles.ownUser]
@@ -216,11 +209,10 @@ export class NegotiationGraphFactory {
 
       const outcome: NegotiationOutcome = {
         hasOpportunity,
-        finalScore: hasOpportunity ? avgScore : 0,
         agreedRoles,
         reasoning: lastTurn?.assessment.reasoning ?? "",
         turnCount: state.turnCount,
-        ...(atCap && { reason: "turn_cap" }),
+        ...(atCap && { reason: "turn_cap" as const }),
       };
 
       try {
@@ -267,7 +259,6 @@ export interface NegotiationCandidate {
 
 export interface NegotiationResult {
   userId: string;
-  negotiationScore: number;
   agreedRoles: NegotiationOutcome["agreedRoles"];
   reasoning: string;
   turnCount: number;
@@ -275,11 +266,6 @@ export interface NegotiationResult {
 
 /**
  * Runs bilateral negotiation for each candidate in parallel.
- * @param negotiationGraph - Compiled negotiation graph
- * @param sourceUser - Source user context
- * @param candidates - Evaluated candidates to negotiate with
- * @param indexContext - Index context for the negotiation
- * @param opts - Optional maxTurns and traceEmitter
  * @returns Only candidates that produced an opportunity
  */
 export async function negotiateCandidates(
@@ -287,9 +273,9 @@ export async function negotiateCandidates(
   sourceUser: UserNegotiationContext,
   candidates: NegotiationCandidate[],
   indexContext: { networkId: string; prompt: string },
-  opts?: { maxTurns?: number; traceEmitter?: TraceEmitter; indexContextOverrides?: Map<string, string>; yieldForExternal?: boolean },
+  opts?: { maxTurns?: number; traceEmitter?: TraceEmitter; indexContextOverrides?: Map<string, string>; timeoutMs?: number },
 ): Promise<NegotiationResult[]> {
-  const { maxTurns, traceEmitter, indexContextOverrides, yieldForExternal } = opts ?? {};
+  const { maxTurns, traceEmitter, indexContextOverrides, timeoutMs } = opts ?? {};
 
   const results = await Promise.all(
     candidates.map(async (candidate) => {
@@ -297,7 +283,6 @@ export async function negotiateCandidates(
       traceEmitter?.({ type: "agent_start", name: "Negotiating candidate" });
 
       try {
-        // Use per-candidate index context; never fall back to a different index's prompt
         const candidateIndexContext = candidate.networkId
           ? { networkId: candidate.networkId, prompt: indexContextOverrides?.get(candidate.networkId) ?? '' }
           : indexContext;
@@ -312,20 +297,19 @@ export async function negotiateCandidates(
             valencyRole: candidate.valencyRole,
           },
           ...(maxTurns !== undefined && { maxTurns }),
-          ...(yieldForExternal !== undefined && { yieldForExternal }),
+          ...(timeoutMs !== undefined && { timeoutMs }),
         });
 
         const durationMs = Date.now() - start;
         const outcome = result.outcome;
         const hasOpportunity = outcome?.hasOpportunity === true;
 
-        // Build inline turn flow: "propose:85 → counter:70 → accept:78"
         const turnFlow = (result.messages ?? [])
           .map((m) => {
             const dataPart = (m.parts as Array<{ kind?: string; data?: Record<string, unknown> }>)?.find((p) => p.kind === "data");
             if (!dataPart?.data) return null;
-            const turn = dataPart.data as { action?: string; assessment?: { fitScore?: number } };
-            return `${turn.action ?? "unknown"}:${turn.assessment?.fitScore ?? "?"}`;
+            const turn = dataPart.data as { action?: string };
+            return turn.action ?? "unknown";
           })
           .filter(Boolean)
           .join(" → ");
@@ -336,7 +320,6 @@ export async function negotiateCandidates(
         if (hasOpportunity && outcome) {
           return {
             userId: candidate.userId,
-            negotiationScore: outcome.finalScore,
             agreedRoles: outcome.agreedRoles,
             reasoning: outcome.reasoning,
             turnCount: outcome.turnCount,
@@ -357,25 +340,12 @@ export async function negotiateCandidates(
 
 /**
  * Creates a negotiation graph with the provided dependencies.
- * @param deps.database - Conversation database adapter
- * @param deps.proposer - Agent that proposes negotiation terms
- * @param deps.responder - Agent that responds to negotiation proposals
  */
 export function createDefaultNegotiationGraph(deps: {
   database: NegotiationDatabase;
-  proposer: NegotiationAgentLike;
-  responder: NegotiationAgentLike;
-  webhookLookup?: WebhookLookup;
-  eventEmitter?: NegotiationEventEmitter;
+  dispatcher: AgentDispatcher;
   timeoutQueue?: NegotiationTimeoutQueue;
 }) {
-  const factory = new NegotiationGraphFactory(
-    deps.database,
-    deps.proposer,
-    deps.responder,
-    deps.webhookLookup,
-    deps.eventEmitter,
-    deps.timeoutQueue,
-  );
+  const factory = new NegotiationGraphFactory(deps.database, deps.dispatcher, deps.timeoutQueue);
   return factory.createGraph();
 }
