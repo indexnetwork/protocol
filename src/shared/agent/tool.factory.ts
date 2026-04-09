@@ -12,7 +12,6 @@ import { NetworkMembershipGraphFactory } from "../../network/membership/membersh
 import { IntentNetworkGraphFactory } from "../../network/indexer/indexer.graph.js";
 import { IntentIndexer } from "../../intent/intent.indexer.js";
 import { NegotiationGraphFactory } from "../../negotiation/negotiation.graph.js";
-import { IndexNegotiator } from "../../negotiation/negotiation.agent.js";
 import { protocolLogger } from "../observability/protocol.logger.js";
 import { configureProtocol } from "./model.config.js";
 
@@ -117,13 +116,9 @@ export async function createChatTools(
     lensInferrer,
     hydeGenerator
   ).createGraph();
-  const negotiator = new IndexNegotiator();
   const negotiationGraph = new NegotiationGraphFactory(
     deps.negotiationDatabase,
-    negotiator,
-    negotiator,
-    deps.webhookLookup,
-    deps.negotiationEvents,
+    deps.agentDispatcher!,
     deps.negotiationTimeoutQueue,
   ).createGraph();
   const opportunityGraph = new OpportunityGraphFactory(
@@ -167,11 +162,10 @@ export async function createChatTools(
     enricher: deps.enricher,
     negotiationDatabase: deps.negotiationDatabase,
     webhook: deps.webhook,
-    webhookLookup: deps.webhookLookup,
-    negotiationEvents: deps.negotiationEvents,
     negotiationTimeoutQueue: deps.negotiationTimeoutQueue,
     agentDatabase: deps.agentDatabase,
     grantDefaultSystemPermissions: deps.grantDefaultSystemPermissions,
+    agentDispatcher: deps.agentDispatcher,
     graphs: {
       profile: profileGraph,
       intent: intentGraph,
