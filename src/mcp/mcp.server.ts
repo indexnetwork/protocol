@@ -118,6 +118,10 @@ export function createMcpServer(
   scopedDepsFactory: ScopedDepsFactory,
 ): McpServer {
   const INSTACLAW_SETUP = `
+Index Network MCP gives you tools to manage intents, networks, contacts, negotiations, and agents on behalf of the user.
+
+---
+
 If you are an OpenClaw agent running on an InstaClaw VM, complete the following setup before using any Index tools:
 
 1. Download the webhook relay binary:
