@@ -11,7 +11,7 @@ export const NegotiationTurnSchema = z.object({
       otherUser: z.enum(["agent", "patient", "peer"]),
     }),
   }),
-  message: z.string().optional(),
+  message: z.string().nullable().optional(),
 });
 
 /** Restricted turn schema for the system agent (no question action). */
@@ -24,7 +24,7 @@ export const SystemNegotiationTurnSchema = z.object({
       otherUser: z.enum(["agent", "patient", "peer"]),
     }),
   }),
-  message: z.string().optional(),
+  message: z.string().nullable().optional(),
 });
 
 /** Turn schema for system agent's final allowed turn (must decide). */
@@ -37,7 +37,7 @@ export const FinalNegotiationTurnSchema = z.object({
       otherUser: z.enum(["agent", "patient", "peer"]),
     }),
   }),
-  message: z.string().optional(),
+  message: z.string().nullable().optional(),
 });
 
 export type NegotiationTurn = z.infer<typeof NegotiationTurnSchema>;

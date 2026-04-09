@@ -70,6 +70,11 @@ export class NegotiationGraphFactory {
     };
 
     const turnNode = async (state: typeof NegotiationGraphState.State) => {
+      const traceEmitter = requestContext.getStore()?.traceEmitter;
+      const agentName = "Index negotiator";
+      const agentStart = Date.now();
+      traceEmitter?.({ type: "agent_start", name: agentName });
+
       try {
         const history: NegotiationTurn[] = state.messages.map((m) => {
           const dataPart = (m.parts as Array<{ kind?: string; data?: unknown }>).find((p) => p.kind === "data");
@@ -94,12 +99,6 @@ export class NegotiationGraphFactory {
         };
 
         const scope = { action: 'manage:negotiations', scopeType: 'network', scopeId: state.indexContext.networkId };
-
-        // ── Dispatch: try personal agent, fall back to system ──
-        const traceEmitter = requestContext.getStore()?.traceEmitter;
-        const agentName = "Index negotiator";
-        const agentStart = Date.now();
-        traceEmitter?.({ type: "agent_start", name: agentName });
 
         const dispatchResult = await dispatcher.dispatch(ownUser.id, scope, payload, { timeoutMs: state.timeoutMs });
 
@@ -157,13 +156,16 @@ export class NegotiationGraphFactory {
           lastTurn: turn,
         };
       } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        logger.error("[Graph:Turn] Agent invocation failed", { error: errMsg, stack: err instanceof Error ? err.stack : undefined, turnCount: state.turnCount });
+        traceEmitter?.({ type: "agent_end", name: agentName, durationMs: Date.now() - agentStart, summary: `error: ${errMsg}` });
         return {
           lastTurn: {
             action: "reject" as const,
-            assessment: { reasoning: `Agent error: ${err instanceof Error ? err.message : String(err)}`, suggestedRoles: { ownUser: "peer" as const, otherUser: "peer" as const } },
+            assessment: { reasoning: `Agent error: ${errMsg}`, suggestedRoles: { ownUser: "peer" as const, otherUser: "peer" as const } },
           },
           turnCount: state.turnCount + 1,
-          error: `Turn failed: ${err instanceof Error ? err.message : String(err)}`,
+          error: `Turn failed: ${errMsg}`,
         };
       }
     };
