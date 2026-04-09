@@ -77,6 +77,7 @@ export interface NegotiationGraphLike {
     candidateUser: UserNegotiationContext;
     indexContext: { networkId: string; prompt: string };
     seedAssessment: Omit<SeedAssessment, "actors">;
+    discoveryQuery?: string;
     opportunityId?: string;
     maxTurns?: number;
     timeoutMs?: number;
@@ -111,6 +112,11 @@ export const NegotiationGraphState = Annotation.Root({
     default: () => ({ reasoning: "", valencyRole: "" }),
   }),
 
+  /** The explicit search query that triggered discovery (if any). */
+  discoveryQuery: Annotation<string | undefined>({
+    reducer: (curr, next) => next ?? curr,
+    default: () => undefined,
+  }),
   opportunityId: Annotation<string>({
     reducer: (curr, next) => next ?? curr,
     default: () => "",

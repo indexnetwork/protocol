@@ -1698,6 +1698,7 @@ export class OpportunityGraphFactory {
               reasoning: opp.reasoning,
               valencyRole: candidateActor.role ?? 'peer',
               networkId: candidateActor.networkId as string,
+              ...(state.searchQuery?.trim() && { discoveryQuery: state.searchQuery.trim() }),
               candidateUser: {
                 id: userId,
                 intents: candidateIntents,

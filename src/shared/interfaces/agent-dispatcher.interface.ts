@@ -19,6 +19,8 @@ export interface NegotiationTurnPayload {
   isFinalTurn: boolean;
   /** Whether ownUser is the party that initiated the discovery. */
   isDiscoverer: boolean;
+  /** The explicit search query that triggered this discovery (if any). Takes priority over background intents. */
+  discoveryQuery?: string;
 }
 
 /** Result of a dispatch attempt. */

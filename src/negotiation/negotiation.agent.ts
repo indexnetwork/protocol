@@ -10,7 +10,7 @@ import {
 const SYSTEM_PROMPT = `You are the Index Negotiator, an AI agent acting on behalf of {userName}. You represent their interests in a bilateral negotiation about a potential connection on a discovery network.
 
 {discoveryContext}
-
+{discoveryQueryContext}
 Your user's role in this connection: {role}
 Network context: {networkContext}
 
@@ -36,6 +36,8 @@ export interface NegotiationAgentInput {
   isFinalTurn?: boolean;
   /** Whether ownUser is the party that initiated the discovery (searched/signalled). */
   isDiscoverer?: boolean;
+  /** The explicit search query that triggered discovery (if any). Takes priority over background intents. */
+  discoveryQuery?: string;
 }
 
 /**
@@ -65,9 +67,18 @@ export class IndexNegotiator {
       ? `${userName} initiated this discovery — they are actively looking for connections. ${otherName} was identified as a potential match.`
       : `${otherName} initiated this discovery and found ${userName} as a potential match. You are representing the discovered party.`;
 
+    const discoveryQueryContext = input.discoveryQuery
+      ? `\nDISCOVERY QUERY: ${userName} explicitly searched for "${input.discoveryQuery}".
+QUERY PRIORITY RULE: This search query is the PRIMARY criterion for this negotiation. Before evaluating intents or profile overlap, first answer: does ${otherName} satisfy the search query "${input.discoveryQuery}"?
+- If the query is a role or identity term (e.g. "samurai", "investors", "designers"): check whether ${otherName} IS that thing based on their profile. Subject-matter adjacency does not count (drawing samurai ≠ being a samurai, raising funding ≠ being an investor).
+- If ${otherName} does NOT satisfy the query: REJECT the match. Background intents cannot rescue a query mismatch.
+- If ${otherName} DOES satisfy the query: PROPOSE or ACCEPT the connection and evaluate fit normally using intents and profile data.`
+      : '';
+
     const systemPrompt = SYSTEM_PROMPT
       .replace(/{userName}/g, userName)
       .replace("{discoveryContext}", discoveryContext)
+      .replace("{discoveryQueryContext}", discoveryQueryContext)
       .replace("{role}", role)
       .replace("{networkContext}", networkContext)
       .replace("{finalTurnInstruction}", finalTurnInstruction);
@@ -79,10 +90,16 @@ export class IndexNegotiator {
         }).join("\n")}`
       : "";
 
+    const discoveryQueryReminder = input.discoveryQuery
+      ? `\nREMINDER: ${userName} searched for "${input.discoveryQuery}". Evaluate ${otherName} against this query FIRST. If ${otherName} is not a "${input.discoveryQuery}", reject.\n`
+      : '';
+
+    const intentsLabel = input.discoveryQuery ? 'Background intents (secondary to discovery query)' : 'Intents';
+
     const userMessage = `YOUR USER (${userName}):
 Bio: ${input.ownUser.profile.bio ?? "N/A"}
 Skills: ${input.ownUser.profile.skills?.join(", ") ?? "N/A"}
-Intents:
+${intentsLabel}:
 ${input.ownUser.intents.map((i) => `- ${i.title}: ${i.description}`).join("\n")}
 
 OTHER USER (${otherName}):
@@ -92,7 +109,7 @@ Intents:
 ${input.otherUser.intents.map((i) => `- ${i.title}: ${i.description}`).join("\n")}
 
 Why this match was suggested: ${input.seedAssessment.reasoning}${historyText}
-
+${discoveryQueryReminder}
 ${input.history.length === 0 ? "This is the opening turn. Propose the connection case." : "Evaluate the latest arguments and respond."}`;
 
     const result = await model.invoke([

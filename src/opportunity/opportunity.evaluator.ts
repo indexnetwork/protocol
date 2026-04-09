@@ -409,17 +409,42 @@ CRITICAL REASONING INSTRUCTIONS FOR INTRODUCTIONS:
       ? `\nDISCOVERY REQUEST: The user asked: "${input.discoveryQuery.trim()}"
 
 CRITICAL SCORING RULES FOR DISCOVERY REQUESTS:
+
 0. QUERY IS PRIMARY: The DISCOVERY REQUEST above is the primary evaluation criterion. The source user's stored INTENTS (if listed below) are background context — use them ONLY to fill in blanks when the query is too broad or vague to evaluate on its own. If the query is specific enough to score candidates, score strictly against the query and IGNORE stored intents. Never let a stored intent override or replace the query as the basis for scoring.
-1. MATCH THE REQUEST TYPE FIRST: If the user asks for "investors", prioritize candidates who are ACTUALLY investors (VCs, angels, fund partners). Engineers and collaborators should score LOWER unless they are also investors.
-2. ROLE KEYWORDS MATTER: Look for keywords in bios like "investor", "VC", "venture", "fund", "partner at [fund]", "angel", "mentor", etc. that match what the user asked for.
-3. SCORING HIERARCHY:
-   - 90-100: Candidate's PRIMARY role matches the request (e.g., "investor" request → actual investor/VC partner)
-   - 70-89: Candidate has SOME relevance to the request (e.g., "investor" request → someone who occasionally invests but is primarily a builder)
-   - 50-69: Weak match - candidate is tangentially related but doesn't fit the primary request
-   - <50: Does not match the request - exclude or heavily down-rank
-4. DO NOT score collaborators/builders highly when the user explicitly asks for investors, and vice versa.
-5. SAME-SIDE CHECK: If the candidate's intents show they are ALSO SEEKING what the discoverer is seeking (e.g., both looking for investors, both looking for co-founders), this is a same-side match. Score <30 regardless of keyword overlap in bios. The candidate must BE or OFFER what the discoverer is looking for, not also be looking for it.
-6. LOCATION ENFORCEMENT: If the discovery request mentions a specific location (e.g., "in SF", "based in London", "Istanbul"), check each candidate's profile.location:
+
+1. CLASSIFY THE QUERY TYPE — determine the predication type before scoring:
+
+   IDENTITY/ROLE QUERY: The query term is a count noun or sortal that can serve as a predicate nominal — "X IS A [query]" is grammatical and meaningful. Examples: "samurai", "investors", "designers", "nurses", "founders". The user wants someone who IS that thing — not someone who works with, creates content about, or is tangentially associated with it.
+   → Test: Can you say "this person IS a [query term]"? If yes, this is an identity query.
+   → CRITICAL: Subject-matter contact is NOT identity. A character designer who draws samurai IS NOT a samurai. An engineer who raised funding IS NOT an investor. A journalist who covers finance IS NOT an investor. IS-A is not transitive through creative subject matter, professional adjacency, or domain familiarity.
+
+   TOPICAL/DOMAIN QUERY: The query is a field, domain, or abstract topic — "X IS A [query]" is ungrammatical. Examples: "machine learning", "sustainability", "blockchain". The user wants someone who works in or has expertise in this domain.
+   → Test: "This person IS a machine learning" makes no sense → topical query.
+
+   NEED/CAPABILITY QUERY: The query contains a purposive frame — "someone to help with X", "need a Y", "looking for Z". The user describes a specific need.
+
+2. APPLY TYPE-SPECIFIC SCORING:
+
+   For IDENTITY/ROLE queries — apply a categorical gate:
+   - First, make a binary IS-A judgment for each candidate: does this person's PRIMARY professional identity or self-description place them within the extension of the query term?
+   - IS-A = TRUE → score 75-100 (modulated by intent alignment and profile richness)
+   - IS-A = FALSE → score ≤ 35. Hard ceiling. Do NOT award partial credit for subject-matter adjacency, thematic association, or creative output involving the query term.
+   - Do NOT rescue a failed IS-A judgment with background intents. If the user searched "samurai" and the candidate is a visual artist (IS-A = false), the candidate's alignment with a background intent like "connect with visual artists" does not matter — the explicit query takes priority.
+
+   For TOPICAL/DOMAIN queries — apply gradient scoring:
+   - 90-100: Deep expertise, primary focus area
+   - 70-89: Substantial engagement, meaningful work in the domain
+   - 50-69: Peripheral involvement, tangential connection
+   - <50: No meaningful engagement
+
+   For NEED/CAPABILITY queries — apply capability + availability scoring:
+   - Score based on both capability match AND openness to the described collaboration
+   - 90-100: Perfect capability match with explicit availability
+   - 70-89: Strong capability, plausible availability
+
+3. SAME-SIDE CHECK: If the candidate's intents show they are ALSO SEEKING what the discoverer is seeking (e.g., both looking for investors, both looking for co-founders), this is a same-side match. Score <30 regardless of keyword overlap in bios. The candidate must BE or OFFER what the discoverer is looking for, not also be looking for it.
+
+4. LOCATION ENFORCEMENT: If the discovery request mentions a specific location (e.g., "in SF", "based in London", "Istanbul"), check each candidate's profile.location:
    - KNOWN MISMATCH (e.g., request says "SF" but candidate is "New York"): Score ≤ 40. State the mismatch in reasoning.
    - UNKNOWN/EMPTY location: Do not penalize. Note that location is unverified.
    - MATCH or COMPATIBLE (e.g., "Bay Area" ≈ "SF", "Remote" ≈ any): Score normally.

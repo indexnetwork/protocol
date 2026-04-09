@@ -97,6 +97,7 @@ export class NegotiationGraphFactory {
           history,
           isFinalTurn,
           isDiscoverer: isSource,
+          ...(state.discoveryQuery && { discoveryQuery: state.discoveryQuery }),
         };
 
         const scope = { action: 'manage:negotiations', scopeType: 'network', scopeId: state.indexContext.networkId };
@@ -123,6 +124,7 @@ export class NegotiationGraphFactory {
             history,
             isFinalTurn,
             isDiscoverer: isSource,
+            ...(state.discoveryQuery && { discoveryQuery: state.discoveryQuery }),
           });
         }
 
@@ -258,6 +260,8 @@ export interface NegotiationCandidate {
   valencyRole: string;
   networkId?: string;
   candidateUser: UserNegotiationContext;
+  /** The explicit search query that triggered discovery (if any). */
+  discoveryQuery?: string;
 }
 
 export interface NegotiationResult {
@@ -298,6 +302,7 @@ export async function negotiateCandidates(
             reasoning: candidate.reasoning,
             valencyRole: candidate.valencyRole,
           },
+          ...(candidate.discoveryQuery && { discoveryQuery: candidate.discoveryQuery }),
           ...(maxTurns !== undefined && { maxTurns }),
           ...(timeoutMs !== undefined && { timeoutMs }),
         });
