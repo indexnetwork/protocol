@@ -355,7 +355,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
 
         const ownUserCtx: UserNegotiationContext = { id: counterpartyUserId, intents: [], profile: {} };
         const otherUserCtx: UserNegotiationContext = { id: context.userId, intents: [], profile: {} };
-        const seedAssessment: SeedAssessment = { score: 50, reasoning: 'Continued negotiation', valencyRole: 'peer' };
+        const seedAssessment: SeedAssessment = { reasoning: 'Continued negotiation', valencyRole: 'peer' };
 
         const dispatchPayload: NegotiationTurnPayload = {
           negotiationId: task.id,

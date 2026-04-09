@@ -252,7 +252,6 @@ export class NegotiationGraphFactory {
 
 export interface NegotiationCandidate {
   userId: string;
-  score: number;
   reasoning: string;
   valencyRole: string;
   networkId?: string;
@@ -294,7 +293,6 @@ export async function negotiateCandidates(
           candidateUser: candidate.candidateUser,
           indexContext: candidateIndexContext,
           seedAssessment: {
-            score: candidate.score,
             reasoning: candidate.reasoning,
             valencyRole: candidate.valencyRole,
           },

@@ -65,7 +65,6 @@ export interface UserNegotiationContext {
 
 /** Seed assessment from the evaluator pre-filter. */
 export interface SeedAssessment {
-  score: number;
   reasoning: string;
   valencyRole: string;
   actors?: Array<{ userId: string; role: string }>;
@@ -109,7 +108,7 @@ export const NegotiationGraphState = Annotation.Root({
   }),
   seedAssessment: Annotation<SeedAssessment>({
     reducer: (curr, next) => next ?? curr,
-    default: () => ({ score: 0, reasoning: "", valencyRole: "" }),
+    default: () => ({ reasoning: "", valencyRole: "" }),
   }),
 
   opportunityId: Annotation<string>({

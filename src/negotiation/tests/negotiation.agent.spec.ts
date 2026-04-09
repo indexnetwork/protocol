@@ -23,7 +23,6 @@ const engineerUser: UserNegotiationContext = {
 };
 
 const seedAssessment: SeedAssessment = {
-  score: 78,
   reasoning: 'Strong skill match — Bob has the LLM production experience Alice needs.',
   valencyRole: 'patient',
 };

@@ -1695,7 +1695,6 @@ export class OpportunityGraphFactory {
 
             return {
               userId,
-              score: opp.score,
               reasoning: opp.reasoning,
               valencyRole: candidateActor.role ?? 'peer',
               networkId: candidateActor.networkId as string,
