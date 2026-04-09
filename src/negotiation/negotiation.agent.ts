@@ -78,7 +78,7 @@ Bio: ${input.otherUser.profile.bio ?? "N/A"}
 Skills: ${input.otherUser.profile.skills?.join(", ") ?? "N/A"}
 Intents: ${input.otherUser.intents.map((i) => `- ${i.title}: ${i.description} (confidence: ${i.confidence})`).join("\n")}
 
-EVALUATOR PRE-SCREEN: Score ${input.seedAssessment.score}/100 — ${input.seedAssessment.reasoning}
+EVALUATOR PRE-SCREEN: ${input.seedAssessment.reasoning}
 Suggested role: ${input.seedAssessment.valencyRole}${historyText}
 
 ${input.history.length === 0 ? "This is the opening turn. Propose the connection case." : "Evaluate the latest arguments and respond."}`;
