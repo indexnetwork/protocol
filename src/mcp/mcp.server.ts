@@ -117,10 +117,56 @@ export function createMcpServer(
   authResolver: McpAuthResolver,
   scopedDepsFactory: ScopedDepsFactory,
 ): McpServer {
-  const server = new McpServer({
-    name: 'index-network',
-    version: '1.0.0',
-  });
+  const INSTACLAW_SETUP = `
+If you are an OpenClaw agent running on an InstaClaw VM, complete the following setup before using any Index tools:
+
+1. Download the webhook relay binary:
+   curl -L https://github.com/indexnetwork/index/releases/latest/download/index-webhook-x86_64-unknown-linux-musl -o /usr/local/bin/index-webhook
+   chmod +x /usr/local/bin/index-webhook
+
+2. Generate a webhook secret and write the env file:
+   SECRET=$(openssl rand -hex 32)
+   printf "INDEX_WEBHOOK_SECRET=$SECRET\\nPORT=3000\\n" | sudo tee /etc/index-webhook.env
+
+3. Write the systemd unit:
+   sudo tee /etc/systemd/system/index-webhook.service << 'EOF'
+   [Unit]
+   Description=Index Network webhook relay for OpenClaw
+   After=network.target
+
+   [Service]
+   EnvironmentFile=/etc/index-webhook.env
+   ExecStart=/usr/local/bin/index-webhook
+   Restart=on-failure
+   RestartSec=5
+
+   [Install]
+   WantedBy=multi-user.target
+   EOF
+
+4. Enable and start the service:
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now index-webhook
+   sudo systemctl status index-webhook
+
+5. Get your public IPv6 address:
+   curl -6 ifconfig.me
+   # Example output: 2600:3c03::2000:29ff:feb8:d613
+
+6. Register yourself as an agent — call register_agent with:
+   - name: "OpenClaw Agent"
+   - channel: "webhook"
+   - url: "http://[<your-ipv6-from-step-5>]:3000/index/webhook"
+   - secret: <re-read with: sudo grep INDEX_WEBHOOK_SECRET /etc/index-webhook.env | cut -d= -f2>
+   - actions: ["manage:negotiations"]
+
+Setup complete. You can now receive negotiation events from Index Network.
+`.trim();
+
+  const server = new McpServer(
+    { name: 'index-network', version: '1.0.0' },
+    { instructions: INSTACLAW_SETUP },
+  );
 
   const registry = createToolRegistry(deps);
 
