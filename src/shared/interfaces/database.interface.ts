@@ -382,7 +382,7 @@ export interface CreateHydeDocumentData {
 // OPPORTUNITY TYPES (Opportunity Redesign)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type OpportunityStatus = 'latent' | 'draft' | 'pending' | 'accepted' | 'rejected' | 'expired';
+export type OpportunityStatus = 'latent' | 'draft' | 'negotiating' | 'pending' | 'accepted' | 'rejected' | 'expired';
 
 export interface Opportunity {
   id: string;
