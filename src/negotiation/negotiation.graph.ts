@@ -96,6 +96,7 @@ export class NegotiationGraphFactory {
           seedAssessment: state.seedAssessment,
           history,
           isFinalTurn,
+          isDiscoverer: isSource,
         };
 
         const scope = { action: 'manage:negotiations', scopeType: 'network', scopeId: state.indexContext.networkId };
@@ -121,6 +122,7 @@ export class NegotiationGraphFactory {
             seedAssessment: state.seedAssessment,
             history,
             isFinalTurn,
+            isDiscoverer: isSource,
           });
         }
 

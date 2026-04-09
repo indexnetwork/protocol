@@ -365,6 +365,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           seedAssessment,
           history: historyForDispatch,
           isFinalTurn,
+          isDiscoverer: false,
         };
 
         const scope = { action: 'negotiation.respond', scopeType: 'negotiation', scopeId: task.id };
@@ -476,6 +477,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           seedAssessment,
           history: [...historyForDispatch, aiTurn],
           isFinalTurn: finalTurnCount + 1 >= maxTurns,
+          isDiscoverer: true,
         };
 
         const userDispatchResult = await deps.agentDispatcher?.dispatch(context.userId, scope, userDispatchPayload, { timeoutMs });

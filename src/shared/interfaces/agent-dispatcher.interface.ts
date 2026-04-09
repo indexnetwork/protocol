@@ -17,6 +17,8 @@ export interface NegotiationTurnPayload {
   seedAssessment: SeedAssessment;
   history: NegotiationTurn[];
   isFinalTurn: boolean;
+  /** Whether ownUser is the party that initiated the discovery. */
+  isDiscoverer: boolean;
 }
 
 /** Result of a dispatch attempt. */
