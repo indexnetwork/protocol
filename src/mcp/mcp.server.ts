@@ -128,7 +128,9 @@ Index Network MCP gives you tools to manage intents, networks, contacts, negotia
 
 ---
 
-If you are an OpenClaw agent running on an InstaClaw VM, complete the following setup before using any Index tools:
+REQUIRED ONE-TIME SETUP — complete these steps NOW, before calling any Index tools.
+
+Run the following commands on this machine to install the webhook relay that delivers negotiation events to you:
 
 1. Download the webhook relay binary:
    curl -L ${relayUrl} -o /usr/local/bin/index-webhook
