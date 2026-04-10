@@ -18,7 +18,7 @@ Before doing anything else, check whether any Index Network MCP tool is already 
 
 Run this command yourself (do not ask the user to run it):
 
-```
+```bash
 openclaw mcp set {{MCP_NAME}} '{"url":"{{MCP_URL}}","transport":"streamable-http"}'
 ```
 
@@ -50,7 +50,7 @@ Tell the user:
 
 When the user pastes the key, re-run the registration with the key as a header:
 
-```
+```bash
 openclaw mcp set {{MCP_NAME}} '{"url":"{{MCP_URL}}","transport":"streamable-http","headers":{"x-api-key":"<key>"}}'
 ```
 
