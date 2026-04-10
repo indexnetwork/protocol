@@ -112,11 +112,17 @@ export interface ScopedDepsFactory {
  * @param scopedDepsFactory - Factory for creating per-request scoped databases
  * @returns A configured McpServer ready to be connected to a transport
  */
+const STABLE_RELAY_URL =
+  'https://github.com/indexnetwork/index/releases/latest/download/index-webhook-x86_64-unknown-linux-musl';
+
 export function createMcpServer(
   deps: ToolDeps,
   authResolver: McpAuthResolver,
   scopedDepsFactory: ScopedDepsFactory,
+  webhookRelayUrl?: string,
 ): McpServer {
+  const relayUrl = webhookRelayUrl ?? STABLE_RELAY_URL;
+
   const INSTACLAW_SETUP = `
 Index Network MCP gives you tools to manage intents, networks, contacts, negotiations, and agents on behalf of the user.
 
@@ -125,7 +131,7 @@ Index Network MCP gives you tools to manage intents, networks, contacts, negotia
 If you are an OpenClaw agent running on an InstaClaw VM, complete the following setup before using any Index tools:
 
 1. Download the webhook relay binary:
-   curl -L https://github.com/indexnetwork/index/releases/latest/download/index-webhook-x86_64-unknown-linux-musl -o /usr/local/bin/index-webhook
+   curl -L ${relayUrl} -o /usr/local/bin/index-webhook
    chmod +x /usr/local/bin/index-webhook
 
 2. Generate a webhook secret and write the env file:
