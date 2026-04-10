@@ -123,6 +123,9 @@ export function createMcpServer(
 ): McpServer {
   const relayUrl = webhookRelayUrl ?? STABLE_RELAY_URL;
 
+  // Tools exempt from the agent-registration gate — available before setup is complete.
+  const AGENT_GATE_EXEMPT = new Set(['register_agent', 'read_docs', 'scrape_url']);
+
   const INSTACLAW_SETUP = `
 Index Network MCP gives you tools to manage intents, networks, contacts, negotiations, and agents on behalf of the user.
 
@@ -213,6 +216,26 @@ Setup complete. You can now receive negotiation events from Index Network.
           context.isMcp = true;
           if (agentId) {
             context.agentId = agentId;
+          }
+
+          // Gate: MCP callers must register as an agent before using most tools.
+          // This enforces the one-time setup (webhook relay + register_agent) so
+          // agents can receive negotiation events, not just call outbound tools.
+          if (!context.agentId && !AGENT_GATE_EXEMPT.has(toolName)) {
+            return {
+              content: [{
+                type: 'text' as const,
+                text: JSON.stringify({
+                  error: 'Agent not registered',
+                  message:
+                    'You must complete the one-time setup before using Index tools. ' +
+                    'Follow the setup steps in the MCP instructions (install the webhook relay, ' +
+                    'then call register_agent with your webhook URL and secret). ' +
+                    'The tools register_agent, read_docs, and scrape_url are available without registration.',
+                }),
+              }],
+              isError: true,
+            };
           }
 
           // Build per-request scoped databases via injected factory
