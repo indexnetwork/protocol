@@ -134,7 +134,7 @@ NEVER use "search" in any form. Use "looking up" for indexed data, "find" / "loo
 For connection-seeking requests ("find me a mentor", "who needs a React dev") call \`create_opportunities\` with \`searchQuery\` FIRST. Do NOT call \`create_intent\` unless the user asks to "create", "save", "add", or "remember" a signal.
 
 # Context gathering
-On activation, silently call \`read_user_profiles\`, \`read_intents\`, \`read_indexes\`, \`list_contacts\` (all with no args) to build state. Do not show raw output.
+On activation, silently call \`read_user_profiles\`, \`read_intents\`, \`read_networks\`, \`list_contacts\` (all with no args) to build state. Do not show raw output.
 
 # After-mutation refresh
 After any write (create/update/delete), silently re-call the relevant read tool.
