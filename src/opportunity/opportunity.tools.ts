@@ -133,6 +133,66 @@ export function buildMinimalOpportunityCard(
   };
 }
 
+/**
+ * Minimal shape consumed by buildOpportunityPresentation for prose rendering.
+ * Card data objects in the codebase carry additional frontend-only fields;
+ * only these are surfaced to MCP agents.
+ */
+type OpportunityCardLike = Record<string, unknown> & {
+  opportunityId: string;
+  name?: string | undefined;
+  mainText?: string | undefined;
+  status?: string | undefined;
+};
+
+/**
+ * Format opportunity cards into the "opportunities" portion of a tool response.
+ *
+ * Web chat (`isMcp=false`): emits ```opportunity``` code fences with an
+ * "include EXACTLY as-is" directive so the frontend card renderer can parse
+ * and render interactive cards.
+ *
+ * MCP (`isMcp=true`): emits prose (name, reason, status, opportunityId per
+ * card) with an explicit reminder to synthesize in natural language and not
+ * dump raw fields or IDs. MCP clients have no card renderer, so code fences
+ * would surface as raw JSON to end users.
+ */
+function buildOpportunityPresentation(
+  cards: OpportunityCardLike[],
+  opts: { isMcp: boolean; leadIn: string; label?: "opportunity" | "opportunities" },
+): string {
+  if (cards.length === 0) return opts.leadIn;
+
+  if (opts.isMcp) {
+    const prose = cards
+      .map((card, i) => {
+        const lines: string[] = [`${i + 1}. ${card.name ?? "Unknown"}`];
+        if (card.mainText) lines.push(`   ${card.mainText}`);
+        if (card.status) lines.push(`   status: ${card.status}`);
+        lines.push(`   opportunityId: ${card.opportunityId}`);
+        return lines.join("\n");
+      })
+      .join("\n\n");
+    return (
+      `${opts.leadIn}\n\n${prose}\n\n` +
+      `Summarize these for the user in natural prose — mention first names and a brief match reason per connection. ` +
+      `Do NOT print raw JSON, field labels, opportunityIds, or confidence scores. ` +
+      `Use opportunityId values only when calling update_opportunity (send/accept/reject).`
+    );
+  }
+
+  const label = opts.label ?? (cards.length === 1 ? "opportunity" : "opportunities");
+  const blocks = cards
+    .map(
+      (card) =>
+        CODE_FENCE + "opportunity\n" + sanitizeJsonForCodeFence(JSON.stringify(card)) + "\n" + CODE_FENCE,
+    )
+    .join("\n\n");
+  return (
+    `${opts.leadIn} IMPORTANT: Include the following ${CODE_FENCE}${label} code blocks EXACTLY as-is in your response (they render as interactive cards):\n\n${blocks}`
+  );
+}
+
 export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
   const { database, userDb, systemDb, graphs, embedder, cache } = deps;
 
@@ -279,40 +339,31 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           });
         }
 
-        // Format opportunity blocks — same pattern as the discovery path below
-        const opportunityBlocks = (result.opportunities ?? []).map((opp) => {
-          const cardData = {
-            opportunityId: opp.opportunityId,
-            userId: opp.userId,
-            name: opp.name,
-            avatar: opp.avatar,
-            mainText: opp.homeCardPresentation?.personalizedSummary ?? opp.matchReason ?? "",
-            cta: opp.homeCardPresentation?.suggestedAction,
-            headline: opp.homeCardPresentation?.headline,
-            primaryActionLabel: opp.homeCardPresentation?.primaryActionLabel,
-            secondaryActionLabel: opp.homeCardPresentation?.secondaryActionLabel,
-            mutualIntentsLabel: opp.homeCardPresentation?.mutualIntentsLabel,
-            narratorChip: opp.narratorChip,
-            viewerRole: opp.viewerRole,
-            isGhost: opp.isGhost ?? false,
-            score: opp.score,
-            status: opp.status,
-          };
-          return (
-            CODE_FENCE + "opportunity\n" +
-            sanitizeJsonForCodeFence(JSON.stringify(cardData)) +
-            "\n" + CODE_FENCE
-          );
+        // Build card data; cap at CHAT_DISPLAY_LIMIT (remaining feeds into pagination)
+        const allCardData = (result.opportunities ?? []).map((opp) => ({
+          opportunityId: opp.opportunityId,
+          userId: opp.userId,
+          name: opp.name,
+          avatar: opp.avatar,
+          mainText: opp.homeCardPresentation?.personalizedSummary ?? opp.matchReason ?? "",
+          cta: opp.homeCardPresentation?.suggestedAction,
+          headline: opp.homeCardPresentation?.headline,
+          primaryActionLabel: opp.homeCardPresentation?.primaryActionLabel,
+          secondaryActionLabel: opp.homeCardPresentation?.secondaryActionLabel,
+          mutualIntentsLabel: opp.homeCardPresentation?.mutualIntentsLabel,
+          narratorChip: opp.narratorChip,
+          viewerRole: opp.viewerRole,
+          isGhost: opp.isGhost ?? false,
+          score: opp.score,
+          status: opp.status,
+        }));
+        const displayedCards = allCardData.slice(0, CHAT_DISPLAY_LIMIT);
+        const extraFromCap = allCardData.length - displayedCards.length;
+
+        let message = buildOpportunityPresentation(displayedCards, {
+          isMcp: context.isMcp ?? false,
+          leadIn: `Found ${displayedCards.length} more potential connection(s).`,
         });
-
-        // Cap displayed cards at CHAT_DISPLAY_LIMIT; remaining feed into pagination
-        const displayedBlocks = opportunityBlocks.slice(0, CHAT_DISPLAY_LIMIT);
-        const extraFromCap = opportunityBlocks.length - displayedBlocks.length;
-
-        const blocksText = displayedBlocks.join("\n\n");
-        let message =
-          "Found " + displayedBlocks.length + " more potential connection(s). IMPORTANT: Include the following opportunity code blocks EXACTLY as-is in your response (they render as interactive cards):\n\n" +
-          blocksText;
 
         const isIntroducerContinuation = !!query.introTargetUserId?.trim();
         const totalRemaining = (result.pagination?.remaining ?? 0) + extraFromCap;
@@ -326,9 +377,9 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
 
         return success({
           found: true,
-          count: displayedBlocks.length,
+          count: displayedCards.length,
           message,
-          summary: `Found ${displayedBlocks.length} more match(es)`,
+          summary: `Found ${displayedCards.length} more match(es)`,
           ...(result.pagination ? { pagination: result.pagination } : {}),
           debugSteps: allDebugSteps,
           _graphTimings: [{ name: 'opportunity', durationMs: _graphMs, agents: [] }],
@@ -499,20 +550,15 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
               }
             : {}),
         };
-        const block =
-          CODE_FENCE + "opportunity\n" +
-          sanitizeJsonForCodeFence(JSON.stringify(cardData)) +
-          "\n" + CODE_FENCE;
-
         return success({
           found: true,
           count: 1,
           summary: "Draft introduction created",
-          message:
-            "Draft introduction created. IMPORTANT: Include the following " +
-            CODE_FENCE +
-            "opportunity code block EXACTLY as-is in your response (it renders as an interactive card):\n\n" +
-            block,
+          message: buildOpportunityPresentation([cardData], {
+            isMcp: context.isMcp ?? false,
+            leadIn: "Draft introduction created.",
+            label: "opportunity",
+          }),
           opportunities: [
             {
               opportunityId: created.id,
@@ -674,48 +720,35 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         });
       }
 
-      // Format opportunities as code blocks for the LLM to include in its response
-      // The frontend will parse opportunity code blocks and render them as cards
-      const opportunityBlocks = (result.opportunities ?? []).map((opp) => {
-        const cardData = {
-          opportunityId: opp.opportunityId,
-          userId: opp.userId,
-          name: opp.name,
-          avatar: opp.avatar,
-          mainText:
-            opp.homeCardPresentation?.personalizedSummary ??
-            opp.matchReason ??
-            "",
-          cta: opp.homeCardPresentation?.suggestedAction,
-          headline: opp.homeCardPresentation?.headline,
-          primaryActionLabel: opp.homeCardPresentation?.primaryActionLabel,
-          secondaryActionLabel: opp.homeCardPresentation?.secondaryActionLabel,
-          mutualIntentsLabel: opp.homeCardPresentation?.mutualIntentsLabel,
-          narratorChip: opp.narratorChip,
-          viewerRole: opp.viewerRole,
-          isGhost: opp.isGhost ?? false,
-          score: opp.score,
-          status: opp.status,
-          ...(opp.secondParty && { secondParty: opp.secondParty }),
-        };
-        return (
-          CODE_FENCE + "opportunity\n" +
-          sanitizeJsonForCodeFence(JSON.stringify(cardData)) +
-          "\n" + CODE_FENCE
-        );
+      // Build card data; cap at CHAT_DISPLAY_LIMIT (remaining feeds into pagination)
+      const allCardData = (result.opportunities ?? []).map((opp) => ({
+        opportunityId: opp.opportunityId,
+        userId: opp.userId,
+        name: opp.name,
+        avatar: opp.avatar,
+        mainText:
+          opp.homeCardPresentation?.personalizedSummary ??
+          opp.matchReason ??
+          "",
+        cta: opp.homeCardPresentation?.suggestedAction,
+        headline: opp.homeCardPresentation?.headline,
+        primaryActionLabel: opp.homeCardPresentation?.primaryActionLabel,
+        secondaryActionLabel: opp.homeCardPresentation?.secondaryActionLabel,
+        mutualIntentsLabel: opp.homeCardPresentation?.mutualIntentsLabel,
+        narratorChip: opp.narratorChip,
+        viewerRole: opp.viewerRole,
+        isGhost: opp.isGhost ?? false,
+        score: opp.score,
+        status: opp.status,
+        ...(opp.secondParty && { secondParty: opp.secondParty }),
+      }));
+      const displayedCards = allCardData.slice(0, CHAT_DISPLAY_LIMIT);
+      const extraFromCap = allCardData.length - displayedCards.length;
+
+      let message = buildOpportunityPresentation(displayedCards, {
+        isMcp: context.isMcp ?? false,
+        leadIn: `Found ${displayedCards.length} potential connection(s).`,
       });
-
-      // Cap displayed cards at CHAT_DISPLAY_LIMIT; remaining feed into pagination
-      const displayedBlocks = opportunityBlocks.slice(0, CHAT_DISPLAY_LIMIT);
-      const extraFromCap = opportunityBlocks.length - displayedBlocks.length;
-
-      // Join all opportunity blocks into a single string for the LLM to include verbatim
-      const blocksText = displayedBlocks.join("\n\n");
-      let message =
-        "Found " +
-        displayedBlocks.length +
-        " potential connection(s). IMPORTANT: Include the following " + CODE_FENCE + "opportunity code blocks EXACTLY as-is in your response (they render as interactive cards):\n\n" +
-        blocksText;
       const existingForMention = result.existingConnectionsForMention ?? result.existingConnections ?? [];
       if (existingForMention.length > 0) {
         message +=
@@ -735,9 +768,9 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
 
       return success({
         found: true,
-        count: displayedBlocks.length,
+        count: displayedCards.length,
         message,
-        summary: `Found ${displayedBlocks.length} match(es)`,
+        summary: `Found ${displayedCards.length} match(es)`,
         ...(result.existingConnections?.length ? { existingConnections: result.existingConnections } : {}),
         ...(result.pagination ? { pagination: result.pagination } : {}),
         debugSteps: allDebugSteps,
@@ -841,7 +874,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         if (user) userMap.set(userId, user);
       });
 
-      const opportunityBlocks: string[] = [];
+      const cardDataList: Array<ReturnType<typeof buildMinimalOpportunityCard>> = [];
       const seenOpportunityIds = new Set<string>();
       const skippedCards: Array<{ opportunityId: string; error: string }> = [];
 
@@ -912,11 +945,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
             secondPartyActorForHeadline?.userId,
           );
 
-          opportunityBlocks.push(
-            CODE_FENCE + "opportunity\n" +
-              sanitizeJsonForCodeFence(JSON.stringify(cardData)) +
-              "\n" + CODE_FENCE,
-          );
+          cardDataList.push(cardData);
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
           logger.warn("Skipping opportunity that failed to build minimal card", {
@@ -941,7 +970,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         });
       }
 
-      if (opportunityBlocks.length === 0) {
+      if (cardDataList.length === 0) {
         if (skippedCards.length > 0) {
           return success({
             found: false,
@@ -961,20 +990,14 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         });
       }
 
-      // Join all opportunity blocks into a single string for the LLM to include verbatim
-      const blocksText = opportunityBlocks.join("\n\n");
-
       return success({
         found: true,
-        count: opportunityBlocks.length,
-        summary: `You have ${opportunityBlocks.length} opportunity(ies)`,
-        message:
-          "You have " +
-          opportunityBlocks.length +
-          " opportunity(ies). IMPORTANT: Include the following " +
-          CODE_FENCE +
-          "opportunity code blocks EXACTLY as-is in your response (they render as interactive cards):\n\n" +
-          blocksText,
+        count: cardDataList.length,
+        summary: `You have ${cardDataList.length} opportunity(ies)`,
+        message: buildOpportunityPresentation(cardDataList, {
+          isMcp: context.isMcp ?? false,
+          leadIn: `You have ${cardDataList.length} opportunity(ies).`,
+        }),
         ...(listDebugSteps.length ? { debugSteps: listDebugSteps } : {}),
       });
     },
