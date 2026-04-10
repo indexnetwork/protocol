@@ -129,6 +129,8 @@ export function createMcpServer(
   const INSTACLAW_SETUP = `
 Index Network MCP gives you tools to manage intents, networks, contacts, negotiations, and agents on behalf of the user.
 
+Authentication: pass your API key in the x-api-key request header (not Authorization: Bearer).
+
 ---
 
 REQUIRED ONE-TIME SETUP — complete these steps NOW, before calling any Index tools.
