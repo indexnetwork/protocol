@@ -9,10 +9,16 @@ You help the right people find the user, and help the user find them. Your very 
 
 ## Detect
 
-Before doing anything else, check whether any Index Network MCP tool is already callable (for example `read_user_profiles`).
+Bootstrap has two independent phases — MCP registration, and webhook enablement for automatic negotiations. Check both before deciding what to do next:
 
-- If YES: the bootstrap is already done. Stop reading this file and follow the MCP server's own instructions.
-- If NO: continue to **Register**.
+1. Is any Index Network MCP tool callable (for example `read_user_profiles`)?
+2. Run `openclaw config get plugins.entries.indexnetwork-openclaw-plugin.config.webhookSecret`. Does it print a non-empty value?
+
+Route based on both answers:
+
+- **Both YES**: bootstrap is complete. Stop reading this file and follow the MCP server's own instructions.
+- **MCP not callable**: continue to **Register** and proceed through this file in order.
+- **MCP callable but `webhookSecret` is empty**: the plugin is half-bootstrapped from a prior session. Skip **Register** and **Choose an auth mode** and jump directly to **Enable automatic negotiations**.
 
 ## Register
 
@@ -108,7 +114,8 @@ Strip any trailing `/` from `GATEWAY_URL`, then build:
 
 This avoids `https://host//index-network/webhook` double-slashes that some proxies do not normalize.
 
-**If the user pasted a persistent agent API key earlier** (the MCP registration included `x-api-key`):
+Always try `add_webhook_transport` first, regardless of how the user authenticated. The fallback to `register_agent` below covers the temporary-OAuth case. This ordering works for both fresh bootstraps and re-entry from a half-bootstrapped state, so do not try to guess the auth mode yourself.
+
 Call the `add_webhook_transport` MCP tool with:
 
 - `url`: `<WEBHOOK_URL>`
@@ -117,9 +124,10 @@ Call the `add_webhook_transport` MCP tool with:
 
 Pass `events` / `webhook_events` as an actual JSON array of strings, not a stringified array — the MCP tool validates with Zod and rejects stringified input.
 
-The tool replaces any existing webhook transport on the calling agent and grants `manage:negotiations` permission if missing.
+On success the tool replaces any existing webhook transport on the calling agent and grants `manage:negotiations` permission if missing. If this succeeds, skip to **Confirm to the user**.
 
-**If the user did NOT paste an API key** (temporary OAuth session):
+If `add_webhook_transport` fails with an error whose message contains `requires an authenticated agent`, the caller is on a temporary OAuth session and is not yet agent-bound. Fall back to `register_agent`:
+
 Call the `register_agent` MCP tool once with:
 
 - `name`: `"OpenClaw Personal Negotiator"` (or a name the user picks)
@@ -129,13 +137,13 @@ Call the `register_agent` MCP tool once with:
 - `webhook_events`: `["negotiation.turn_received", "negotiation.completed"]`
 - `permissions`: `["manage:negotiations"]`
 
-If `register_agent` fails with an error whose message contains the substring `can only manage its own registration`, the caller is already agent-bound. Retry once with `add_webhook_transport`, passing the same `url`, `secret`, and `events`. If `add_webhook_transport` then fails with `requires an authenticated agent`, STOP and tell the user exactly this:
+If `register_agent` fails with a name/permission conflict, list existing agents with `list_agents` and report the conflict — do not silently pick a different name.
+
+If both tools fail, stop and tell the user exactly this:
 
 > I could not attach the webhook. Please visit {{FRONTEND_URL}}/agents, create a persistent agent, copy its API key, and re-run the MCP registration with `x-api-key` in the headers. Then ask me to continue.
 
 Do not improvise further retries.
-
-If either tool fails with a name/permission conflict, list existing agents with `list_agents` and report the conflict — do not silently pick a different name.
 
 ### 4. Confirm to the user
 
