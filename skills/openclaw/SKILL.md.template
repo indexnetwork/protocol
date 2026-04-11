@@ -68,7 +68,7 @@ Automatic background negotiations require a webhook transport attached to the us
 
 ### 1. Resolve the gateway public URL
 
-Run:
+First, check whether the URL is already set:
 
 ```bash
 openclaw config get plugins.entries.indexnetwork-openclaw-plugin.config.gatewayUrl
@@ -76,35 +76,58 @@ openclaw config get plugins.entries.indexnetwork-openclaw-plugin.config.gatewayU
 
 If the command prints a non-empty URL, store it as `GATEWAY_URL` and continue.
 
-If the command prints nothing (or an empty value), tell the user **exactly this** and stop — do not ask again, do not guess:
+If empty, try to auto-detect from common host environment variables before asking the user:
 
-> To enable automatic negotiations, set your OpenClaw gateway's public URL once:
+```bash
+GATEWAY_URL=""
+for var in OPENCLAW_PUBLIC_URL PUBLIC_URL RAILWAY_PUBLIC_DOMAIN RAILWAY_STATIC_URL FLY_APP_NAME; do
+  val="$(printenv "$var" 2>/dev/null)"
+  [ -z "$val" ] && continue
+  case "$val" in
+    https://*|http://*) GATEWAY_URL="$val" ;;
+    *.fly.dev|*.up.railway.app) GATEWAY_URL="https://$val" ;;
+    *) GATEWAY_URL="https://$val" ;;
+  esac
+  break
+done
+```
+
+If `GATEWAY_URL` is non-empty after the probe, persist it and continue:
+
+```bash
+openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.gatewayUrl "$GATEWAY_URL"
+```
+
+If no env var matched, the host does not expose its public URL through the workspace environment. Tell the user **exactly this** and stop — do not guess a URL, do not probe outbound IP, do not invent:
+
+> I could not auto-detect this workspace's public URL from any environment variable. To enable automatic negotiations, set it once yourself:
 >
 > ```bash
-> openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.gatewayUrl https://<your-gateway>.ngrok.io
+> openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.gatewayUrl https://<your-gateway-base-url>
 > ```
 >
-> Then ask me to continue the Index Network setup.
+> The URL must be the base URL of your OpenClaw gateway — the one that forwards to port 18789 externally. Do not include a path suffix or trailing slash. Then ask me to continue the Index Network setup.
 
 Do not proceed past this step until `GATEWAY_URL` is set.
 
 ### 2. Resolve or generate the webhook secret
 
-Run:
+Generate a fresh secret and write it to both the plugin config and a shell variable in one atomic step. This is the safest path for both fresh bootstraps and half-bootstrapped re-entries — rotation is cheap because `add_webhook_transport` replaces any existing webhook transport on the calling agent.
 
 ```bash
-openclaw config get plugins.entries.indexnetwork-openclaw-plugin.config.webhookSecret
+umask 077 && SECRET="$(openssl rand -hex 32)" && \
+  openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.webhookSecret "$SECRET" && \
+  WEBHOOK_SECRET="$SECRET"
 ```
 
-If the command prints a non-empty value, store it as `WEBHOOK_SECRET` and continue.
+After this command, `$WEBHOOK_SECRET` in your shell and `plugins.entries.indexnetwork-openclaw-plugin.config.webhookSecret` on disk hold the same 64-character hex value. Continue to Step 3 with that value.
 
-If empty, generate a fresh secret using `openssl rand -hex 32` and store it directly into the plugin config without pasting it into chat output:
+**Secret handling — read carefully, this is where bootstrap most commonly fails.** The only restriction on the secret value is that it MUST NOT appear in any chat message you send to the user. Tool arguments, file writes, and shell commands are NOT chat messages — the real secret value MUST be passed verbatim to the `add_webhook_transport` MCP tool in Step 3.
 
-```bash
-SECRET="$(openssl rand -hex 32)" && openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.webhookSecret "$SECRET" && WEBHOOK_SECRET="$SECRET"
-```
+- **Allowed**: passing `$WEBHOOK_SECRET` as a tool argument, writing it to `/tmp/` for intermediate handoff, echoing it into `openclaw config set`, piping it into tools.
+- **Forbidden**: echoing or quoting the value in any chat-facing response, including confirmations, summaries, logs shown to the user, or error messages. If you need to confirm the secret exists, say "webhook secret is set" — never paste the value.
 
-Do not echo `$SECRET`, do not print `WEBHOOK_SECRET`, and do not include the generated value in any message to the user.
+**Do not substitute a placeholder string** (e.g. `"REDACTED"`, `"CONFIG_FROM_OPENCLAW_NOT_EXPOSED_HERE"`, `"__OPENCLAW_REDACTED__"`, or anything similar) for the `secret` parameter. The backend stores whatever you pass. If you pass a placeholder, the plugin will compute HMACs over the real secret while the backend signs with the placeholder, and every delivery will fail with 401 invalid signature. This has happened before; do not repeat it.
 
 ### 3. Attach the webhook transport
 
