@@ -40,6 +40,10 @@ The package defines interfaces — your application provides the concrete implem
 | `ChatSessionReader` | Load conversation history |
 | `ProfileEnricher` | Enrich profiles from external sources |
 | `NegotiationDatabase` | Negotiation state persistence |
+| `AgentDatabase` | Agent registry CRUD (agents, transports, permissions) |
+| `AgentDispatcher` | Resolves and invokes agents during negotiation turns |
+| `McpAuthResolver` | Resolves `{ userId, agentId }` from an incoming MCP HTTP request |
+| `WebhookAdapter` | Dispatches webhook events to registered agent transports |
 
 All interfaces are exported from the package root — import them with `import type { ... } from "@indexnetwork/protocol"`.
 
@@ -85,17 +89,51 @@ Each factory exposes a `.createGraph()` method that returns a compiled LangGraph
 
 ## MCP server
 
-To expose tools over the Model Context Protocol:
+The package exports a factory that registers every chat tool over the Model Context Protocol and attaches a canonical `instructions` block (`MCP_INSTRUCTIONS`) that every connecting runtime follows. The factory takes three arguments:
 
 ```typescript
-import { createMcpServer } from "@indexnetwork/protocol";
+import { createMcpServer, type McpAuthResolver } from "@indexnetwork/protocol";
+
+const authResolver: McpAuthResolver = {
+  async resolveIdentity(req) {
+    // Look up the API key in `x-api-key` and return { userId, agentId? }.
+    // `agentId` should come from Better Auth token metadata so downstream
+    // tool handlers can attribute every call to a concrete agent identity.
+    return resolveFromApiKey(req);
+  },
+};
 
 const server = createMcpServer(
   deps,
-  (req) => resolveUserIdFromRequest(req),
-  { create: (userId, scope) => createScopedDeps(userId, scope) }
+  authResolver,
+  {
+    // Per-request factory for scoped user/system databases.
+    create: (userId, indexScope) => createScopedDeps(userId, indexScope),
+  },
 );
 ```
+
+On every tool call the server:
+
+1. Extracts the HTTP request from the MCP `ServerContext`.
+2. Calls `authResolver.resolveIdentity(req)` to get `{ userId, agentId }`.
+3. Gates access: MCP callers without a resolved `agentId` are blocked from every tool except `register_agent`, `read_docs`, and `scrape_url` until they register.
+4. Builds per-request scoped databases via `scopedDepsFactory` and invokes the tool handler.
+
+### `MCP_INSTRUCTIONS`
+
+The instructions string is the single canonical behavioral contract for every runtime that connects to Index Network — voice, entity model, discovery-first rule, output rules, and the **Negotiation turn mode** block that tells a silent subagent how to handle a live negotiation turn when its session key is prefixed `index:negotiation:`. Plugin skills and bootstrap scripts do **not** redefine this guidance; they defer to whatever ships in `MCP_INSTRUCTIONS`.
+
+### Negotiation-facing tools
+
+Personal agents participate in bilateral negotiation via a small set of MCP tools:
+
+| Tool | Purpose |
+|---|---|
+| `get_negotiation` | Fetch the full turn history and assessment seed for a negotiation |
+| `list_negotiations` | List negotiations awaiting a response from this agent's user |
+| `respond_to_negotiation` | Submit a turn (propose / counter / accept / reject / question) |
+| `add_webhook_transport` | Register the caller's own webhook URL, secret, and event subscriptions on the acting agent so it can receive `negotiation.turn_received` and `negotiation.completed` deliveries |
 
 ## Publishing
 
