@@ -56,6 +56,59 @@ openclaw mcp set {{MCP_NAME}} '{"url":"{{MCP_URL}}","transport":"streamable-http
 
 Replace `<key>` with what the user pasted. Never log the key back to the user, and never store it anywhere outside the command.
 
+## Enable automatic negotiations (persistent session only)
+
+If the user chose **Persistent session**, offer to turn on automatic background negotiations:
+
+> Do you want me to handle negotiation matches automatically in the background? I'll only tell you when a match is accepted. (yes/no)
+
+If they say no, skip to **Handoff**.
+
+If they say yes, complete these steps in order:
+
+### 1. Resolve the gateway public URL
+
+The plugin registers HTTP routes under this URL. Check if OpenClaw exposes it on `api.config` (SDK-dependent). If not available, ask the user:
+
+> What is the public URL of your OpenClaw gateway? (for example, your ngrok URL or reverse proxy hostname)
+
+Store the value as `GATEWAY_URL`. Do not proceed without a value.
+
+### 2. Generate a shared webhook secret
+
+Generate 32 random bytes of hex. Save it as `WEBHOOK_SECRET`. Write it into the plugin config:
+
+```bash
+openclaw config set 'plugins.entries.indexnetwork-openclaw-plugin.config.webhookSecret' '<WEBHOOK_SECRET>'
+```
+
+Never display `WEBHOOK_SECRET` back to the user.
+
+### 3. Register the personal agent with both negotiation events
+
+Call the `register_agent` MCP tool **once**. The tool creates one agent, optionally attaches a single webhook transport, and grants initial permissions in the same call. Pass these fields:
+
+- `name`: `"OpenClaw Personal Negotiator"` (or a name the user picks)
+- `description`: `"Handles negotiation turns and accepted notifications for the user."`
+- `webhook_url`: `<GATEWAY_URL>/index-network/webhook`
+- `webhook_secret`: `<WEBHOOK_SECRET>`
+- `webhook_events`: `["negotiation.turn_received", "negotiation.completed"]`
+- `permissions`: `["manage:negotiations"]`
+
+Both events land on the same route. The plugin dispatches internally based on the `X-Index-Event` header. Do **not** attempt to register a second agent or a second transport — `register_agent` creates exactly one transport, and the plugin only exposes one route.
+
+If `register_agent` fails because an agent with the same name already exists, list existing agents with `list_agents` and either reuse the existing one (tell the user) or pick a new name.
+
+### 4. Confirm to the user
+
+> Automatic negotiations are on. I'll run them silently and only interrupt you when a match is accepted. You can turn this off any time by setting `plugins.entries.indexnetwork-openclaw-plugin.config.negotiationMode` to `disabled`.
+
+### Troubleshooting
+
+- **Negotiations never fire**: confirm the gateway tunnel is up and the plugin is enabled. Check OpenClaw logs for `401` responses on `/index-network/webhook` — that indicates a HMAC secret mismatch. Check the `list_agents` output to confirm the webhook URL matches `<GATEWAY_URL>/index-network/webhook`.
+- **`register_agent` fails**: re-check the personal agent key; the user may need to regenerate it at {{FRONTEND_URL}}/agents.
+- **Turn responses arrive past deadline**: the user's gateway or tunnel provider is slow. Recommend upgrading the tunnel or self-hosting with a stable reverse proxy.
+
 ## Handoff
 
 Once the MCP is registered and authenticated, you are done with bootstrap. Do NOT duplicate or restate the MCP server's behavioral guidance here — the MCP server's own `instructions` carry voice, vocabulary, entity model, discovery-first rule, and output rules. Follow those.
