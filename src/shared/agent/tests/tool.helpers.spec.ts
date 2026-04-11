@@ -4,7 +4,11 @@ config({ path: ".env.test" });
 
 import { describe, expect, test } from "bun:test";
 import type { ChatGraphCompositeDatabase } from "../../interfaces/database.interface.js";
-import { ChatContextAccessError, resolveChatContext } from "../tool.helpers.js";
+import {
+  ChatContextAccessError,
+  redactSensitiveFields,
+  resolveChatContext,
+} from "../tool.helpers.js";
 
 const userId = "00000000-0000-4000-8000-000000000111";
 const networkId = "00000000-0000-4000-8000-000000000222";
@@ -152,5 +156,74 @@ describe("resolveChatContext", () => {
     const ctx = await resolveChatContext({ database: db, userId, networkId });
     expect(ctx.scopedIndex).not.toBeUndefined();
     expect(ctx.scopedIndex?.prompt).toBe(customPrompt);
+  });
+});
+
+describe("redactSensitiveFields", () => {
+  test("replaces top-level secret field with [redacted]", () => {
+    const out = redactSensitiveFields({ url: "https://a", secret: "s3cr3t" });
+    expect(out).toEqual({ url: "https://a", secret: "[redacted]" });
+  });
+
+  test("matches keys case-insensitively and ignores underscores", () => {
+    const out = redactSensitiveFields({
+      webhook_secret: "a",
+      WebhookSecret: "b",
+      WEBHOOK_SECRET: "c",
+      API_KEY: "d",
+      accessToken: "e",
+    });
+    expect(out).toEqual({
+      webhook_secret: "[redacted]",
+      WebhookSecret: "[redacted]",
+      WEBHOOK_SECRET: "[redacted]",
+      API_KEY: "[redacted]",
+      accessToken: "[redacted]",
+    });
+  });
+
+  test("redacts nested object fields", () => {
+    const out = redactSensitiveFields({
+      config: { apiKey: "k", public: { host: "example.com" } },
+      headers: { authorization: "Bearer x", token: "t" },
+    });
+    expect(out).toEqual({
+      config: { apiKey: "[redacted]", public: { host: "example.com" } },
+      headers: { authorization: "Bearer x", token: "[redacted]" },
+    });
+  });
+
+  test("redacts fields inside arrays of objects", () => {
+    const out = redactSensitiveFields({
+      agents: [
+        { id: "a", secret: "one" },
+        { id: "b", secret: "two" },
+      ],
+    });
+    expect(out).toEqual({
+      agents: [
+        { id: "a", secret: "[redacted]" },
+        { id: "b", secret: "[redacted]" },
+      ],
+    });
+  });
+
+  test("passes primitives through untouched", () => {
+    expect(redactSensitiveFields(null)).toBe(null);
+    expect(redactSensitiveFields("plain")).toBe("plain");
+    expect(redactSensitiveFields(42)).toBe(42);
+    expect(redactSensitiveFields(true)).toBe(true);
+  });
+
+  test("does not mutate the input object", () => {
+    const input = { url: "https://a", secret: "original" };
+    const out = redactSensitiveFields(input) as Record<string, unknown>;
+    expect(input.secret).toBe("original");
+    expect(out.secret).toBe("[redacted]");
+  });
+
+  test("leaves non-sensitive field names alone even if their values look like secrets", () => {
+    const out = redactSensitiveFields({ notes: "the password is hunter2" });
+    expect(out).toEqual({ notes: "the password is hunter2" });
   });
 });

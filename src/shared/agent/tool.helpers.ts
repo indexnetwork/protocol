@@ -460,3 +460,47 @@ export function extractUrls(text: string): string[] {
 
   return out;
 }
+
+const SENSITIVE_FIELD_KEYS = new Set([
+  "secret",
+  "webhooksecret",
+  "password",
+  "apikey",
+  "token",
+  "accesstoken",
+  "refreshtoken",
+  "privatekey",
+  "authtoken",
+  "bearertoken",
+  "clientsecret",
+]);
+
+/**
+ * Recursively redacts sensitive field values from an arbitrary payload before
+ * it is passed to a structured logger. Matches field names case-insensitively
+ * and ignoring underscores, so `webhook_secret`, `webhookSecret`, and
+ * `WEBHOOK_SECRET` all match. Non-sensitive fields are passed through
+ * unchanged. Never mutates the input — returns a new value.
+ *
+ * Intended for structured-log redaction only. Do NOT use as a security
+ * boundary for data in motion.
+ *
+ * @param value - Arbitrary JSON-like payload (query object, config blob, etc.)
+ * @returns A new value with sensitive fields replaced by `"[redacted]"`.
+ */
+export function redactSensitiveFields(value: unknown): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    return value.map((item) => redactSensitiveFields(item));
+  }
+  const out: Record<string, unknown> = {};
+  for (const [key, inner] of Object.entries(value as Record<string, unknown>)) {
+    const normalized = key.toLowerCase().replace(/_/g, "");
+    if (SENSITIVE_FIELD_KEYS.has(normalized)) {
+      out[key] = "[redacted]";
+    } else {
+      out[key] = redactSensitiveFields(inner);
+    }
+  }
+  return out;
+}

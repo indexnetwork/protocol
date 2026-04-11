@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { DefineTool, ResolvedToolContext, ToolDeps, RawToolDefinition, ToolRegistry } from './tool.helpers.js';
+import { error, redactSensitiveFields } from './tool.helpers.js';
 import { createProfileTools } from '../../profile/profile.tools.js';
 import { createIntentTools } from '../../intent/intent.tools.js';
 import { createNetworkTools } from '../../network/network.tools.js';
@@ -12,7 +13,6 @@ import { createAgentTools } from '../../agent/agent.tools.js';
 import { createWebhookTools } from '../../webhook/webhook.tools.js';
 import { createNegotiationTools } from '../../negotiation/negotiation.tools.js';
 import { protocolLogger } from '../observability/protocol.logger.js';
-import { error } from './tool.helpers.js';
 
 const logger = protocolLogger('ToolRegistry');
 
@@ -42,7 +42,7 @@ export function createToolRegistry(deps: ToolDeps): ToolRegistry {
       handler: async (input: { context: ResolvedToolContext; query: unknown }) => {
         logger.verbose(`Tool: ${opts.name}`, {
           context: { userId: input.context.userId, networkId: input.context.networkId },
-          query: input.query,
+          query: redactSensitiveFields(input.query),
         });
         try {
           return await opts.handler({ context: input.context, query: input.query as z.infer<T> });
