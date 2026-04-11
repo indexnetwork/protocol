@@ -7,7 +7,7 @@ import { success, error } from '../shared/agent/tool.helpers.js';
  * Enables registering, listing, deleting, and testing webhook subscriptions.
  */
 export function createWebhookTools(defineTool: DefineTool, deps: ToolDeps) {
-  const { webhook } = deps;
+  const { webhook, agentDatabase } = deps;
 
   const register_webhook = defineTool({
     name: 'register_webhook',
@@ -40,26 +40,67 @@ export function createWebhookTools(defineTool: DefineTool, deps: ToolDeps) {
   const list_webhooks = defineTool({
     name: 'list_webhooks',
     description:
-      "List all webhooks registered by the authenticated user. " +
-      "Secrets are masked for security (only last 4 characters shown).",
+      "List all webhook destinations for the authenticated user. Returns a " +
+      "unified view of both legacy `webhooks` rows and agent-registry " +
+      "webhook transports (attached via `add_webhook_transport`). Each row " +
+      "carries a `source` discriminator (`\"legacy\"` or `\"agent-registry\"`) " +
+      "so consumers can distinguish the two storage layers during the " +
+      "migration. Secrets are never returned.",
     querySchema: z.object({}),
     handler: async ({ context }) => {
-      if (!webhook) {
+      if (!webhook && !agentDatabase) {
         return error('Webhook functionality is not available');
       }
+
       try {
-        const webhooks = await webhook.list(context.userId);
+        const legacyRows = webhook
+          ? (await webhook.list(context.userId)).map((w) => ({
+              source: 'legacy' as const,
+              id: w.id,
+              agentId: null as string | null,
+              url: w.url,
+              events: w.events,
+              active: w.active,
+              description: w.description ?? null,
+              failureCount: w.failureCount,
+              createdAt: w.createdAt,
+            }))
+          : [];
+
+        const agentRows = agentDatabase
+          ? (await agentDatabase.listAgentsForUser(context.userId)).flatMap((agent) =>
+              agent.transports
+                .filter((t) => t.channel === 'webhook')
+                .map((t) => {
+                  const cfg = t.config as {
+                    url?: unknown;
+                    events?: unknown;
+                    description?: unknown;
+                  };
+                  return {
+                    source: 'agent-registry' as const,
+                    id: t.id,
+                    agentId: agent.id,
+                    url: typeof cfg.url === 'string' ? cfg.url : '',
+                    events: Array.isArray(cfg.events)
+                      ? (cfg.events as unknown[]).filter(
+                          (e): e is string => typeof e === 'string',
+                        )
+                      : [],
+                    active: t.active,
+                    description:
+                      typeof cfg.description === 'string' ? cfg.description : null,
+                    failureCount: t.failureCount,
+                    createdAt: agent.createdAt,
+                  };
+                }),
+            )
+          : [];
+
+        const webhooks = [...agentRows, ...legacyRows];
         return success({
           count: webhooks.length,
-          webhooks: webhooks.map(w => ({
-            id: w.id,
-            url: w.url,
-            events: w.events,
-            active: w.active,
-            description: w.description,
-            failureCount: w.failureCount,
-            createdAt: w.createdAt,
-          })),
+          webhooks,
         });
       } catch (err) {
         return error(`Failed to list webhooks: ${err instanceof Error ? err.message : String(err)}`);
