@@ -26,6 +26,8 @@ export interface SeedAgentInput {
 
 export interface FakeAgentDb extends AgentDatabase {
   seedAgent(input: SeedAgentInput): Promise<AgentRecord>;
+  getPermissionsForAgent(agentId: string): AgentPermissionRecord[];
+  getTransportsForAgent(agentId: string): AgentTransportRecord[];
 }
 
 function nextId(prefix: string, counter: { value: number }): string {
@@ -56,6 +58,18 @@ export function createFakeAgentDb(): FakeAgentDb {
   }
 
   const db: FakeAgentDb = {
+    getPermissionsForAgent(agentId: string) {
+      return [...permissions.values()]
+        .filter((permission) => permission.agentId === agentId)
+        .map((permission) => ({ ...permission, actions: [...permission.actions] }));
+    },
+
+    getTransportsForAgent(agentId: string) {
+      return [...transports.values()]
+        .filter((transport) => transport.agentId === agentId)
+        .map((transport) => ({ ...transport }));
+    },
+
     async seedAgent(input: SeedAgentInput) {
       const now = new Date();
       const agent: AgentRecord = {

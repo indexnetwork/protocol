@@ -145,6 +145,82 @@ describe('add_webhook_transport', () => {
     expect(cfg.secret).toBe('new');
   });
 
+  it('grants manage:negotiations exactly once across repeated calls', async () => {
+    const context = buildContext({ agentId: 'agent-1' });
+    const query = {
+      url: 'https://example.com/index-network/webhook',
+      secret: 'shhh',
+      events: ['negotiation.turn_received'],
+    };
+
+    const first = await callTool(tools, 'add_webhook_transport', context, query);
+    expect(first.success).toBe(true);
+
+    const second = await callTool(tools, 'add_webhook_transport', context, {
+      ...query,
+      url: 'https://example.com/index-network/webhook-2',
+    });
+    expect(second.success).toBe(true);
+
+    const agentPermissions = agentDb.getPermissionsForAgent('agent-1');
+    const negotiationPermissions = agentPermissions.filter(
+      (permission) =>
+        permission.scope === 'global' && permission.actions.includes('manage:negotiations'),
+    );
+    expect(negotiationPermissions).toHaveLength(1);
+  });
+
+  it('rejects when the authenticated agent is owned by a different user', async () => {
+    await agentDb.seedAgent({
+      id: 'agent-other',
+      ownerId: 'user-other',
+      type: 'personal',
+      name: 'Someone Else',
+    });
+
+    const result = await callTool(
+      tools,
+      'add_webhook_transport',
+      buildContext({ userId: 'user-1', agentId: 'agent-other' }),
+      {
+        url: 'https://example.com/hook',
+        secret: 's',
+        events: ['negotiation.turn_received'],
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Agent not found');
+    expect(agentDb.getTransportsForAgent('agent-other')).toHaveLength(0);
+  });
+
+  it('rejects http URLs when NODE_ENV=production', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const result = await callTool(
+        tools,
+        'add_webhook_transport',
+        buildContext({ agentId: 'agent-1' }),
+        {
+          url: 'http://example.com/hook',
+          secret: 's',
+          events: ['negotiation.turn_received'],
+        },
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('HTTPS');
+      expect(agentDb.getTransportsForAgent('agent-1')).toHaveLength(0);
+    } finally {
+      if (previousNodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    }
+  });
+
   it('rejects an invalid event name', async () => {
     const result = await callTool(
       tools,

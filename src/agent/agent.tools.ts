@@ -260,7 +260,7 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
           transport: {
             id: transport.id,
             channel: transport.channel,
-            events,
+            events: [...events],
             active: transport.active,
           },
         });
