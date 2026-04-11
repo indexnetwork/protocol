@@ -90,19 +90,23 @@ Run:
 openclaw config get plugins.entries.indexnetwork-openclaw-plugin.config.webhookSecret
 ```
 
-If the command prints a non-empty value, store it as `WEBHOOK_SECRET`.
+If the command prints a non-empty value, store it as `WEBHOOK_SECRET` and continue.
 
-If empty, generate 32 random bytes of hex and set it:
+If empty, generate a fresh secret using `openssl rand -hex 32` and store it directly into the plugin config without pasting it into chat output:
 
 ```bash
-openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.webhookSecret <generated-hex>
+SECRET="$(openssl rand -hex 32)" && openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.webhookSecret "$SECRET" && WEBHOOK_SECRET="$SECRET"
 ```
 
-Never display `WEBHOOK_SECRET` back to the user.
+Do not echo `$SECRET`, do not print `WEBHOOK_SECRET`, and do not include the generated value in any message to the user.
 
 ### 3. Attach the webhook transport
 
-Build `WEBHOOK_URL = <GATEWAY_URL>/index-network/webhook`.
+Strip any trailing `/` from `GATEWAY_URL`, then build:
+
+`WEBHOOK_URL = <GATEWAY_URL>/index-network/webhook`
+
+This avoids `https://host//index-network/webhook` double-slashes that some proxies do not normalize.
 
 **If the user pasted a persistent agent API key earlier** (the MCP registration included `x-api-key`):
 Call the `add_webhook_transport` MCP tool with:
@@ -110,6 +114,8 @@ Call the `add_webhook_transport` MCP tool with:
 - `url`: `<WEBHOOK_URL>`
 - `secret`: `<WEBHOOK_SECRET>`
 - `events`: `["negotiation.turn_received", "negotiation.completed"]`
+
+Pass `events` / `webhook_events` as an actual JSON array of strings, not a stringified array — the MCP tool validates with Zod and rejects stringified input.
 
 The tool replaces any existing webhook transport on the calling agent and grants `manage:negotiations` permission if missing.
 
@@ -123,7 +129,11 @@ Call the `register_agent` MCP tool once with:
 - `webhook_events`: `["negotiation.turn_received", "negotiation.completed"]`
 - `permissions`: `["manage:negotiations"]`
 
-If `register_agent` fails with `This agent can only manage its own registration`, fall back to `add_webhook_transport` — the caller is already bound to an agent.
+If `register_agent` fails with an error whose message contains the substring `can only manage its own registration`, the caller is already agent-bound. Retry once with `add_webhook_transport`, passing the same `url`, `secret`, and `events`. If `add_webhook_transport` then fails with `requires an authenticated agent`, STOP and tell the user exactly this:
+
+> I could not attach the webhook. Please visit {{FRONTEND_URL}}/agents, create a persistent agent, copy its API key, and re-run the MCP registration with `x-api-key` in the headers. Then ask me to continue.
+
+Do not improvise further retries.
 
 If either tool fails with a name/permission conflict, list existing agents with `list_agents` and report the conflict — do not silently pick a different name.
 
