@@ -227,8 +227,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           return error('Negotiation not found.');
         }
 
-        // Validate negotiation is waiting for agent input
-        if (task.state !== 'waiting_for_agent') {
+        // Validate negotiation is waiting for agent input (or claimed via polling)
+        if (task.state !== 'waiting_for_agent' && task.state !== 'claimed') {
           return error(`Negotiation is not waiting for a response. Current status: ${task.state}`);
         }
 
