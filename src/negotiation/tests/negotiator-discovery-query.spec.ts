@@ -97,6 +97,51 @@ describe('IndexNegotiator: discoveryQuery priority', () => {
     );
   }, 120000);
 
+  it('candidate side proposes without discoveryQuery (graph only passes query to discoverer)', async () => {
+    const investor: UserNegotiationContext = {
+      id: 'user-investor',
+      intents: [
+        { id: 'i5', title: 'AI deals', description: 'Looking for early-stage AI startups to invest in', confidence: 0.95 },
+      ],
+      profile: { name: 'Jane VC', bio: 'General Partner at AI Ventures, early-stage investor in consumer AI.', skills: ['venture capital', 'AI investing', 'due diligence'] },
+    };
+
+    const founder: UserNegotiationContext = {
+      id: 'user-founder',
+      intents: [
+        { id: 'i6', title: 'Find investors', description: 'Seeking seed funding for consumer AI product', confidence: 0.9 },
+      ],
+      profile: { name: 'Sam Founder', bio: 'Co-founder building a consumer AI product. UX and product design background.', skills: ['product design', 'fundraising'] },
+    };
+
+    // Simulate the candidate (investor) side WITHOUT discoveryQuery,
+    // matching what the graph now does after the fix.
+    const result = await negotiator.invoke({
+      ownUser: investor,
+      otherUser: founder,
+      indexContext,
+      seedAssessment: { reasoning: 'Founder seeking AI investment, investor found via consumer AI lens.', valencyRole: 'agent' },
+      history: [{
+        action: 'propose' as const,
+        assessment: { reasoning: 'Sam is looking for investors and Jane is an investor in consumer AI.', suggestedRoles: { ownUser: 'patient' as const, otherUser: 'agent' as const } },
+      }],
+      isDiscoverer: false,
+      // No discoveryQuery — the graph gates this on isSource
+    });
+
+    console.log('\n[Negotiator: candidate investor side, no discoveryQuery]');
+    console.log(`  action=${result.action}`);
+    console.log(`  reasoning="${result.assessment.reasoning.slice(0, 200)}..."`);
+
+    await assertLLM(
+      { discoveryQuery: null, candidate: 'Jane VC — GP at AI Ventures, investor in consumer AI', action: result.action, reasoning: result.assessment.reasoning },
+      'Jane VC is an investor being asked to evaluate a founder seeking investment. No discoveryQuery is present (the graph only passes it to the discoverer side). ' +
+      'Jane should evaluate based on profile and intent alignment — a founder seeking AI investment matches her stated intent to find AI startups. ' +
+      'PASS criteria: The action should be "accept" or "counter" — NOT "reject". The reasoning should evaluate fit based on intents and profiles. ' +
+      'FAIL if the action is "reject" due to applying an inverted query check (e.g. "Sam is not an investor").'
+    );
+  }, 120000);
+
   it('proposes normally when no discoveryQuery is set (background intent match)', async () => {
     const result = await negotiator.invoke({
       ownUser: discovererUser,

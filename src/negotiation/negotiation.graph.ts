@@ -100,7 +100,7 @@ export class NegotiationGraphFactory {
           history,
           isFinalTurn,
           isDiscoverer: isSource,
-          ...(state.discoveryQuery && { discoveryQuery: state.discoveryQuery }),
+          ...(state.discoveryQuery && isSource && { discoveryQuery: state.discoveryQuery }),
         };
 
         const scope = { action: 'manage:negotiations', scopeType: 'network', scopeId: state.indexContext.networkId };
@@ -127,7 +127,7 @@ export class NegotiationGraphFactory {
             history,
             isFinalTurn,
             isDiscoverer: isSource,
-            ...(state.discoveryQuery && { discoveryQuery: state.discoveryQuery }),
+            ...(state.discoveryQuery && isSource && { discoveryQuery: state.discoveryQuery }),
           });
         }
 
