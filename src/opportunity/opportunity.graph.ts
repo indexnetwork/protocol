@@ -1753,6 +1753,16 @@ export class OpportunityGraphFactory {
         const useLongTimeout = !isChatPath || hasPersonalAgent;
         const timeoutMs = useLongTimeout ? 24 * 60 * 60 * 1000 : 30_000;
 
+        logger.info('negotiateNode timeout decision', {
+          discoveryUserId,
+          isChatPath,
+          hasDispatcher: !!this.agentDispatcher,
+          hasPersonalAgent,
+          useLongTimeout,
+          timeoutMs,
+          candidateCount: candidates.length,
+        });
+
         const acceptedResults = await negotiateCandidates(
           this.negotiationGraph, sourceUser, candidates,
           { networkId: '', prompt: '' }, // base context, overridden per-candidate below

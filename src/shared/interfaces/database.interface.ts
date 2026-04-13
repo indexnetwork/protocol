@@ -1757,6 +1757,16 @@ export interface NegotiationDatabase {
   updateTaskState(taskId: string, state: string, statusMessage?: unknown): Promise<{ id: string; conversationId: string; state: string }>;
 
   /**
+   * Persists the full negotiation turn context (source/candidate user contexts,
+   * seed assessment, index context, discovery query) onto the task metadata so
+   * that polling agents can reconstruct the same context the system agent sees
+   * in-process. Merges into `metadata.turnContext`, leaving other keys intact.
+   * @param taskId - Task whose metadata to enrich
+   * @param turnContext - Absolute (source/candidate) view of the negotiation context
+   */
+  setTaskTurnContext(taskId: string, turnContext: Record<string, unknown>): Promise<void>;
+
+  /**
    * Persists a negotiation outcome artifact attached to a task.
    * @param data - Artifact payload including task reference, name, structured parts, and metadata
    * @returns The created artifact with its id

@@ -117,7 +117,20 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           return error('Negotiation not found.');
         }
 
-        const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string; maxTurns?: number } | null;
+        const meta = task.metadata as {
+          sourceUserId?: string;
+          candidateUserId?: string;
+          type?: string;
+          maxTurns?: number;
+          opportunityId?: string;
+          turnContext?: {
+            sourceUser: UserNegotiationContext;
+            candidateUser: UserNegotiationContext;
+            indexContext: { networkId: string; prompt?: string };
+            seedAssessment: SeedAssessment;
+            discoveryQuery?: string;
+          };
+        } | null;
         if (meta?.type !== 'negotiation') {
           return error('Negotiation not found.');
         }
@@ -130,6 +143,30 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         }
 
         const counterpartyId = isSource ? meta.candidateUserId : meta.sourceUserId;
+
+        // Project absolute turn context (source/candidate) into own/other
+        // perspective for the caller. Mirrors what the in-process system
+        // agent receives as NegotiationAgentInput — identical context means
+        // identical deliberation on both paths.
+        let negotiationContext: {
+          ownUser: UserNegotiationContext;
+          otherUser: UserNegotiationContext;
+          indexContext: { networkId: string; prompt?: string };
+          seedAssessment: SeedAssessment;
+          isDiscoverer: boolean;
+          discoveryQuery?: string;
+        } | null = null;
+        if (meta.turnContext) {
+          const tc = meta.turnContext;
+          negotiationContext = {
+            ownUser: isSource ? tc.sourceUser : tc.candidateUser,
+            otherUser: isSource ? tc.candidateUser : tc.sourceUser,
+            indexContext: tc.indexContext,
+            seedAssessment: tc.seedAssessment,
+            isDiscoverer: isSource,
+            ...(tc.discoveryQuery && { discoveryQuery: tc.discoveryQuery }),
+          };
+        }
 
         // Load messages and artifacts
         const [messages, artifacts] = await Promise.all([
@@ -187,6 +224,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           isUsersTurn,
           turns,
           outcome,
+          context: negotiationContext,
           createdAt: task.createdAt,
           updatedAt: task.updatedAt,
         });

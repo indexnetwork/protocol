@@ -113,8 +113,19 @@ export class NegotiationGraphFactory {
           // Personal agent responded
           turn = dispatchResult.turn;
         } else if (dispatchResult.reason === 'waiting') {
-          // Long timeout — graph suspends
+          // Long timeout — graph suspends. Persist the full turn context so the
+          // polling agent (and MCP consumers via get_negotiation) reconstruct
+          // the same view the in-process system agent would see. The view is
+          // stored in absolute source/candidate terms; perspective is projected
+          // at pickup time using the claiming user's id.
           traceEmitter?.({ type: "agent_end", name: agentName, durationMs: Date.now() - agentStart, summary: "waiting_for_agent" });
+          await database.setTaskTurnContext(state.taskId, {
+            sourceUser: state.sourceUser,
+            candidateUser: state.candidateUser,
+            indexContext: state.indexContext,
+            seedAssessment: state.seedAssessment,
+            ...(state.discoveryQuery && { discoveryQuery: state.discoveryQuery }),
+          });
           await database.updateTaskState(state.taskId, "waiting_for_agent");
           return { status: 'waiting_for_agent' as const };
         } else {
