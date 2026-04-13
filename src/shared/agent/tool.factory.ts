@@ -129,6 +129,7 @@ export async function createChatTools(
     undefined, // evaluator (default)
     undefined, // queueNotification
     negotiationGraph,
+    deps.agentDispatcher,
   ).createGraph();
   const networkGraph = new NetworkGraphFactory(database).createGraph();
   const networkMembershipGraph = new NetworkMembershipGraphFactory(database).createGraph();

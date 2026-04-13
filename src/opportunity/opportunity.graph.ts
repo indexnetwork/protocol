@@ -66,6 +66,7 @@ import type {
 import { persistOpportunities } from './opportunity.persist.js';
 import { negotiateCandidates, type NegotiationCandidate } from "../negotiation/negotiation.graph.js";
 import type { NegotiationGraphLike } from "../negotiation/negotiation.state.js";
+import type { AgentDispatcher } from "../shared/interfaces/agent-dispatcher.interface.js";
 import { protocolLogger, withCallLogging } from '../shared/observability/protocol.logger.js';
 import { timed } from '../shared/observability/performance.js';
 import { requestContext } from "../shared/observability/request-context.js";
@@ -149,6 +150,12 @@ export class OpportunityGraphFactory {
     private optionalEvaluator?: OpportunityEvaluatorLike,
     private queueNotification?: QueueOpportunityNotificationFn,
     private negotiationGraph?: NegotiationGraphLike,
+    /**
+     * Used on the chat path to decide whether to wait for the user's personal
+     * agent (long timeout) or fall back to the system agent immediately
+     * (short timeout). Without it, the chat path always uses a short timeout.
+     */
+    private agentDispatcher?: Pick<AgentDispatcher, 'hasPersonalAgent'>,
   ) {}
 
   public createGraph() {
@@ -1730,14 +1737,28 @@ export class OpportunityGraphFactory {
           }),
         );
 
-        // Run negotiations per candidate with their actual index context.
-        // Chat-initiated discovery runs AI agents directly — no webhook yields.
+        // Decide turn timeout.
+        //   - Background/queue path (no conversationId): always long (24h). Turns park in
+        //     `waiting_for_agent` and are picked up via polling.
+        //   - Chat path with a personal agent authorized: use long timeout so the dispatcher
+        //     parks the turn and the user's personal agent can pick it up via polling.
+        //   - Chat path with no personal agent: use short timeout (30s) so the system
+        //     `Index Negotiator` kicks in without stalling the chat.
+        const hasPersonalAgent = isChatPath && this.agentDispatcher
+          ? await this.agentDispatcher.hasPersonalAgent(
+              discoveryUserId,
+              { action: 'manage:negotiations', scopeType: 'network' },
+            ).catch(() => false)
+          : false;
+        const useLongTimeout = !isChatPath || hasPersonalAgent;
+        const timeoutMs = useLongTimeout ? 24 * 60 * 60 * 1000 : 30_000;
+
         const acceptedResults = await negotiateCandidates(
           this.negotiationGraph, sourceUser, candidates,
           { networkId: '', prompt: '' }, // base context, overridden per-candidate below
           { maxTurns, traceEmitter: traceEmitter ?? undefined,
             indexContextOverrides: indexContextMap,
-            timeoutMs: isChatPath ? 30_000 : 24 * 60 * 60 * 1000 },
+            timeoutMs },
         );
 
         // Filter opportunities to only those with an opportunity outcome, update scores
