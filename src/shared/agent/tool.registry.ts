@@ -11,6 +11,7 @@ import { createIntegrationTools } from '../../integration/integration.tools.js';
 import { createContactTools } from '../../contact/contact.tools.js';
 import { createAgentTools } from '../../agent/agent.tools.js';
 import { createNegotiationTools } from '../../negotiation/negotiation.tools.js';
+import { createChatTools } from '../../chat/chat.tools.js';
 import { protocolLogger } from '../observability/protocol.logger.js';
 
 const logger = protocolLogger('ToolRegistry');
@@ -73,6 +74,9 @@ export function createToolRegistry(deps: ToolDeps): ToolRegistry {
   createContactTools(dt, deps);
   createAgentTools(dt, deps);
   createNegotiationTools(dt, deps);
+  if (deps.chatSession) {
+    createChatTools(dt, deps);
+  }
 
   logger.verbose(`Tool registry created with ${registry.size} tools`);
   return registry;
