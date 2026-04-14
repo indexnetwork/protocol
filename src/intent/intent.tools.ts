@@ -159,7 +159,20 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       "**Returns:** An intent_proposal code block that MUST be included verbatim in the response. The frontend renders it as an interactive " +
       "card the user can approve or skip. On approval, the intent is persisted, indexed, and discovery begins.\n\n" +
       "**Next steps after approval:** The intent is automatically linked to relevant indexes. Call create_opportunities(searchQuery) to explicitly trigger discovery, " +
-      "or wait for background processing to find matches.",
+      "or wait for background processing to find matches.\n\n" +
+      "**Specificity gate.** Before calling this tool, judge whether the description is concrete enough to be " +
+      "useful for matching. If the user says \"find a job\", \"meet people\", or \"learn something\", that's too " +
+      "vague — FIRST call read_user_profiles() + read_intents() to understand their context, THEN propose a " +
+      "refined version (\"Based on your background in X, did you mean 'Y'?\") and wait for confirmation before " +
+      "calling create_intent. Specific asks (\"senior UX design role at a tech company in Berlin\") can go " +
+      "directly to create_intent.\n\n" +
+      "**URL handling.** If the user pastes a URL describing the intent (e.g. a job posting), call scrape_url " +
+      "first with objective=\"Extract key details for an intent\", synthesize a conceptual description from the " +
+      "content, then call create_intent with the synthesis. Exception: profile URLs (LinkedIn, GitHub, X) passed " +
+      "to create_user_profile are handled by that tool directly — do not scrape first.\n\n" +
+      "**Proposal card contract.** The response contains an ```intent_proposal code block. Include that block " +
+      "VERBATIM in your reply to the user — do not summarize it, do not write an intent_proposal block yourself. " +
+      "Only this tool returns valid blocks (they embed a proposalId the UI needs to persist the intent on approval).",
     querySchema: z.object({
       description: z.string().describe("A clear, specific description of what the user is looking for. Should be concept-based, not a raw URL. If the user shared a URL, scrape it first with scrape_url and pass the synthesized content here. Vague descriptions will be rejected — include what kind, what for, and/or timeframe."),
       networkId: z.string().optional().describe("Index UUID to link the intent to upon creation. Defaults to the scoped index in index-scoped chats. Get index IDs from read_networks. If omitted, the system auto-assigns to relevant indexes based on their prompts."),
