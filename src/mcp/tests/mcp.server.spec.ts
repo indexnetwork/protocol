@@ -1,10 +1,10 @@
 /**
  * Tests for the MCP_INSTRUCTIONS constant.
  *
- * MCP_INSTRUCTIONS is the canonical home for Index Network behavioral
- * guidance. Every MCP client receives it on connect, so it must be
- * dense (under budget) and complete (covers voice, vocabulary, entity
- * model, discovery-first rule, output rules, auth).
+ * MCP_INSTRUCTIONS carries only global guidance: identity, voice, banned
+ * vocabulary, entity model, output rules, and auth. Per-tool workflow
+ * patterns (discovery-first, introduction mode, negotiation-turn mode,
+ * etc.) live in each tool's `description` string, not here.
  */
 import { config } from "dotenv";
 config({ path: ".env.test" });
@@ -29,9 +29,12 @@ describe("MCP_INSTRUCTIONS", () => {
     expect(MCP_INSTRUCTIONS.toLowerCase()).toMatch(/never.*search|banned.*search|do not.*search/);
   });
 
-  test("declares the discovery-first rule", () => {
+  test("frames Index Network as a discovery protocol", () => {
     expect(MCP_INSTRUCTIONS.toLowerCase()).toContain("discovery");
-    expect(MCP_INSTRUCTIONS).toContain("create_opportunities");
+  });
+
+  test("delegates per-tool guidance to tool descriptions", () => {
+    expect(MCP_INSTRUCTIONS.toLowerCase()).toContain("tool's description");
   });
 
   test("describes the entity model", () => {
