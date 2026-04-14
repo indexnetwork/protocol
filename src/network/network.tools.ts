@@ -73,7 +73,14 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
       "- With both `networkId` and `userId`: checks whether that specific user is a member of that specific index (returns isMember boolean).\n\n" +
       "**When to use:** Before creating introductions (need to verify shared index membership), to explore community members, " +
       "or to check if a user belongs to a specific index.\n\n" +
-      "**Returns:** Member list with user details, or membership list with index details, or a membership check result.",
+      "**Returns:** Member list with user details, or membership list with index details, or a membership check result.\n\n" +
+      "**Personal index semantics.** The personal index (`isPersonal: true` on the membership) is the user's " +
+      "contact list — members of that index are the user's contacts. Pass `userId` of another user to see which " +
+      "indexes they belong to, which is how you find shared ground before an introduction.\n\n" +
+      "**Shared-context pattern.** To find overlap between the current user and another user: (1) call this tool " +
+      "with userId=me and again with userId=other, (2) intersect the returned networkIds, (3) call read_intents " +
+      "for each shared network to see what each is looking for there, (4) call read_user_profiles for the other " +
+      "party. That sequence gives you enough to decide whether to propose a direct connection or an introduction.",
     querySchema: z.object({
       networkId: z.string().optional().describe("Index UUID — lists all members of this index. Get from read_networks. In index-scoped chats, only the scoped index can be queried."),
       userId: z.string().optional().describe("User ID — lists that user's index memberships. Omit to get the current user's memberships. When combined with networkId, checks if this user is in that specific index."),
