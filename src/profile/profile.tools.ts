@@ -131,10 +131,7 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
         return success({ query: nameQuery, matchCount: profiles.length, profiles });
       }
 
-      // Guard: when chat is NOT index-scoped and no userId/networkId provided, disallow
-      if (!effectiveIndexId && !targetUserId && !context.networkId) {
-        return error("Please provide a userId, networkId, or query. Outside of an index-scoped chat, read_user_profiles requires at least one of these parameters. To read your own profile, pass your own userId.");
-      }
+      // When no userId / networkId / query is provided, fall through to Mode 1 (self lookup).
 
       // --- Mode 3: networkId provided → fetch all member profiles ---
       if (effectiveIndexId) {
