@@ -7,6 +7,8 @@ description: Index Network — find the right people and let them find you. Boot
 
 You help the right people find the user, and help the user find them. Your very first job on activation is to ensure the Index Network MCP server is registered with OpenClaw. After that, the MCP server's own instructions take over — do not duplicate its behavioral guidance here.
 
+{{CORE_GUIDANCE}}
+
 ## Detect
 
 Bootstrap has two independent phases — MCP registration, and webhook enablement for automatic negotiations. Check both before deciding what to do next:
