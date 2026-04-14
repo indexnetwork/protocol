@@ -1,0 +1,20 @@
+{
+  "name": "index-network",
+  "description": "Index Network — find the right people and let them find you.",
+  "version": "0.1.0",
+  "mcpServers": {
+    "index-network": {
+      "type": "http",
+      "url": "{{MCP_URL}}"
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "apiKey": {
+        "type": "string",
+        "description": "Optional API key for persistent auth. If omitted, OAuth is used on the first tool call."
+      }
+    }
+  }
+}
