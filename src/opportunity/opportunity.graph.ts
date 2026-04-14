@@ -1744,11 +1744,23 @@ export class OpportunityGraphFactory {
         //     parks the turn and the user's personal agent can pick it up via polling.
         //   - Chat path with no personal agent: use short timeout (30s) so the system
         //     `Index Negotiator` kicks in without stalling the chat.
+        // Check the personal agent per unique candidate network so cross-network
+        // chat runs don't get a single authorized agent deciding the timeout for
+        // every candidate. Only use the long (polling) timeout when a personal
+        // agent is authorized on ALL candidate networks; otherwise fall back to
+        // the short timeout so chats don't stall on a network where only the
+        // system negotiator is allowed.
         const hasPersonalAgent = isChatPath && this.agentDispatcher
-          ? await this.agentDispatcher.hasPersonalAgent(
-              discoveryUserId,
-              { action: 'manage:negotiations', scopeType: 'network' },
-            ).catch(() => false)
+          ? (uniqueIndexIds.length > 0
+              ? (await Promise.all(
+                  uniqueIndexIds.map((networkId) =>
+                    this.agentDispatcher!.hasPersonalAgent(
+                      discoveryUserId,
+                      { action: 'manage:negotiations', scopeType: 'network', scopeId: networkId },
+                    ).catch(() => false),
+                  ),
+                )).every(Boolean)
+              : false)
           : false;
         const useLongTimeout = !isChatPath || hasPersonalAgent;
         const timeoutMs = useLongTimeout ? 24 * 60 * 60 * 1000 : 30_000;
