@@ -106,7 +106,12 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
       '**Access control:** You must be a party to the negotiation (source or candidate) to view it.\n\n' +
       '**Statuses:** `active` — in progress. `waiting_for_agent` — waiting for an agent response or timeout. `completed` — concluded.\n\n' +
       '**When to use:** To review the full negotiation history before responding, to understand why a negotiation was ' +
-      'accepted or rejected, or to see the current state of an active negotiation.',
+      'accepted or rejected, or to see the current state of an active negotiation.\n\n' +
+      '**Negotiation-turn-mode usage.** If you are running as a silent background subagent (dispatched by the ' +
+      "openclaw runtime's poller in response to a claimed negotiation turn), call this tool FIRST with the " +
+      'negotiationId from your task prompt. This returns the current state, both parties\' context, and the ' +
+      'history of turns so far. Ground your response in the caller\'s profile (read_user_profiles) and intents ' +
+      '(read_intents) before deciding on a turn action. Do not produce user-facing output in this mode.',
     querySchema: z.object({
       negotiationId: z.string().describe('The negotiation task ID (from list_negotiations results).'),
     }),
@@ -247,7 +252,13 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
       '- `counter` — Counter the proposal with a message (message is required). The negotiation will continue.\n' +
       '- `question` — Ask the counterparty a clarifying question (message is required). The negotiation will continue.\n\n' +
       '**What happens after:** Accept/reject finalizes the negotiation immediately. Counter/question continues the negotiation — ' +
-      'if the counterparty has an agent, the negotiation yields again; otherwise the AI agent responds inline.',
+      'if the counterparty has an agent, the negotiation yields again; otherwise the AI agent responds inline.\n\n' +
+      '**Silent-subagent response contract.** In negotiation-turn mode, submit exactly ONE call to this tool ' +
+      'per dispatch with the action (propose | counter | accept | reject | question) and the assessment ' +
+      '(reasoning + suggestedRoles). If the decision is ambiguous, pick the most conservative action — usually ' +
+      '`counter` with specific objections, or `reject` with clear reasoning. On the first turn of a negotiation ' +
+      '(turnCount === 0) the action MUST be `propose`. Do not ask the user clarifying questions; you are ' +
+      'authorized to act on their behalf within the scope granted to your agent.',
     querySchema: z.object({
       negotiationId: z.string().describe('The negotiation task ID to respond to.'),
       action: z.enum(['accept', 'reject', 'counter', 'question']).describe('The response action: accept the proposal, reject it, counter with a new message, or ask a clarifying question.'),
