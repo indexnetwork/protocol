@@ -185,7 +185,7 @@ export function createMcpServer(
           }
 
           // Resolve authenticated identity (userId + optional agentId)
-          const { userId, agentId } = await authResolver.resolveIdentity(httpReq);
+          const { userId, agentId, isSessionAuth } = await authResolver.resolveIdentity(httpReq);
 
           // Resolve chat context for the user (mark as MCP — no interactive UI available)
           const context = await resolveChatContext({ database: deps.database, userId });
@@ -194,10 +194,10 @@ export function createMcpServer(
             context.agentId = agentId;
           }
 
-          // Gate: MCP callers must register as an agent before using most tools.
-          // This ensures every Index tool call has a declared agent identity that
-          // can be attributed, audited, and dispatched against the agent registry.
-          if (!context.agentId && !AGENT_GATE_EXEMPT.has(toolName)) {
+          // Gate: API-key callers (background agents) must register before using most tools.
+          // OAuth/JWT session callers (human MCP clients such as Claude Code) are exempt —
+          // their identity is already established via the auth flow and they have no agent entity.
+          if (!isSessionAuth && !context.agentId && !AGENT_GATE_EXEMPT.has(toolName)) {
             return {
               content: [{
                 type: 'text' as const,
