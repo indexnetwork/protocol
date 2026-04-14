@@ -213,7 +213,25 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       "Use when user asks 'who should I introduce to [person]?'\n\n" +
       "**Returns:** Opportunity code blocks (render as interactive cards) with opportunityId, match reasoning, confidence score, and status. " +
       "All results start as drafts. Supports pagination via `continueFrom` for large result sets.\n\n" +
-      "**Next steps:** Use update_opportunity(opportunityId, status='pending') to send a draft to the other party.",
+      "**Next steps:** Use update_opportunity(opportunityId, status='pending') to send a draft to the other party.\n\n" +
+      "**Discovery-first rule.** For open-ended connection-seeking requests (\"find me a mentor\", " +
+      "\"who needs a React dev\", \"looking for investors\"), call this tool with `searchQuery` FIRST. " +
+      "Do NOT call create_intent for these phrasings — create_intent is only for when the user explicitly " +
+      "asks to \"create\", \"save\", \"add\", or \"remember\" a signal.\n\n" +
+      "**Personal-index scoping.** When the user says \"in my network\", \"from my contacts\", \"people I know\", " +
+      "or similar scoping language, pass the user's personal index ID (from memberships where `isPersonal: true`) " +
+      "as `networkId`. The personal index contains the user's contacts — scoping discovery to it restricts " +
+      "results to people the user already knows. Without this scoping language, omit networkId to let discovery " +
+      "run across all indexes.\n\n" +
+      "**Introduction mode prerequisites.** When using `partyUserIds` + `entities`, YOU must pre-fetch each party's " +
+      "profile and intents before calling this tool. The entities array must include each party's userId, profile, " +
+      "intents from shared indexes, and the shared networkId. Call read_user_profiles, read_network_memberships, " +
+      "and read_intents for both parties first. The introducer (current user) must NOT appear in entities.\n\n" +
+      "**Signal-visibility follow-up.** If the response includes `suggestIntentCreationForVisibility: true` and " +
+      "`suggestedIntentDescription`, after presenting opportunity cards ask the user ONCE whether they'd also like " +
+      "to create a signal so others can find them. On yes, call create_intent with the suggested description. " +
+      "Never suggest this after introducer-mode (`introTargetUserId`) calls — the query describes the other person's " +
+      "needs, not the signed-in user's.",
     querySchema: z.object({
       continueFrom: z
         .string()
