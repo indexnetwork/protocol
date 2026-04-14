@@ -44,7 +44,7 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
       "This is the primary way to look up a person by name. Add `networkId` to restrict search to one index.\n" +
       "- With `userId`: returns that specific user's full profile (name, bio, skills, interests, location).\n" +
       "- With `networkId` alone: returns profiles of ALL members in that index.\n" +
-      "- No parameters (index-scoped chat only): returns the current user's own profile.\n\n" +
+      "- No parameters: returns the current user's own profile.\n\n" +
       "**When to use:** Before creating introductions (need profiles of both parties), when the user asks about a person, " +
       "or to check if a profile exists before suggesting create_user_profile.\n\n" +
       "**Returns:** Profile objects with name, bio, location, skills[], interests[]. Use userId from results with other tools like read_intents(userId, networkId).",

@@ -300,7 +300,7 @@ export function createMockProtocolDeps(overrides?: Partial<ProtocolDeps>): Proto
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     intentQueue: { addGenerateHydeJob: async () => ({}), addDeleteHydeJob: async () => ({}) } as any,
     contactService: { importContacts: async () => ({ imported: 0, skipped: 0, newContacts: 0, existingContacts: 0, details: [] }), listContacts: async () => [], addContact: async () => ({ userId: "", isNew: false, isGhost: false }), removeContact: async () => {} } as unknown as ProtocolDeps["contactService"],
-    chatSession: { getSessionMessages: async () => [] },
+    chatSession: mockChatSessionReader,
     enricher: { enrichUserProfile: async () => null } as unknown as ProtocolDeps["enricher"],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     negotiationDatabase: {} as any,
