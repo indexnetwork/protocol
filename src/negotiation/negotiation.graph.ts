@@ -59,6 +59,12 @@ export class NegotiationGraphFactory {
           maxTurns,
         });
 
+        if (state.opportunityId) {
+          await database.updateOpportunityStatus(state.opportunityId, 'negotiating').catch((err) => {
+            logger.error('[Graph:Init] Failed to set opportunity status to negotiating', { opportunityId: state.opportunityId, error: err });
+          });
+        }
+
         return {
           conversationId: conversation.id,
           taskId: task.id,
@@ -247,6 +253,17 @@ export class NegotiationGraphFactory {
           parts: [{ kind: "data", data: outcome }],
           metadata: { hasOpportunity, turnCount: state.turnCount },
         });
+
+        if (state.opportunityId) {
+          const nextStatus = lastTurn?.action === 'accept'
+            ? 'pending'
+            : lastTurn?.action === 'reject'
+              ? 'rejected'
+              : 'stalled';
+          await database.updateOpportunityStatus(state.opportunityId, nextStatus).catch((err) => {
+            logger.error("[Graph:Finalize] Failed to update opportunity status", { opportunityId: state.opportunityId, nextStatus, error: err });
+          });
+        }
       } catch (err) {
         logger.error("[Graph:Finalize] Failed to persist outcome", { error: err });
       }

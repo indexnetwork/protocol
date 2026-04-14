@@ -382,7 +382,7 @@ export interface CreateHydeDocumentData {
 // OPPORTUNITY TYPES (Opportunity Redesign)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type OpportunityStatus = 'latent' | 'draft' | 'negotiating' | 'pending' | 'accepted' | 'rejected' | 'expired';
+export type OpportunityStatus = 'latent' | 'draft' | 'negotiating' | 'pending' | 'stalled' | 'accepted' | 'rejected' | 'expired';
 
 export interface Opportunity {
   id: string;
@@ -1839,6 +1839,18 @@ export interface NegotiationDatabase {
     parts: unknown[];
     metadata: Record<string, unknown> | null;
   }>>;
+
+  /**
+   * Update the status of an opportunity. Called from the negotiation graph to
+   * advance the opportunity lifecycle (negotiating → pending/rejected/stalled).
+   * @param id - Opportunity ID
+   * @param status - New status
+   * @returns The updated opportunity or null if not found
+   */
+  updateOpportunityStatus(
+    id: string,
+    status: OpportunityStatus,
+  ): Promise<{ id: string; status: OpportunityStatus } | null>;
 }
 
 /**

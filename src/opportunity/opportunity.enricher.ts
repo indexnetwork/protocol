@@ -24,7 +24,7 @@ const MIN_REASONING_LENGTH_FOR_EMBEDDING = 10;
 export type EnricherDatabase = {
   findOverlappingOpportunities(
     actorUserIds: Id<'users'>[],
-    options?: { excludeStatuses?: ('latent' | 'pending' | 'accepted' | 'rejected' | 'expired')[] }
+    options?: { excludeStatuses?: ('latent' | 'pending' | 'stalled' | 'accepted' | 'rejected' | 'expired')[] }
   ): Promise<Opportunity[]>;
 };
 
@@ -57,7 +57,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 
 /**
  * Resolve enriched opportunity status from related opportunities' statuses and the incoming status.
- * Priority: accepted > pending > rejected > draft (only when incoming is draft) > latent.
+ * Priority: accepted > pending > rejected > stalled > draft (only when incoming is draft) > latent.
  * The incoming status is included so we do not wrongly downgrade when the new opportunity has a higher-priority status.
  * When incoming is 'draft' (e.g. from in-chat discovery), we preserve draft so the opportunity stays chat-only and
  * does not appear on the home view (home excludes draft).
@@ -69,6 +69,7 @@ function resolveEnrichedStatus(relatedStatuses: string[], incomingStatus?: strin
   if (statuses.includes('accepted')) return 'accepted';
   if (statuses.includes('pending')) return 'pending';
   if (statuses.includes('rejected')) return 'rejected';
+  if (statuses.includes('stalled')) return 'stalled';
   if (incomingStatus === 'draft') return 'draft';
   return 'latent';
 }
