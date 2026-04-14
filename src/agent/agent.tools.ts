@@ -383,10 +383,11 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
 
   const grantAgentPermission = defineTool({
     name: 'grant_agent_permission',
-    description: 'Grant one or more permissions to an agent for the current user.',
+    description: 'Grant one or more permissions to an agent for the current user. ' +
+      'Valid actions: manage:profile, manage:intents, manage:networks, manage:contacts, manage:negotiations.',
     querySchema: z.object({
       agent_id: z.string().min(1).describe('The agent ID to grant permissions to.'),
-      actions: z.array(z.string()).min(1).describe('Permission actions to grant.'),
+      actions: z.array(z.string()).min(1).describe('Permission actions to grant. Valid values: manage:profile, manage:intents, manage:networks, manage:contacts, manage:negotiations.'),
       scope: z.enum(['global', 'node', 'network']).optional().describe('Optional permission scope.'),
       scope_id: z.string().optional().describe('Scope target ID for node/network scopes.'),
     }),

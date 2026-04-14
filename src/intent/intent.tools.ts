@@ -507,8 +507,9 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
 
       if (result.mutationResult) {
         if (result.mutationResult.success) {
+          const alreadyExisted = result.mutationResult.message?.includes('already in this network') ?? false;
           return success({
-            created: true,
+            created: !alreadyExisted,
             message: result.mutationResult.message,
             _graphTimings: [{ name: 'intent_network', durationMs: _createIntentIndexGraphMs, agents: result.agentTimings ?? [] }],
           });
