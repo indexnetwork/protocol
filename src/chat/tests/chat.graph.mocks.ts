@@ -280,6 +280,8 @@ export function createChatGraphMockDb(
 /** Mock ChatSessionReader with stub implementations for graph tests. */
 export const mockChatSessionReader: ChatSessionReader = {
   getSessionMessages: async () => [],
+  listSessions: async () => [],
+  getSession: async () => null,
 };
 
 /**
