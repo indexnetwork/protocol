@@ -124,7 +124,11 @@ export class NegotiationGraphFactory {
             candidateUser: state.candidateUser,
             indexContext: state.indexContext,
             seedAssessment: state.seedAssessment,
-            ...(state.discoveryQuery && { discoveryQuery: state.discoveryQuery }),
+            // Keep discoveryQuery speaker-scoped: include it only when the
+            // parked turn belongs to the discoverer (source). Persisting it on
+            // candidate-side turns would make the pickup prompt frame the
+            // search as "your user searched for X" for the wrong user.
+            ...(isSource && state.discoveryQuery && { discoveryQuery: state.discoveryQuery }),
           });
           await database.updateTaskState(state.taskId, "waiting_for_agent");
           return { status: 'waiting_for_agent' as const };
