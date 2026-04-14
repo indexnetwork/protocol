@@ -1296,6 +1296,15 @@ export interface UserDatabase {
   /** Get ALL active intents for the authenticated user (not index-filtered). */
   getActiveIntents(): Promise<ActiveIntent[]>;
 
+  /**
+   * Case-insensitive substring search over the authenticated user's own
+   * active intents. Matches against `payload` and `summary`. Most recent first.
+   */
+  searchOwnIntents(
+    q: string,
+    limit: number,
+  ): Promise<Array<{ id: string; payload: string; summary: string | null; createdAt: Date }>>;
+
   /** Get a single intent by ID (ownership enforced). */
   getIntent(intentId: string): Promise<IntentRecord | null>;
 

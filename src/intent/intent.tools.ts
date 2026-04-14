@@ -31,7 +31,7 @@ async function ensureScopedMembership(
 }
 
 export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
-  const { graphs } = deps;
+  const { graphs, userDb } = deps;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // INTENT CRUD
@@ -650,5 +650,31 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
     },
   });
 
-  return [readIntents, createIntent, updateIntent, deleteIntent, createIntentIndex, readIntentIndexes, deleteIntentIndex] as const;
+  const searchIntents = defineTool({
+    name: "search_intents",
+    description:
+      "Text-searches the authenticated user's own active signals by description. Case-insensitive substring " +
+      "match over the signal's payload and summary. Use when the user references a past signal they wrote " +
+      '("find my signal about React mentorship") or wants to audit what they\'ve posted.\n\n' +
+      "For discovery of OTHER users' signals that match a query, use create_opportunities(searchQuery=...) " +
+      "instead — that runs semantic matching across the user's networks.\n\n" +
+      "**Returns:** `intents: [{ id, payload, summary, createdAt }]`, most recent first, up to `limit` (default 25).",
+    querySchema: z.object({
+      q: z.string().min(1).describe("Text to match against payload and summary (case-insensitive)."),
+      limit: z
+        .number()
+        .int()
+        .positive()
+        .max(100)
+        .optional()
+        .describe("Maximum intents to return (default 25, max 100)."),
+    }),
+    handler: async ({ context, query }) => {
+      const rows = await userDb.searchOwnIntents(query.q, query.limit ?? 25);
+      logger.verbose("search_intents", { userId: context.userId, q: query.q, matched: rows.length });
+      return success({ intents: rows });
+    },
+  });
+
+  return [readIntents, createIntent, updateIntent, deleteIntent, createIntentIndex, readIntentIndexes, deleteIntentIndex, searchIntents] as const;
 }
