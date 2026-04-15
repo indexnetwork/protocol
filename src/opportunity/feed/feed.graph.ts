@@ -13,7 +13,7 @@ import { createHash } from 'crypto';
 
 import { StateGraph, START, END } from '@langchain/langgraph';
 
-import type { HomeGraphDatabase } from '../../shared/interfaces/database.interface.js';
+import type { HomeGraphDatabase, OpportunityStatus } from '../../shared/interfaces/database.interface.js';
 import type { OpportunityCache } from '../../shared/interfaces/cache.interface.js';
 import {
   HomeGraphState,
@@ -43,6 +43,8 @@ export type HomeGraphInvokeInput = {
   networkId?: string;
   limit?: number;
   noCache?: boolean;
+  /** When set, filter loaded opportunities to these lifecycle statuses. Defaults to `DEFAULT_HOME_STATUSES`. */
+  statuses?: OpportunityStatus[];
 };
 
 export type HomeGraphInvokeResult = {
@@ -50,6 +52,14 @@ export type HomeGraphInvokeResult = {
   meta: { totalOpportunities: number; totalSections: number };
   error?: string;
 };
+
+/** Default home-feed statuses: the lifecycle stages a viewer can act on today. */
+export const DEFAULT_HOME_STATUSES: OpportunityStatus[] = ['latent', 'stalled', 'pending'];
+
+/** Full status enumeration. Pass this to `HomeGraphInvokeInput.statuses` to restore pre-Issue-3 (unfiltered) behavior. */
+export const ALL_OPPORTUNITY_STATUSES: OpportunityStatus[] = [
+  'latent', 'draft', 'negotiating', 'pending', 'stalled', 'accepted', 'rejected', 'expired',
+];
 
 const MAX_ITEMS_PER_SECTION = 20;
 const PRESENTATION_CONCURRENCY = 50;
@@ -167,8 +177,10 @@ export class HomeGraphFactory {
           // (connection, connector-flow, expired) for selectByComposition to fill
           // its soft targets, even after visibility filtering and dedup.
           const fetchLimit = Math.min(150, Math.max(50, state.limit * 3));
-          const options: { limit?: number; networkId?: string } = {
+          const statuses = state.statuses ?? DEFAULT_HOME_STATUSES;
+          const options: { limit?: number; networkId?: string; statuses?: OpportunityStatus[] } = {
             limit: fetchLimit,
+            statuses,
           };
           if (state.networkId) options.networkId = state.networkId;
           // Do not pass conversationId: home view excludes draft opportunities (chat-only drafts).
