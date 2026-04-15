@@ -2009,4 +2009,9 @@ export type HomeGraphDatabase = Pick<
   | 'getActiveIntents'
   | 'getNetwork'
   | 'getUser'
+> & Pick<
+  NegotiationDatabase,
+  | 'getNegotiationTaskForOpportunity'
+  | 'getMessagesForConversation'
+  | 'getArtifactsForTask'
 >;

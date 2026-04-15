@@ -23,6 +23,7 @@ import {
   type HomeSectionItem,
 } from './feed.state.js';
 import { OpportunityPresenter, gatherPresenterContext, type PresenterDatabase } from '../opportunity.presenter.js';
+import { loadNegotiationContext } from '../negotiation-context.loader.js';
 import { HomeCategorizerAgent } from './feed.categorizer.js';
 import { canUserSeeOpportunity, isActionableForViewer, selectByComposition } from '../opportunity.utils.js';
 import { resolveHomeSectionIcon, DEFAULT_HOME_SECTION_ICON } from '../../shared/ui/lucide.icon-catalog.js';
@@ -222,8 +223,10 @@ export class HomeGraphFactory {
         }
 
         try {
+          // Include status in the cache key so status transitions (e.g.
+          // negotiating → pending) don't serve stale cards.
           const keys = opportunities.map(
-            (opp) => `home:card:${opp.id}:${userId}`
+            (opp) => `home:card:${opp.id}:${opp.status}:${userId}`
           );
           const results = await this.cache.mget<HomeCardItem>(keys);
 
@@ -271,7 +274,7 @@ export class HomeGraphFactory {
         logger.verbose('[HomeGraph:generateCardText] exit', { totalOpportunities: 0, totalSections: 0 });
         return { cards: [], agentTimings: [], meta: { totalOpportunities: 0, totalSections: 0 } };
       }
-      const db = this.database as PresenterDatabase;
+      const db = this.database as PresenterDatabase & HomeGraphDb;
       const cards: HomeCardItem[] = [];
       const relevantActorIds = new Set<string>();
       for (const opp of opportunities) {
@@ -390,16 +393,20 @@ export class HomeGraphFactory {
             });
 
             try {
-              const ctx = await gatherPresenterContext(
-                db,
-                opportunity,
-                state.userId,
-                otherActor?.userId,
-              );
+              const [ctx, negotiationContext] = await Promise.all([
+                gatherPresenterContext(
+                  db,
+                  opportunity,
+                  state.userId,
+                  otherActor?.userId,
+                ),
+                loadNegotiationContext(db, opportunity.id, opportunity.status),
+              ]);
               const homeInput = {
                 ...ctx,
                 mutualIntentCount: undefined,
                 opportunityStatus: opportunity.status,
+                ...(negotiationContext ? { negotiationContext } : {}),
               };
               const _traceEmitterPresenter = requestContext.getStore()?.traceEmitter;
               const presenterStart = Date.now();
@@ -462,20 +469,23 @@ export class HomeGraphFactory {
 
     const cachePresenterResultsNode = async (state: typeof HomeGraphState.State) => {
       return timed("HomeGraph.cachePresenterResults", async () => {
-        const { cards, cachedCards, userId } = state;
+        const { cards, cachedCards, userId, opportunities } = state;
 
         // Only cache cards that weren't already from cache
         const newCards = cards.filter((card) => !cachedCards.has(card.opportunityId));
+        const statusById = new Map(opportunities.map((opp) => [opp.id, opp.status]));
 
         try {
           await Promise.all(
-            newCards.map((card) =>
-              this.cache.set(
-                `home:card:${card.opportunityId}:${userId}`,
+            newCards.map((card) => {
+              const status = statusById.get(card.opportunityId);
+              if (!status) return Promise.resolve();
+              return this.cache.set(
+                `home:card:${card.opportunityId}:${status}:${userId}`,
                 card,
                 { ttl: HOME_CACHE_TTL }
-              )
-            )
+              );
+            })
           );
         } catch (e) {
           logger.warn('[HomeGraph:cachePresenterResults] cache write failed, continuing', { error: e });
