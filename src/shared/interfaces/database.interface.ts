@@ -1816,6 +1816,25 @@ export interface NegotiationDatabase {
   } | null>;
 
   /**
+   * Looks up the negotiation task attached to an opportunity.
+   *
+   * Returns the most-recently-created task whose metadata carries
+   * `type: 'negotiation'` and `opportunityId: <id>`. Returns null if no
+   * negotiation has been started for that opportunity yet.
+   *
+   * @param opportunityId - Opportunity whose negotiation task to fetch
+   * @returns The task record or null if no negotiation exists for the opportunity
+   */
+  getNegotiationTaskForOpportunity(opportunityId: string): Promise<{
+    id: string;
+    conversationId: string;
+    state: string;
+    metadata: Record<string, unknown> | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null>;
+
+  /**
    * Gets all messages for a conversation, ordered by creation time.
    * @param conversationId - The conversation to fetch messages for
    * @returns Array of message records
