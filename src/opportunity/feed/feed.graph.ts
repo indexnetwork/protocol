@@ -223,22 +223,31 @@ export class HomeGraphFactory {
         }
 
         try {
-          // Include status in the cache key so status transitions (e.g.
-          // negotiating → pending) don't serve stale cards.
-          const keys = opportunities.map(
+          // Negotiating cards are templated (no LLM call) and their text
+          // depends on the live turn count, which changes between requests
+          // without changing the opportunity status. Skip cache entirely
+          // for them so each render reflects the current turn.
+          //
+          // For all other statuses, include status in the key so status
+          // transitions (e.g. negotiating → pending) don't serve stale cards.
+          const cacheable = opportunities.filter((opp) => opp.status !== 'negotiating');
+          const liveNegotiating = opportunities.filter((opp) => opp.status === 'negotiating');
+
+          const keys = cacheable.map(
             (opp) => `home:card:${opp.id}:${opp.status}:${userId}`
           );
-          const results = await this.cache.mget<HomeCardItem>(keys);
+          const results = keys.length > 0 ? await this.cache.mget<HomeCardItem>(keys) : [];
 
           const cachedCards = new Map<string, HomeCardItem>();
-          const uncachedOpportunities: typeof opportunities = [];
+          const uncachedOpportunities: typeof opportunities = [...liveNegotiating];
 
-          for (let i = 0; i < opportunities.length; i++) {
+          for (let i = 0; i < cacheable.length; i++) {
             const cached = results[i];
             if (cached) {
-              cachedCards.set(opportunities[i].id, { ...cached, _cardIndex: i });
+              const originalIndex = opportunities.indexOf(cacheable[i]);
+              cachedCards.set(cacheable[i].id, { ...cached, _cardIndex: originalIndex });
             } else {
-              uncachedOpportunities.push(opportunities[i]);
+              uncachedOpportunities.push(cacheable[i]);
             }
           }
 
@@ -479,7 +488,8 @@ export class HomeGraphFactory {
           await Promise.all(
             newCards.map((card) => {
               const status = statusById.get(card.opportunityId);
-              if (!status) return Promise.resolve();
+              // Skip persisting negotiating cards — see read-side note.
+              if (!status || status === 'negotiating') return Promise.resolve();
               return this.cache.set(
                 `home:card:${card.opportunityId}:${status}:${userId}`,
                 card,
