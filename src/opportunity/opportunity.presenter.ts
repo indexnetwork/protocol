@@ -367,7 +367,14 @@ Produce headline, personalizedSummary (2-3 sentences in "you" language), and sug
       ? `\nINTRODUCTION CONTEXT: This opportunity was created by an explicit introduction from ${input.introducerName ?? "someone in the community"}. It was NOT discovered automatically — a real person made this connection.\n`
       : "";
     const negotiationBlock = buildNegotiationPromptBlock(input.negotiationContext);
+    // When negotiation context exists, lead with it — these cards exist
+    // *because* the negotiation happened. Trailing the block lets weaker
+    // models lean on surface signals and ignore the transcript entirely.
+    const negotiationDirective = negotiationBlock
+      ? `\nIMPORTANT: This opportunity surfaced because the agents negotiated and converged. Your personalizedSummary MUST reference at least one specific signal from the NEGOTIATION CONTEXT block below — what concern was raised, what was confirmed, what the agents agreed on. Do not produce a generic skill-complementarity summary; that's what every card looked like before this negotiation happened. Use the transcript to explain *why this specific match* surfaced now.\n`
+      : "";
     const humanContent = `
+${negotiationBlock}${negotiationDirective}
 VIEWER (the person seeing this opportunity):
 ${input.viewerContext}
 
@@ -380,7 +387,7 @@ MATCH CONTEXT:
 - Why we matched: ${input.matchReasoning}
 - Signals: ${input.signalsSummary}
 - ${mutualHint}
-${introContext}${negotiationBlock}
+${introContext}
 COMMUNITY: ${input.indexName}
 Viewer's role in this opportunity: ${input.viewerRole}
 Opportunity status: ${input.opportunityStatus ?? "pending"}
