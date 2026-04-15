@@ -56,10 +56,24 @@ export type HomeGraphInvokeResult = {
 /** Default home-feed statuses: the lifecycle stages a viewer can act on today. */
 export const DEFAULT_HOME_STATUSES: OpportunityStatus[] = ['latent', 'stalled', 'pending'];
 
+// Exhaustive registry — keys must cover every OpportunityStatus union member.
+// Adding a new status to OpportunityStatus without adding a key here is a TS error,
+// which is the whole point: prevents ALL_OPPORTUNITY_STATUSES from silently drifting.
+const OPPORTUNITY_STATUS_REGISTRY: Record<OpportunityStatus, true> = {
+  latent: true,
+  draft: true,
+  negotiating: true,
+  pending: true,
+  stalled: true,
+  accepted: true,
+  rejected: true,
+  expired: true,
+};
+
 /** Full status enumeration. Pass this to `HomeGraphInvokeInput.statuses` to restore pre-Issue-3 (unfiltered) behavior. */
-export const ALL_OPPORTUNITY_STATUSES: OpportunityStatus[] = [
-  'latent', 'draft', 'negotiating', 'pending', 'stalled', 'accepted', 'rejected', 'expired',
-];
+export const ALL_OPPORTUNITY_STATUSES: OpportunityStatus[] = Object.keys(
+  OPPORTUNITY_STATUS_REGISTRY,
+) as OpportunityStatus[];
 
 const MAX_ITEMS_PER_SECTION = 20;
 const PRESENTATION_CONCURRENCY = 50;
