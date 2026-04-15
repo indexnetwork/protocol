@@ -409,6 +409,8 @@ export interface CreateOpportunityData {
 
 export interface OpportunityQueryOptions {
   status?: OpportunityStatus;
+  /** When set, filter to opportunities whose status is in this list. Orthogonal to `status` (single) — callers pick one. */
+  statuses?: OpportunityStatus[];
   networkId?: string;
   role?: string;
   limit?: number;
