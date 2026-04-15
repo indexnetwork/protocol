@@ -297,6 +297,12 @@ export interface NegotiationCandidate {
   candidateUser: UserNegotiationContext;
   /** The explicit search query that triggered discovery (if any). */
   discoveryQuery?: string;
+  /**
+   * ID of the opportunity this negotiation is for. When set, the negotiation
+   * graph's finalize node updates the opportunity's status based on the outcome
+   * (`accept` → 'pending', `reject` → 'rejected', otherwise → 'stalled').
+   */
+  opportunityId?: string;
 }
 
 export interface NegotiationResult {
@@ -338,6 +344,7 @@ export async function negotiateCandidates(
             valencyRole: candidate.valencyRole,
           },
           ...(candidate.discoveryQuery && { discoveryQuery: candidate.discoveryQuery }),
+          ...(candidate.opportunityId && { opportunityId: candidate.opportunityId }),
           ...(maxTurns !== undefined && { maxTurns }),
           ...(timeoutMs !== undefined && { timeoutMs }),
         });
