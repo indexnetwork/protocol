@@ -71,14 +71,28 @@ Also update the MCP registration to use the same API key for authenticated tool 
 openclaw mcp set {{MCP_NAME}} '{"url":"{{MCP_URL}}","transport":"streamable-http","headers":{"x-api-key":"<api-key>"}}'
 ```
 
+## Configure delivery routing
+
+Opportunity and test-message deliveries need to know which OpenClaw channel to announce through, and to whom. Without this configuration the plugin will pick up pending items but skip the user-facing announce.
+
+Ask the user which channel they want to receive Index Network messages on (for example `telegram`), and the channel-specific recipient identifier (for Telegram, the chat ID shown in their OpenClaw channel setup).
+
+Then write both to the plugin config:
+
+```bash
+openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.deliveryChannel "<channel>"
+openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.deliveryTarget "<recipient-id>"
+```
+
 ### Confirm to the user
 
-> Background polling is on. I'll check for new negotiation turns and opportunities every 30 seconds and handle them silently. You can disable negotiations any time by setting `plugins.entries.indexnetwork-openclaw-plugin.config.negotiationMode` to `disabled`.
+> Background polling is on. I'll check for new negotiation turns and opportunities every 30 seconds and handle them silently. Opportunity cards will arrive on your configured delivery channel. You can disable negotiations any time by setting `plugins.entries.indexnetwork-openclaw-plugin.config.negotiationMode` to `disabled`.
 
 ### Troubleshooting
 
 - **Polling never fires**: confirm the plugin is enabled and OpenClaw is running. Check that `agentId` and `apiKey` are set correctly via `openclaw config get plugins.entries.indexnetwork-openclaw-plugin.config.agentId`.
 - **Turns not being responded to**: check OpenClaw logs for pickup errors. The agent's API key may have expired or the agentId may be wrong.
+- **Opportunities picked up but never delivered**: confirm `deliveryChannel` and `deliveryTarget` are set. Without them the plugin logs a warning and skips the announce.
 
 ## Handoff
 
