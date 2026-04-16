@@ -1,5 +1,5 @@
 ---
-name: {{MCP_NAME}}
+name: index-network
 description: Index Network — find the right people and let them find you. Bootstraps the Index Network MCP server on first use and hands off to its guidance.
 ---
 
@@ -27,7 +27,7 @@ Route based on both answers:
 Run this command yourself (do not ask the user to run it):
 
 ```bash
-openclaw mcp set {{MCP_NAME}} '{"url":"{{MCP_URL}}","transport":"streamable-http"}'
+openclaw mcp set index-network '{"url":"https://protocol.index.network/mcp","transport":"streamable-http"}'
 ```
 
 If the Index Network tools are not callable immediately after this command, the MCP may need to reconnect. Tell the user:
@@ -38,12 +38,12 @@ If the Index Network tools are not callable immediately after this command, the 
 
 The plugin needs a personal agent key to call MCP tools and to poll for background tasks. Tell the user:
 
-> Visit {{FRONTEND_URL}}/agents, create a personal agent, and copy its **Agent ID** and **API key**. Paste both here when you have them.
+> Visit https://index.network/agents, create a personal agent, and copy its **Agent ID** and **API key**. Paste both here when you have them.
 
 When the user provides the agent ID and API key, register the MCP server with the key as a header:
 
 ```bash
-openclaw mcp set {{MCP_NAME}} '{"url":"{{MCP_URL}}","transport":"streamable-http","headers":{"x-api-key":"<key>"}}'
+openclaw mcp set index-network '{"url":"https://protocol.index.network/mcp","transport":"streamable-http","headers":{"x-api-key":"<key>"}}'
 ```
 
 Replace `<key>` with what the user pasted. Never log the key back to the user, and never store it anywhere outside the command.
@@ -54,7 +54,7 @@ Automatic background polling requires a personal agent key stored in the plugin 
 
 Tell the user:
 
-> Visit {{FRONTEND_URL}}/agents, create a personal agent, and copy its **Agent ID** and **API key**. Paste both here when you have them.
+> Visit https://index.network/agents, create a personal agent, and copy its **Agent ID** and **API key**. Paste both here when you have them.
 
 When the user provides the agent ID and API key, write them to the plugin config:
 
@@ -68,7 +68,7 @@ Replace `<agent-id>` and `<api-key>` with what the user pasted. Never log the ke
 Also update the MCP registration to use the same API key for authenticated tool calls:
 
 ```bash
-openclaw mcp set {{MCP_NAME}} '{"url":"{{MCP_URL}}","transport":"streamable-http","headers":{"x-api-key":"<api-key>"}}'
+openclaw mcp set index-network '{"url":"https://protocol.index.network/mcp","transport":"streamable-http","headers":{"x-api-key":"<api-key>"}}'
 ```
 
 ## Configure delivery routing
