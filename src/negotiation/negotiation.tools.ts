@@ -10,6 +10,17 @@ import { protocolLogger } from '../shared/observability/protocol.logger.js';
 const logger = protocolLogger('NegotiationTools');
 
 /**
+ * Default park-window budget for ambient (background) negotiations. When a personal
+ * agent is fresh, the dispatcher parks the turn and this is how long we wait before
+ * the system agent takes over as a fallback.
+ *
+ * Short enough that ambient opportunities materialize in minutes (not hours),
+ * long enough to cover two full polling cycles (30s * 2 = 60s) plus an agent
+ * subagent turn. 5 minutes gives generous headroom.
+ */
+export const AMBIENT_PARK_WINDOW_MS = 5 * 60 * 1000;
+
+/**
  * Creates negotiation MCP tools for external agent access.
  * Exposes negotiation state for listing, reading, and responding to bilateral negotiations.
  */
@@ -418,7 +429,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         };
 
         const scope = { action: 'negotiation.respond', scopeType: 'negotiation', scopeId: task.id };
-        const timeoutMs = 24 * 60 * 60 * 1000;
+        const timeoutMs = AMBIENT_PARK_WINDOW_MS;
 
         const dispatchResult = await deps.agentDispatcher?.dispatch(counterpartyUserId, scope, dispatchPayload, { timeoutMs });
 

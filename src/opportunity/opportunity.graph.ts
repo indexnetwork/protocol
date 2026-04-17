@@ -65,6 +65,7 @@ import type {
 } from '../shared/interfaces/database.interface.js';
 import { persistOpportunities } from './opportunity.persist.js';
 import { negotiateCandidates, type NegotiationCandidate } from "../negotiation/negotiation.graph.js";
+import { AMBIENT_PARK_WINDOW_MS } from "../negotiation/negotiation.tools.js";
 import type { NegotiationGraphLike } from "../negotiation/negotiation.state.js";
 import type { AgentDispatcher } from "../shared/interfaces/agent-dispatcher.interface.js";
 import { protocolLogger, withCallLogging } from '../shared/observability/protocol.logger.js';
@@ -1767,7 +1768,7 @@ export class OpportunityGraphFactory {
               : false)
           : false;
         const useLongTimeout = !isChatPath || hasPersonalAgent;
-        const timeoutMs = useLongTimeout ? 24 * 60 * 60 * 1000 : 30_000;
+        const timeoutMs = useLongTimeout ? AMBIENT_PARK_WINDOW_MS : 30_000;
 
         logger.info('negotiateNode timeout decision', {
           discoveryUserId,

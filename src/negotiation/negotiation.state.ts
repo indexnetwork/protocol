@@ -141,10 +141,16 @@ export const NegotiationGraphState = Annotation.Root({
     reducer: (curr, next) => next ?? curr,
     default: () => undefined,
   }),
-  /** Timeout per dispatch attempt in milliseconds. Short for chat (30s), long for background (24h). */
+  /**
+   * Park-window budget in milliseconds. Ambient callers pass `AMBIENT_PARK_WINDOW_MS`
+   * (5 minutes); orchestrator callers pass a shorter window. This annotation default
+   * is a safety net for any caller that omits the field — keep it aligned with
+   * `AMBIENT_PARK_WINDOW_MS` in packages/protocol/src/negotiation/negotiation.tools.ts.
+   * Inlined rather than imported to avoid a state↔tools cycle.
+   */
   timeoutMs: Annotation<number>({
     reducer: (curr, next) => next ?? curr,
-    default: () => 24 * 60 * 60 * 1000,
+    default: () => 5 * 60 * 1000,
   }),
 
   currentSpeaker: Annotation<"source" | "candidate">({
