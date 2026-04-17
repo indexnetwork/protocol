@@ -171,6 +171,19 @@ export class NegotiationGraphFactory {
 
         await database.updateTaskState(state.taskId, "working");
 
+        (traceEmitter as ((e: Record<string, unknown>) => void) | undefined)?.({
+          type: "negotiation_turn",
+          opportunityId: state.opportunityId ?? "",
+          negotiationConversationId: state.conversationId,
+          turnIndex: state.turnCount,
+          actor: isSource ? "source" : "candidate",
+          action: turn.action,
+          ...(turn.assessment?.reasoning && { reasoning: turn.assessment.reasoning }),
+          ...(turn.message && { message: turn.message }),
+          ...(turn.assessment?.suggestedRoles && { suggestedRoles: turn.assessment.suggestedRoles }),
+          durationMs: Date.now() - agentStart,
+        });
+
         return {
           messages: [{
             id: message.id,
