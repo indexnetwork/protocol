@@ -412,14 +412,8 @@ export async function negotiateCandidates(
   const results = await Promise.all(
     candidates.map(async (candidate) => {
       const start = Date.now();
-      const sessionStart = start;
       if (candidate.opportunityId) {
-        // The candidateUser type canonically carries a `.profile.name`, but some
-        // call-sites pass a flatter shape with a top-level `.name`. Probe both
-        // so the debug panel gets a human-readable label when either is set.
-        const candidateName =
-          candidate.candidateUser?.profile?.name
-          ?? (candidate.candidateUser as unknown as { name?: string } | undefined)?.name;
+        const candidateName = candidate.candidateUser?.profile?.name;
         emitWide({
           type: "negotiation_session_start",
           opportunityId: candidate.opportunityId,
@@ -428,7 +422,7 @@ export async function negotiateCandidates(
           candidateUserId: candidate.userId,
           ...(candidateName && { candidateName }),
           trigger: trigger ?? "ambient",
-          startedAt: sessionStart,
+          startedAt: start,
         });
       }
       traceEmitter?.({ type: "agent_start", name: "Negotiating candidate" });
@@ -474,7 +468,7 @@ export async function negotiateCandidates(
             type: "negotiation_session_end",
             opportunityId: candidate.opportunityId,
             negotiationConversationId: (result as { conversationId?: string }).conversationId ?? "",
-            durationMs: Date.now() - sessionStart,
+            durationMs: Date.now() - start,
           });
         }
 
@@ -510,7 +504,7 @@ export async function negotiateCandidates(
             type: "negotiation_session_end",
             opportunityId: candidate.opportunityId,
             negotiationConversationId: "",
-            durationMs: Date.now() - sessionStart,
+            durationMs: Date.now() - start,
           });
         }
         logger.error("[negotiateCandidates] Negotiation failed", { candidateUserId: candidate.userId, error: err });

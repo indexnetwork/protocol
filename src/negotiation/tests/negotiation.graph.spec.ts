@@ -204,7 +204,7 @@ describe("negotiateCandidates — session wrapper events", () => {
               userId: "u-1",
               reasoning: "r",
               valencyRole: "peer",
-              candidateUser: { id: "u-1", name: "Bob" } as never,
+              candidateUser: { id: "u-1", intents: [], profile: { name: "Bob" } } as never,
               opportunityId: "opp-10",
             },
           ],
