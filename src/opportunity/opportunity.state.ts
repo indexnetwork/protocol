@@ -97,6 +97,17 @@ export interface EvaluatedOpportunity {
 }
 
 /**
+ * Which flow triggered this graph invocation. Determines initial persist status,
+ * park-window timeout, streaming behavior, and whether AbortSignal is honored.
+ *
+ * - 'ambient' (default): queue-driven, persists at `latent`, 5-min park window,
+ *   no streaming, ignores abort.
+ * - 'orchestrator': chat-driven, persists at `negotiating`, 60s park window,
+ *   streams `opportunity_draft_ready` events, honors abort.
+ */
+export type OpportunityTrigger = 'ambient' | 'orchestrator';
+
+/**
  * Options passed to the graph
  */
 export interface OpportunityGraphOptions {
@@ -157,6 +168,20 @@ export const OpportunityGraphState = Annotation.Root({
   options: Annotation<OpportunityGraphOptions>({
     reducer: (curr, next) => next ?? curr,
     default: () => ({}),
+  }),
+
+  /**
+   * Which flow triggered this graph invocation. Determines initial persist status,
+   * park-window timeout, streaming behavior, and whether AbortSignal is honored.
+   *
+   * - 'ambient' (default): queue-driven, persists at `latent`, 5-min park window,
+   *   no streaming, ignores abort.
+   * - 'orchestrator': chat-driven, persists at `negotiating`, 60s park window,
+   *   streams `opportunity_draft_ready` events, honors abort.
+   */
+  trigger: Annotation<OpportunityTrigger>({
+    reducer: (curr, next) => next ?? curr,
+    default: () => 'ambient',
   }),
 
   /**
