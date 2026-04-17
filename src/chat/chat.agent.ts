@@ -20,7 +20,7 @@ import {
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import { createModel } from "../shared/agent/model.config.js";
 import { sanitizeForDebugMeta } from "../shared/observability/debug-meta.sanitizer.js";
-import type { DebugMetaToolCall } from "./chat-streaming.types.js";
+import type { DebugMetaToolCall, DebugMetaLlm, DebugMetaOrchestratorNegotiations } from "./chat-streaming.types.js";
 import type { Opportunity } from "../shared/interfaces/database.interface.js";
 import { Timed } from "../shared/observability/performance.js";
 import { requestContext } from "../shared/observability/request-context.js";
@@ -753,9 +753,27 @@ export class ChatAgent {
     responseText: string;
     messages: BaseMessage[];
     iterationCount: number;
-    debugMeta: { graph: string; iterations: number; tools: DebugMetaToolCall[] };
+    debugMeta: { graph: string; iterations: number; tools: DebugMetaToolCall[]; llm: DebugMetaLlm; orchestratorNegotiations?: DebugMetaOrchestratorNegotiations };
   }> {
+    const llm: DebugMetaLlm = { calls: 0, totalDurationMs: 0, resets: [], hallucinations: [] };
+    const orchestratorNegotiationIds = new Set<string>();
+    let lastLlmStart = 0;
+
     const emit = (event: AgentStreamEvent) => {
+      if (event.type === "llm_start") {
+        llm.calls += 1;
+        lastLlmStart = Date.now();
+      } else if (event.type === "llm_end") {
+        llm.totalDurationMs += Date.now() - lastLlmStart;
+      } else if (event.type === "response_reset") {
+        llm.resets.push({ reason: (event as unknown as { reason: string }).reason, at: Date.now() });
+      } else if (event.type === "hallucination_detected") {
+        const e = event as unknown as { blockType: string; tool: string };
+        llm.hallucinations.push({ blockType: e.blockType, tool: e.tool, at: Date.now() });
+      } else if (event.type === "negotiation_session_start") {
+        const e = event as unknown as { opportunityId?: string };
+        if (e.opportunityId) orchestratorNegotiationIds.add(e.opportunityId);
+      }
       try {
         writer?.(event);
       } catch {
@@ -1168,7 +1186,15 @@ export class ChatAgent {
         responseText: sanitizedText,
         messages,
         iterationCount,
-        debugMeta: { graph: "agent_loop", iterations: iterationCount, tools: toolsDebug },
+        debugMeta: {
+          graph: "agent_loop",
+          iterations: iterationCount,
+          tools: toolsDebug,
+          llm,
+          ...(orchestratorNegotiationIds.size > 0 && {
+            orchestratorNegotiations: { opportunityIds: [...orchestratorNegotiationIds] },
+          }),
+        },
       };
     }
 
@@ -1178,7 +1204,15 @@ export class ChatAgent {
         responseText: "",
         messages,
         iterationCount,
-        debugMeta: { graph: "agent_loop", iterations: iterationCount, tools: toolsDebug },
+        debugMeta: {
+          graph: "agent_loop",
+          iterations: iterationCount,
+          tools: toolsDebug,
+          llm,
+          ...(orchestratorNegotiationIds.size > 0 && {
+            orchestratorNegotiations: { opportunityIds: [...orchestratorNegotiationIds] },
+          }),
+        },
       };
     }
 
@@ -1213,7 +1247,15 @@ export class ChatAgent {
         ...(forcedAccumulated ? [forcedAccumulated] : []),
       ],
       iterationCount,
-      debugMeta: { graph: "agent_loop", iterations: iterationCount, tools: toolsDebug },
+      debugMeta: {
+        graph: "agent_loop",
+        iterations: iterationCount,
+        tools: toolsDebug,
+        llm,
+        ...(orchestratorNegotiationIds.size > 0 && {
+          orchestratorNegotiations: { opportunityIds: [...orchestratorNegotiationIds] },
+        }),
+      },
     };
   }
 }

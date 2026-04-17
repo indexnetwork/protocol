@@ -31,7 +31,7 @@ const makeMockModel = () => {
   return inst;
 };
 
-mock.module("../model.config", () => ({
+mock.module("../../shared/agent/model.config", () => ({
   createModel: (agent: string) => {
     const inst = makeMockModel();
     if (agent === "chat") {
@@ -78,7 +78,7 @@ function createMockTools() {
   return capturedTools;
 }
 
-mock.module("../../tools", () => ({
+mock.module("../../shared/agent/tool.factory", () => ({
   createChatTools: async () => createMockTools(),
 }));
 
@@ -393,6 +393,53 @@ I've created an intent for you!`;
         (e as { reason: string }).reason.includes("Hallucinated"),
     );
     expect(hallucinationResets.length).toBe(0);
+  }, 15000);
+});
+
+describe("ChatAgent streamRun — debugMeta.llm accumulator", () => {
+  it("increments llm.calls on each llm_start", async () => {
+    // Create agent first — this sets mockModelInstance via the mock.module factory
+    const agent = await ChatAgent.create({
+      database: {
+        getUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com", location: null, socials: {} }),
+        getProfile: async () => null,
+        getNetworkMemberships: async () => [],
+      } as any,
+      embedder: {} as any,
+      scraper: {} as any,
+      userId: "test-user",
+      sessionId: "test-session",
+      cache: {} as any,
+      hydeCache: {} as any,
+      integration: {} as any,
+      intentQueue: {} as any,
+      contactService: {} as any,
+      chatSession: {} as any,
+      enricher: {} as any,
+      negotiationDatabase: {} as any,
+      integrationImporter: {} as any,
+      createUserDatabase: () => ({}) as any,
+      createSystemDatabase: () => ({}) as any,
+    });
+
+    // mockModelInstance is now set — override stream to return a plain response
+    if (!mockModelInstance) {
+      throw new Error("mockModelInstance not set after ChatAgent.create()");
+    }
+    mockModelInstance.stream = mock(() =>
+      makeTextStream("Here is a plain response with no tool calls."),
+    );
+
+    const { writer } = createEventCollector();
+    const result = await agent.streamRun(
+      [new HumanMessage("Hello, what can you do?")],
+      writer,
+    );
+
+    expect(result.debugMeta.llm.calls).toBeGreaterThanOrEqual(1);
+    expect(result.debugMeta.llm.totalDurationMs).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(result.debugMeta.llm.resets)).toBe(true);
+    expect(Array.isArray(result.debugMeta.llm.hallucinations)).toBe(true);
   }, 15000);
 });
 

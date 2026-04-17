@@ -370,6 +370,28 @@ export interface DebugMetaToolCall {
 }
 
 /**
+ * LLM call statistics accumulated during a single agent turn.
+ */
+export interface DebugMetaLlm {
+  /** Total number of LLM calls made in this turn. */
+  calls: number;
+  /** Cumulative wall-clock time spent waiting for the LLM across all calls. */
+  totalDurationMs: number;
+  /** Entries recorded each time a response_reset event was emitted. */
+  resets: Array<{ reason: string; at: number }>;
+  /** Entries recorded each time a hallucination_detected event was emitted. */
+  hallucinations: Array<{ blockType: string; tool: string; at: number }>;
+}
+
+/**
+ * Negotiation sessions initiated by the orchestrator during this turn.
+ */
+export interface DebugMetaOrchestratorNegotiations {
+  /** Opportunity IDs for which a negotiation_session_start was emitted. */
+  opportunityIds: string[];
+}
+
+/**
  * Debug meta event - per-turn graph and tool usage for copy debug.
  */
 export interface DebugMetaEvent extends ChatStreamEventBase {
@@ -377,6 +399,8 @@ export interface DebugMetaEvent extends ChatStreamEventBase {
   graph: string;
   iterations: number;
   tools: DebugMetaToolCall[];
+  llm: DebugMetaLlm;
+  orchestratorNegotiations?: DebugMetaOrchestratorNegotiations;
 }
 
 /** Graph start event — emitted when a LangGraph sub-graph begins inside a tool. */
@@ -832,11 +856,15 @@ export function createDebugMetaEvent(
   graph: string,
   iterations: number,
   tools: DebugMetaToolCall[],
+  llm: DebugMetaLlm,
+  orchestratorNegotiations?: DebugMetaOrchestratorNegotiations,
 ): DebugMetaEvent {
   return createStreamEvent<DebugMetaEvent>("debug_meta", sessionId, {
     graph,
     iterations,
     tools,
+    llm,
+    ...(orchestratorNegotiations !== undefined && { orchestratorNegotiations }),
   });
 }
 
