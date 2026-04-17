@@ -79,6 +79,11 @@ export class NegotiationGraphFactory {
 
     const turnNode = async (state: typeof NegotiationGraphState.State) => {
       const traceEmitter = requestContext.getStore()?.traceEmitter;
+      // Local helper to emit events whose shape is wider than the declared
+      // `TraceEmitter` union. The chat agent already casts at its relay sink;
+      // here we localize the cast at the callsite so the rest of the body stays typed.
+      const emitWide = (event: Record<string, unknown>) =>
+        (traceEmitter as ((e: Record<string, unknown>) => void) | undefined)?.(event);
       const agentName = "Index negotiator";
       const agentStart = Date.now();
       traceEmitter?.({ type: "agent_start", name: agentName });
@@ -171,18 +176,20 @@ export class NegotiationGraphFactory {
 
         await database.updateTaskState(state.taskId, "working");
 
-        (traceEmitter as ((e: Record<string, unknown>) => void) | undefined)?.({
-          type: "negotiation_turn",
-          opportunityId: state.opportunityId ?? "",
-          negotiationConversationId: state.conversationId,
-          turnIndex: state.turnCount,
-          actor: isSource ? "source" : "candidate",
-          action: turn.action,
-          ...(turn.assessment?.reasoning && { reasoning: turn.assessment.reasoning }),
-          ...(turn.message && { message: turn.message }),
-          ...(turn.assessment?.suggestedRoles && { suggestedRoles: turn.assessment.suggestedRoles }),
-          durationMs: Date.now() - agentStart,
-        });
+        if (state.opportunityId) {
+          emitWide({
+            type: "negotiation_turn",
+            opportunityId: state.opportunityId,
+            negotiationConversationId: state.conversationId,
+            turnIndex: state.turnCount,
+            actor: isSource ? "source" : "candidate",
+            action: turn.action,
+            ...(turn.assessment?.reasoning && { reasoning: turn.assessment.reasoning }),
+            ...(turn.message && { message: turn.message }),
+            ...(turn.assessment?.suggestedRoles && { suggestedRoles: turn.assessment.suggestedRoles }),
+            durationMs: Date.now() - agentStart,
+          });
+        }
 
         return {
           messages: [{

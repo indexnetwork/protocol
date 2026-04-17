@@ -71,6 +71,9 @@ describe("negotiation graph — negotiation_turn emission", () => {
       expect(first.actor).toBe("source");
       expect(typeof first.action).toBe("string");
       expect(typeof first.durationMs).toBe("number");
+      expect(first.reasoning).toBe("stub reasoning");
+      expect(first.message).toBe("hi");
+      expect(first.suggestedRoles).toEqual({ ownUser: "agent", otherUser: "patient" });
     } finally {
       IndexNegotiator.prototype.invoke = origInvoke;
     }
