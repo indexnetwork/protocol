@@ -230,7 +230,19 @@ export class NegotiationGraphFactory {
     };
 
     const finalizeNode = async (state: typeof NegotiationGraphState.State) => {
+      const traceEmitter = requestContext.getStore()?.traceEmitter;
+      const emitWide = (event: Record<string, unknown>) =>
+        (traceEmitter as ((e: Record<string, unknown>) => void) | undefined)?.(event);
+
       if (state.status === 'waiting_for_agent') {
+        if (state.opportunityId) {
+          emitWide({
+            type: "negotiation_outcome",
+            opportunityId: state.opportunityId,
+            outcome: "waiting_for_agent",
+            turnCount: state.turnCount,
+          });
+        }
         return {};
       }
 
@@ -286,6 +298,33 @@ export class NegotiationGraphFactory {
         }
       } catch (err) {
         logger.error("[Graph:Finalize] Failed to persist outcome", { error: err });
+      }
+
+      if (state.opportunityId) {
+        const emittedOutcome: "accepted" | "rejected_stalled" | "turn_cap" | "timed_out" =
+          hasOpportunity
+            ? "accepted"
+            : atCap
+            ? "turn_cap"
+            : lastTurn?.action === "reject"
+            ? "rejected_stalled"
+            : state.error && /timeout/i.test(state.error)
+            ? "timed_out"
+            : "rejected_stalled";
+
+        emitWide({
+          type: "negotiation_outcome",
+          opportunityId: state.opportunityId,
+          outcome: emittedOutcome,
+          turnCount: state.turnCount,
+          ...(outcome.reasoning && { reasoning: outcome.reasoning }),
+          ...(hasOpportunity && agreedRoles.length >= 2 && {
+            agreedRoles: {
+              ownUser: agreedRoles[0]?.role,
+              otherUser: agreedRoles[1]?.role,
+            },
+          }),
+        });
       }
 
       return { outcome, status: 'completed' as const };

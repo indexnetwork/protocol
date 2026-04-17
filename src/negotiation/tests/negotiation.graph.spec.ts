@@ -79,3 +79,94 @@ describe("negotiation graph — negotiation_turn emission", () => {
     }
   }, 30000);
 });
+
+describe("negotiation graph — negotiation_outcome emission", () => {
+  it("emits outcome='accepted' when finalize runs after an accept turn", async () => {
+    // Scripted: first turn propose, second turn accept
+    const scripted = [
+      { action: "propose", assessment: { reasoning: "r1", suggestedRoles: { ownUser: "agent", otherUser: "patient" } }, message: "hi" },
+      { action: "accept",  assessment: { reasoning: "r2", suggestedRoles: { ownUser: "agent", otherUser: "patient" } } },
+    ];
+    let call = 0;
+    const { database, dispatcher } = mkStubs();
+    const { IndexNegotiator } = await import("../negotiation.agent.js");
+    const orig = IndexNegotiator.prototype.invoke;
+    IndexNegotiator.prototype.invoke = async function () { return scripted[Math.min(call++, scripted.length - 1)] as never; };
+
+    try {
+      const graph = new NegotiationGraphFactory(database, dispatcher).createGraph();
+      const events: Array<Record<string, unknown>> = [];
+      const { requestContext } = await import("../../shared/observability/request-context.js");
+      await requestContext.run({ traceEmitter: (e: Record<string, unknown>) => events.push(e) }, async () => {
+        await graph.invoke({
+          sourceUser: { id: "u-src" },
+          candidateUser: { id: "u-cand" },
+          indexContext: { networkId: "net-1", prompt: "" },
+          seedAssessment: { reasoning: "x", valencyRole: "peer" },
+          opportunityId: "opp-accept",
+          maxTurns: 4,
+        } as Partial<typeof NegotiationGraphState.State>);
+      });
+
+      const outcome = events.find((e) => e.type === "negotiation_outcome");
+      expect(outcome).toBeTruthy();
+      expect(outcome!.opportunityId).toBe("opp-accept");
+      expect(outcome!.outcome).toBe("accepted");
+      expect(outcome!.turnCount).toBe(2);
+    } finally {
+      IndexNegotiator.prototype.invoke = orig;
+    }
+  }, 30000);
+
+  it("emits outcome='turn_cap' when maxTurns is reached without accept/reject", async () => {
+    const { database, dispatcher } = mkStubs();
+    const { IndexNegotiator } = await import("../negotiation.agent.js");
+    const orig = IndexNegotiator.prototype.invoke;
+    // First turn must be "propose" (graph forces it), subsequent turns counter — so we hit turn_cap at maxTurns.
+    let call = 0;
+    IndexNegotiator.prototype.invoke = async function () {
+      call++;
+      if (call === 1) return { action: "propose", assessment: { reasoning: "r", suggestedRoles: { ownUser: "peer", otherUser: "peer" } } } as never;
+      return { action: "counter", assessment: { reasoning: "r", suggestedRoles: { ownUser: "peer", otherUser: "peer" } } } as never;
+    };
+    try {
+      const graph = new NegotiationGraphFactory(database, dispatcher).createGraph();
+      const events: Array<Record<string, unknown>> = [];
+      const { requestContext } = await import("../../shared/observability/request-context.js");
+      await requestContext.run({ traceEmitter: (e: Record<string, unknown>) => events.push(e) }, async () => {
+        await graph.invoke({
+          sourceUser: { id: "u-src" }, candidateUser: { id: "u-cand" },
+          indexContext: { networkId: "net-1", prompt: "" },
+          seedAssessment: { reasoning: "x", valencyRole: "peer" },
+          opportunityId: "opp-cap", maxTurns: 2,
+        } as Partial<typeof NegotiationGraphState.State>);
+      });
+      const outcome = events.find((e) => e.type === "negotiation_outcome");
+      expect(outcome?.outcome).toBe("turn_cap");
+      expect(outcome?.turnCount).toBe(2);
+    } finally {
+      IndexNegotiator.prototype.invoke = orig;
+    }
+  }, 30000);
+
+  it("emits outcome='waiting_for_agent' when dispatcher parks the turn", async () => {
+    const { database } = mkStubs();
+    const dispatcher = {
+      hasPersonalAgent: async () => true,
+      dispatch: async () => ({ handled: false, reason: "waiting" as const }),
+    } as unknown as ConstructorParameters<typeof NegotiationGraphFactory>[1];
+    const graph = new NegotiationGraphFactory(database, dispatcher).createGraph();
+    const events: Array<Record<string, unknown>> = [];
+    const { requestContext } = await import("../../shared/observability/request-context.js");
+    await requestContext.run({ traceEmitter: (e: Record<string, unknown>) => events.push(e) }, async () => {
+      await graph.invoke({
+        sourceUser: { id: "u-src" }, candidateUser: { id: "u-cand" },
+        indexContext: { networkId: "net-1", prompt: "" },
+        seedAssessment: { reasoning: "x", valencyRole: "peer" },
+        opportunityId: "opp-park", maxTurns: 4,
+      } as Partial<typeof NegotiationGraphState.State>);
+    });
+    const outcome = events.find((e) => e.type === "negotiation_outcome");
+    expect(outcome?.outcome).toBe("waiting_for_agent");
+  }, 30000);
+});
