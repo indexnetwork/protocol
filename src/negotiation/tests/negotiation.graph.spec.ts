@@ -115,9 +115,10 @@ describe("negotiation graph — negotiation_outcome emission", () => {
       expect(outcome!.opportunityId).toBe("opp-accept");
       expect(outcome!.outcome).toBe("accepted");
       expect(outcome!.turnCount).toBe(2);
-      expect(outcome!.agreedRoles).toBeDefined();
-      expect(outcome!.agreedRoles?.ownUser).toBeTruthy();
-      expect(outcome!.agreedRoles?.otherUser).toBeTruthy();
+      const agreedRoles = outcome!.agreedRoles as { ownUser?: string; otherUser?: string } | undefined;
+      expect(agreedRoles).toBeDefined();
+      expect(agreedRoles?.ownUser).toBeTruthy();
+      expect(agreedRoles?.otherUser).toBeTruthy();
     } finally {
       IndexNegotiator.prototype.invoke = orig;
     }
