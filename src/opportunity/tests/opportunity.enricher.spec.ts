@@ -9,7 +9,7 @@ import { config } from 'dotenv';
 config({ path: '.env.test' });
 
 import { describe, test, expect } from 'bun:test';
-import { enrichOrCreate } from '../opportunity.enricher.js';
+import { enrichOrCreate, DEFAULT_ENRICHER_EXCLUDE_STATUSES } from '../opportunity.enricher.js';
 import type { CreateOpportunityData, Opportunity } from '../../shared/interfaces/database.interface.js';
 import type { Embedder } from '../../shared/interfaces/embedder.interface.js';
 
@@ -933,5 +933,68 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
       expect(indexIds.has('idx-1')).toBe(true);
       expect(indexIds.has('idx-2')).toBe(true);
     }
+  });
+
+  describe('default excludeStatuses', () => {
+    test("the exported default excludes 'accepted' and 'negotiating'", () => {
+      expect(DEFAULT_ENRICHER_EXCLUDE_STATUSES).toEqual(['accepted', 'negotiating']);
+    });
+
+    test('passes the default excludeStatuses to findOverlappingOpportunities when caller omits it', async () => {
+      let receivedExcludeStatuses: readonly string[] | undefined;
+      const db = {
+        findOverlappingOpportunities: async (
+          _ids: string[],
+          opts?: { excludeStatuses?: readonly string[] },
+        ) => {
+          receivedExcludeStatuses = opts?.excludeStatuses;
+          return [] as Opportunity[];
+        },
+      };
+      const embedder = { generate: async () => [] as number[][] } as unknown as Embedder;
+      const newData = minimalNewData(['user-a', 'user-b'], 'idx-1', MEANINGFUL.reasoning.aiMlCofounder);
+
+      await enrichOrCreate(db, embedder, newData);
+
+      expect(receivedExcludeStatuses).toEqual(['accepted', 'negotiating']);
+    });
+
+    test('caller-supplied excludeStatuses replaces the default', async () => {
+      let receivedExcludeStatuses: readonly string[] | undefined;
+      const db = {
+        findOverlappingOpportunities: async (
+          _ids: string[],
+          opts?: { excludeStatuses?: readonly string[] },
+        ) => {
+          receivedExcludeStatuses = opts?.excludeStatuses;
+          return [] as Opportunity[];
+        },
+      };
+      const embedder = { generate: async () => [] as number[][] } as unknown as Embedder;
+      const newData = minimalNewData(['user-a', 'user-b'], 'idx-1', MEANINGFUL.reasoning.aiMlCofounder);
+
+      await enrichOrCreate(db, embedder, newData, { excludeStatuses: ['expired'] });
+
+      expect(receivedExcludeStatuses).toEqual(['expired']);
+    });
+
+    test('an empty excludeStatuses array considers every status', async () => {
+      let receivedExcludeStatuses: readonly string[] | undefined;
+      const db = {
+        findOverlappingOpportunities: async (
+          _ids: string[],
+          opts?: { excludeStatuses?: readonly string[] },
+        ) => {
+          receivedExcludeStatuses = opts?.excludeStatuses;
+          return [] as Opportunity[];
+        },
+      };
+      const embedder = { generate: async () => [] as number[][] } as unknown as Embedder;
+      const newData = minimalNewData(['user-a', 'user-b'], 'idx-1', MEANINGFUL.reasoning.aiMlCofounder);
+
+      await enrichOrCreate(db, embedder, newData, { excludeStatuses: [] });
+
+      expect(receivedExcludeStatuses).toEqual([]);
+    });
   });
 });
