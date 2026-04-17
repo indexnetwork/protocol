@@ -1227,6 +1227,15 @@ export interface Database {
   /** Upsert a contact membership in the owner's personal index (index_members with permissions=['contact']). */
   upsertContactMembership(ownerId: string, contactUserId: string, options?: { restore?: boolean }): Promise<void>;
 
+  /**
+   * Finds an existing DM conversation between two users, or creates one.
+   * Uses a unique `dmPair` column (sorted user IDs joined by ':') to
+   * prevent duplicate DMs under concurrency. Used by the Start Chat flow
+   * (Plan B Task 8) to atomically surface the h2h conversation when
+   * accepting an opportunity.
+   */
+  getOrCreateDM(userA: string, userB: string): Promise<{ id: string }>;
+
   /** Hard-delete a contact membership from the owner's personal index. */
   hardDeleteContactMembership(ownerId: string, contactUserId: string): Promise<void>;
 
@@ -1902,6 +1911,11 @@ export type OpportunityControllerDatabase = Pick<
   | 'getProfile'
   | 'getActiveIntents'
   | 'upsertContactMembership'
+  // Start Chat endpoint (Plan B Task 8): atomic pair → conversation resolution
+  // for the "Open h2h chat from this opportunity" flow. Kept on this interface
+  // (rather than ConversationControllerDatabase) because the transition is
+  // owned by OpportunityService — services cannot import other services.
+  | 'getOrCreateDM'
 >;
 
 /**
