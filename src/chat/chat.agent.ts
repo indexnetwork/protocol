@@ -764,15 +764,16 @@ export class ChatAgent {
         llm.calls += 1;
         lastLlmStart = Date.now();
       } else if (event.type === "llm_end") {
-        llm.totalDurationMs += Date.now() - lastLlmStart;
+        if (lastLlmStart > 0) {
+          llm.totalDurationMs += Date.now() - lastLlmStart;
+          lastLlmStart = 0;
+        }
       } else if (event.type === "response_reset") {
-        llm.resets.push({ reason: (event as unknown as { reason: string }).reason, at: Date.now() });
+        llm.resets.push({ reason: event.reason, at: Date.now() });
       } else if (event.type === "hallucination_detected") {
-        const e = event as unknown as { blockType: string; tool: string };
-        llm.hallucinations.push({ blockType: e.blockType, tool: e.tool, at: Date.now() });
+        llm.hallucinations.push({ blockType: event.blockType, tool: event.tool, at: Date.now() });
       } else if (event.type === "negotiation_session_start") {
-        const e = event as unknown as { opportunityId?: string };
-        if (e.opportunityId) orchestratorNegotiationIds.add(e.opportunityId);
+        orchestratorNegotiationIds.add(event.opportunityId);
       }
       try {
         writer?.(event);

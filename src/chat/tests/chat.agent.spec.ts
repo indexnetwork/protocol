@@ -92,6 +92,7 @@ import { ChatAgent, type AgentStreamEvent } from "../chat.agent.js";
 
 function makeTextStream(text: string): AsyncIterable<AIMessageChunk> {
   return (async function* () {
+    await new Promise<void>((resolve) => setTimeout(resolve, 1)); // ensure measurable elapsed time for llm timing
     yield new AIMessageChunk({ content: text });
   })();
 }
@@ -436,8 +437,8 @@ describe("ChatAgent streamRun — debugMeta.llm accumulator", () => {
       writer,
     );
 
-    expect(result.debugMeta.llm.calls).toBeGreaterThanOrEqual(1);
-    expect(result.debugMeta.llm.totalDurationMs).toBeGreaterThanOrEqual(0);
+    expect(result.debugMeta.llm.calls).toBe(1);
+    expect(result.debugMeta.llm.totalDurationMs).toBeGreaterThan(0);
     expect(Array.isArray(result.debugMeta.llm.resets)).toBe(true);
     expect(Array.isArray(result.debugMeta.llm.hallucinations)).toBe(true);
   }, 15000);
