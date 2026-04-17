@@ -21,6 +21,7 @@ import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import { createModel } from "../shared/agent/model.config.js";
 import { sanitizeForDebugMeta } from "../shared/observability/debug-meta.sanitizer.js";
 import type { DebugMetaToolCall } from "./chat-streaming.types.js";
+import type { HomeCardPresentationResult } from "../opportunity/opportunity.presenter.js";
 import { Timed } from "../shared/observability/performance.js";
 import { requestContext } from "../shared/observability/request-context.js";
 
@@ -51,6 +52,8 @@ export type StreamWriter = (data: unknown) => void;
  * - `graph_end`       — a LangGraph sub-graph completes
  * - `agent_start`     — an LLM agent begins inside a graph node
  * - `agent_end`       — an LLM agent completes
+ * - `opportunity_draft_ready` — an orchestrator-triggered negotiation finalized
+ *                       to `draft` and the card is ready to render inline
  */
 export type AgentStreamEvent =
   | { type: "iteration_start"; iteration: number }
@@ -71,7 +74,15 @@ export type AgentStreamEvent =
   | { type: "graph_start"; name: string }
   | { type: "graph_end"; name: string; durationMs: number }
   | { type: "agent_start"; name: string }
-  | { type: "agent_end"; name: string; durationMs: number; summary: string };
+  | { type: "agent_end"; name: string; durationMs: number; summary: string }
+  | {
+      // Emitted from the orchestrator branch of OpportunityGraph.negotiateNode
+      // each time a per-candidate negotiation resolves to an accepted draft.
+      // The frontend appends `rendered` as an inline card in the chat timeline.
+      type: "opportunity_draft_ready";
+      opportunityId: string;
+      rendered: HomeCardPresentationResult;
+    };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
