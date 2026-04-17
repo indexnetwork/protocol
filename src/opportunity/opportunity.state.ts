@@ -100,10 +100,16 @@ export interface EvaluatedOpportunity {
  * Which flow triggered this graph invocation. Determines initial persist status,
  * park-window timeout, streaming behavior, and whether AbortSignal is honored.
  *
- * - 'ambient' (default): queue-driven, persists at `latent`, 5-min park window,
- *   no streaming, ignores abort.
- * - 'orchestrator': chat-driven, persists at `negotiating`, 60s park window,
+ * - 'ambient' (default): queue-driven. Persists at the trigger default of
+ *   `pending` unless `options.initialStatus` overrides (the queue worker
+ *   passes `'latent'`, chat-bound ambient discovery passes `'draft'`). 5-min
+ *   park window, no streaming, ignores abort.
+ * - 'orchestrator': chat-driven. Persists at the trigger default of
+ *   `negotiating` unless `options.initialStatus` overrides. 60s park window,
  *   streams `opportunity_draft_ready` events, honors abort.
+ *
+ * See {@link resolveInitialStatus} for the exact fallback used when
+ * `options.initialStatus` is undefined.
  */
 export type OpportunityTrigger = 'ambient' | 'orchestrator';
 
@@ -196,13 +202,14 @@ export const OpportunityGraphState = Annotation.Root({
   }),
 
   /**
-   * Which flow triggered this graph invocation. Determines initial persist status,
-   * park-window timeout, streaming behavior, and whether AbortSignal is honored.
+   * Which flow triggered this graph invocation. See {@link OpportunityTrigger}
+   * for the exact branch behavior and {@link resolveInitialStatus} for the
+   * persist default when `options.initialStatus` is unset.
    *
-   * - 'ambient' (default): queue-driven, persists at `latent`, 5-min park window,
-   *   no streaming, ignores abort.
-   * - 'orchestrator': chat-driven, persists at `negotiating`, 60s park window,
-   *   streams `opportunity_draft_ready` events, honors abort.
+   * - 'ambient' (default): queue-driven, persist default `pending`, 5-min
+   *   park window, no streaming, ignores abort.
+   * - 'orchestrator': chat-driven, persist default `negotiating`, 60s park
+   *   window, streams `opportunity_draft_ready` events, honors abort.
    */
   trigger: Annotation<OpportunityTrigger>({
     reducer: (curr, next) => next ?? curr,
