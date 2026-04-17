@@ -1648,6 +1648,7 @@ export type ChatGraphCompositeDatabase = Pick<
   | 'opportunityExistsBetweenActors'
   | 'getOpportunityBetweenActors'
   | 'findOverlappingOpportunities'
+  | 'getAcceptedOpportunitiesBetweenActors'
   | 'getOpportunitiesForUser'
   | 'updateOpportunityStatus'
   // HyDE graph (used by OpportunityGraph)
@@ -1704,6 +1705,7 @@ export type OpportunityGraphDatabase = Pick<
   | 'opportunityExistsBetweenActors'
   | 'getOpportunityBetweenActors'
   | 'findOverlappingOpportunities'
+  | 'getAcceptedOpportunitiesBetweenActors'
   | 'getUserIndexIds'
   | 'getNetworkMemberships'
   | 'getActiveIntents'

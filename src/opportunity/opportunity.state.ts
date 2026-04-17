@@ -210,6 +210,24 @@ export const OpportunityGraphState = Annotation.Root({
   }),
 
   /**
+   * Accepted opportunities the persist node discovered between the discoverer
+   * and a candidate actor (same pair, status='accepted'). The orchestrator
+   * branch populates this so the create_opportunities tool (Task 7) can tell
+   * the LLM "these pairs are already connected, surface the existing chat
+   * rather than creating a new draft". Always empty for the ambient trigger.
+   *
+   * Left intentionally minimal — conversationId/URL resolution happens at
+   * Start Chat time (Task 8), not here.
+   */
+  dedupAlreadyAccepted: Annotation<Array<{
+    opportunityId: string;
+    counterpartyUserId: string;
+  }>>({
+    reducer: (curr, next) => next ?? curr,
+    default: () => [],
+  }),
+
+  /**
    * Operation mode controls graph flow:
    * - 'create': Existing discover pipeline (Prep → Scope → Discovery → Evaluation → Ranking → Persist)
    * - 'create_introduction': Introduction path (validation → evaluation → persist) for chat-driven intros

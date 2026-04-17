@@ -2196,6 +2196,38 @@ export class OpportunityGraphFactory {
             ? await this.database.getUser(state.userId)
             : null;
 
+          // Orchestrator-only: collect already-accepted pairs so Task 7's
+          // create_opportunities tool can tell the LLM "these pairs are
+          // already connected, surface the existing chat rather than
+          // creating a new draft". Runs in parallel across unique
+          // counterparties (a single evaluator pass can return multiple
+          // opps per counterparty; we only hit the DB once per pair).
+          // Failures are swallowed — the per-pair query is best-effort.
+          const dedupAlreadyAccepted: Array<{ opportunityId: string; counterpartyUserId: string }> = [];
+          if (state.trigger === 'orchestrator') {
+            const uniqueCounterparts = new Set<string>();
+            for (const evaluated of state.evaluatedOpportunities) {
+              const candidateUserId = evaluated.actors.find(a => a.userId !== state.userId)?.userId;
+              if (candidateUserId) uniqueCounterparts.add(candidateUserId);
+            }
+            const lookups = await Promise.all(
+              [...uniqueCounterparts].map(async (counterpartyUserId) => {
+                const accepted = await this.database
+                  .getAcceptedOpportunitiesBetweenActors(state.userId, counterpartyUserId)
+                  .catch((err: unknown) => {
+                    logger.warn('[Graph:Persist] getAcceptedOpportunitiesBetweenActors failed', {
+                      userId: state.userId,
+                      counterpartyUserId,
+                      error: err,
+                    });
+                    return [] as Awaited<ReturnType<typeof this.database.getAcceptedOpportunitiesBetweenActors>>;
+                  });
+                return accepted.map((opp: { id: string }) => ({ opportunityId: opp.id, counterpartyUserId }));
+              }),
+            );
+            dedupAlreadyAccepted.push(...lookups.flat());
+          }
+
           for (const evaluated of state.evaluatedOpportunities) {
             const indexIdForActors = state.networkId ?? evaluated.actors[0]?.networkId;
             let actors: OpportunityActor[];
@@ -2494,13 +2526,15 @@ export class OpportunityGraphFactory {
           return {
             opportunities: allOpportunities,
             existingBetweenActors,
+            dedupAlreadyAccepted,
             trace: [{
               node: "persist",
-              detail: `Created ${createdList.length}, reactivated ${reactivatedOpportunities.length}, ${existingBetweenActors.length} existing skipped`,
+              detail: `Created ${createdList.length}, reactivated ${reactivatedOpportunities.length}, ${existingBetweenActors.length} existing skipped, ${dedupAlreadyAccepted.length} already-accepted pair(s)`,
               data: {
                 created: createdList.length,
                 reactivated: reactivatedOpportunities.length,
                 existingSkipped: existingBetweenActors.length,
+                alreadyAccepted: dedupAlreadyAccepted.length,
                 totalOutput: allOpportunities.length,
                 durationMs: Date.now() - startTime,
               },
