@@ -43,7 +43,6 @@ The package defines interfaces — your application provides the concrete implem
 | `AgentDatabase` | Agent registry CRUD (agents, transports, permissions) |
 | `AgentDispatcher` | Resolves and invokes agents during negotiation turns |
 | `McpAuthResolver` | Resolves `{ userId, agentId }` from an incoming MCP HTTP request |
-| `WebhookAdapter` | Dispatches webhook events to registered agent transports |
 
 All interfaces are exported from the package root — import them with `import type { ... } from "@indexnetwork/protocol"`.
 
@@ -133,7 +132,6 @@ Personal agents participate in bilateral negotiation via a small set of MCP tool
 | `get_negotiation` | Fetch the full turn history and assessment seed for a negotiation |
 | `list_negotiations` | List negotiations awaiting a response from this agent's user |
 | `respond_to_negotiation` | Submit a turn (propose / counter / accept / reject / question) |
-| `add_webhook_transport` | Register the caller's own webhook URL, secret, and event subscriptions on the acting agent so it can receive `negotiation.turn_received` and `negotiation.completed` deliveries |
 
 ## Publishing
 

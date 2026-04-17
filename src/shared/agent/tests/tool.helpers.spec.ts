@@ -167,16 +167,16 @@ describe("redactSensitiveFields", () => {
 
   test("matches keys case-insensitively and ignores underscores", () => {
     const out = redactSensitiveFields({
-      webhook_secret: "a",
-      WebhookSecret: "b",
-      WEBHOOK_SECRET: "c",
+      client_secret: "a",
+      ClientSecret: "b",
+      CLIENT_SECRET: "c",
       API_KEY: "d",
       accessToken: "e",
     });
     expect(out).toEqual({
-      webhook_secret: "[redacted]",
-      WebhookSecret: "[redacted]",
-      WEBHOOK_SECRET: "[redacted]",
+      client_secret: "[redacted]",
+      ClientSecret: "[redacted]",
+      CLIENT_SECRET: "[redacted]",
       API_KEY: "[redacted]",
       accessToken: "[redacted]",
     });

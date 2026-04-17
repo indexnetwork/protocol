@@ -18,7 +18,7 @@ export interface AgentRecord {
 export interface AgentTransportRecord {
   id: string;
   agentId: string;
-  channel: 'webhook' | 'mcp';
+  channel: 'mcp';
   config: Record<string, unknown>;
   priority: number;
   active: boolean;
@@ -50,7 +50,7 @@ export interface CreateAgentInput {
 
 export interface CreateTransportInput {
   agentId: string;
-  channel: 'webhook' | 'mcp';
+  channel: 'mcp';
   config?: Record<string, unknown>;
   priority?: number;
 }

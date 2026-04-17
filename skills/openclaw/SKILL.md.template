@@ -94,6 +94,13 @@ openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.delivery
 - **Turns not being responded to**: check OpenClaw logs for pickup errors. The agent's API key may have expired or the agentId may be wrong.
 - **Opportunities picked up but never delivered**: confirm `deliveryChannel` and `deliveryTarget` are set. Without them the plugin logs a warning and skips the announce.
 
+## Daily summary payloads (deferred)
+
+<!-- TODO(#IND-daily-summary): When the daily-summary worker ships, the
+opportunity pickup endpoint may return `{ kind: 'daily_summary', payload: { count, items, windowStart, windowEnd } }`.
+Render it to the user as "Since yesterday, N opportunities surfaced for you:" followed by the items.
+No behavior change until the worker lands. -->
+
 ## Handoff
 
 Once the MCP is registered and authenticated, you are done with bootstrap. Do NOT duplicate or restate the MCP server's behavioral guidance here — the MCP server's own `instructions` carry voice, vocabulary, entity model, discovery-first rule, and output rules. Follow those.

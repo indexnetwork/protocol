@@ -475,9 +475,9 @@ const SENSITIVE_FIELD_KEYS = new Set([
 /**
  * Recursively redacts sensitive field values from an arbitrary payload before
  * it is passed to a structured logger. Matches field names case-insensitively
- * and ignoring underscores, so `webhook_secret`, `webhookSecret`, and
- * `WEBHOOK_SECRET` all match. Non-sensitive fields are passed through
- * unchanged. Never mutates the input — returns a new value.
+ * and ignoring underscores, so `api_key`, `apiKey`, and `API_KEY` all match.
+ * Non-sensitive fields are passed through unchanged. Never mutates the input —
+ * returns a new value.
  *
  * Intended for structured-log redaction only. Do NOT use as a security
  * boundary for data in motion.

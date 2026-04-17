@@ -8,22 +8,9 @@ const AGENT_ACTIONS = [
   'manage:intents',
   'manage:networks',
   'manage:contacts',
+  'manage:opportunities',
   'manage:negotiations',
 ] as const;
-
-/**
- * Whitelist of webhook event names that personal agents may subscribe to.
- * Keep aligned with the events dispatched by {@link ../negotiation/negotiation.graph.ts}
- * and consumed by the OpenClaw plugin at `POST /index-network/webhook`.
- */
-const WEBHOOK_EVENTS = [
-  'negotiation.turn_received',
-  'negotiation.completed',
-] as const;
-
-function isValidWebhookEvent(event: string): event is (typeof WEBHOOK_EVENTS)[number] {
-  return (WEBHOOK_EVENTS as readonly string[]).includes(event);
-}
 
 function invalidActionMessage(action: string) {
   return `Invalid action: ${action}. Valid actions: ${AGENT_ACTIONS.join(', ')}`;
@@ -52,17 +39,8 @@ function ensureAgentScopedAccess(context: { agentId?: string }, requestedAgentId
 function sanitizeAgentForOutput<T extends { transports?: Array<{ channel: string; config: Record<string, unknown> }> }>(agent: T): T {
   return {
     ...agent,
-    transports: agent.transports?.map((transport) => ({
-      ...transport,
-      config: transport.channel === 'webhook'
-        ? Object.fromEntries(Object.entries(transport.config).filter(([key]) => key !== 'secret'))
-        : transport.config,
-    })),
+    transports: agent.transports,
   };
-}
-
-function normalizeWebhookEvents(events: string[] | undefined): string[] {
-  return [...new Set((events ?? []).map((event) => event.trim()).filter(Boolean))];
 }
 
 function sanitizeAgentName(name: string): string | null {
@@ -83,14 +61,11 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
   const registerAgent = defineTool({
     name: 'register_agent',
     description:
-      'Register a new personal agent for the current user. Optionally configure a webhook transport and initial permissions. ' +
+      'Register a new personal agent for the current user. Optionally configure initial permissions. ' +
       'Use this when connecting an external agent to Index.',
     querySchema: z.object({
       name: z.string().min(1).describe('Display name for the agent.'),
       description: z.string().optional().describe('What the agent does.'),
-      webhook_url: z.string().optional().describe('Optional webhook URL for deliveries.'),
-      webhook_secret: z.string().optional().describe('Optional webhook secret stored in transport config.'),
-      webhook_events: z.array(z.string()).optional().describe('Subscribed webhook event names.'),
       permissions: z.array(z.string()).optional().describe('Optional initial permission actions to grant.'),
     }),
     handler: async ({ context, query }) => {
@@ -111,31 +86,6 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
           }
         }
 
-        let transportConfig: Record<string, unknown> | undefined;
-        if (query.webhook_url?.trim()) {
-          const webhookEvents = normalizeWebhookEvents(query.webhook_events);
-          if (webhookEvents.length === 0) {
-            return error('Webhook events are required.');
-          }
-
-          let parsedUrl: URL;
-          try {
-            parsedUrl = new URL(query.webhook_url);
-          } catch {
-            return error('Invalid webhook URL.');
-          }
-
-          if (parsedUrl.protocol !== 'https:' && process.env.NODE_ENV === 'production') {
-            return error('Webhook URL must use HTTPS in production.');
-          }
-
-          transportConfig = {
-            url: parsedUrl.toString(),
-            events: webhookEvents,
-            ...(query.webhook_secret?.trim() ? { secret: query.webhook_secret.trim() } : {}),
-          };
-        }
-
         const agent = await agentDb.createAgent({
           ownerId: context.userId,
           name,
@@ -144,14 +94,6 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
         });
 
         try {
-          if (transportConfig) {
-            await agentDb.createTransport({
-              agentId: agent.id,
-              channel: 'webhook',
-              config: transportConfig,
-            });
-          }
-
           if (permissions.length > 0) {
             await agentDb.grantPermission({
               agentId: agent.id,
@@ -177,97 +119,6 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
         });
       } catch (err) {
         return error(`Failed to register agent: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    },
-  });
-
-  const addWebhookTransport = defineTool({
-    name: 'add_webhook_transport',
-    description:
-      'Attach or replace the webhook transport on the calling agent. Requires an authenticated agent identity (x-api-key). ' +
-      'Replaces any existing webhook transport on this agent (one agent = one webhook transport, multiple events). ' +
-      'Also grants manage:negotiations permission if not already present.',
-    querySchema: z.object({
-      url: z.string().min(1).describe('HTTPS URL that will receive webhook deliveries.'),
-      secret: z.string().min(1).describe('Shared HMAC secret for signing deliveries.'),
-      events: z.array(z.string()).min(1).describe('Subscribed webhook event names.'),
-    }),
-    handler: async ({ context, query }) => {
-      if (!context.agentId) {
-        return error(
-          'add_webhook_transport requires an authenticated agent. Call register_agent first, or authenticate with an agent-bound API key.',
-        );
-      }
-
-      try {
-        const events = normalizeWebhookEvents(query.events);
-        if (events.length === 0) {
-          return error('Webhook events are required.');
-        }
-        for (const event of events) {
-          if (!isValidWebhookEvent(event)) {
-            return error(
-              `Invalid webhook event: ${event}. Valid events: ${WEBHOOK_EVENTS.join(', ')}`,
-            );
-          }
-        }
-
-        let parsedUrl: URL;
-        try {
-          parsedUrl = new URL(query.url);
-        } catch {
-          return error('Invalid webhook URL.');
-        }
-
-        if (parsedUrl.protocol !== 'https:' && process.env.NODE_ENV === 'production') {
-          return error('Webhook URL must use HTTPS in production.');
-        }
-
-        const agent = await agentDb.getAgentWithRelations(context.agentId);
-        if (!agent || agent.ownerId !== context.userId) {
-          return error('Agent not found.');
-        }
-        if (agent.type === 'system') {
-          return error('System agents cannot be modified.');
-        }
-
-        for (const existing of agent.transports) {
-          if (existing.channel === 'webhook') {
-            await agentDb.deleteTransport(existing.id);
-          }
-        }
-
-        const transport = await agentDb.createTransport({
-          agentId: agent.id,
-          channel: 'webhook',
-          config: { url: parsedUrl.toString(), events, secret: query.secret },
-        });
-
-        const hasNegotiationsPermission = agent.permissions.some(
-          (p) => p.scope === 'global' && p.actions.includes('manage:negotiations'),
-        );
-        if (!hasNegotiationsPermission) {
-          await agentDb.grantPermission({
-            agentId: agent.id,
-            userId: context.userId,
-            scope: 'global',
-            actions: ['manage:negotiations'],
-          });
-        }
-
-        return success({
-          message: `Webhook transport added for "${agent.name}".`,
-          transport: {
-            id: transport.id,
-            channel: transport.channel,
-            events: [...events],
-            active: transport.active,
-          },
-        });
-      } catch (err) {
-        return error(
-          `Failed to add webhook transport: ${err instanceof Error ? err.message : String(err)}`,
-        );
       }
     },
   });
@@ -384,10 +235,10 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
   const grantAgentPermission = defineTool({
     name: 'grant_agent_permission',
     description: 'Grant one or more permissions to an agent for the current user. ' +
-      'Valid actions: manage:profile, manage:intents, manage:networks, manage:contacts, manage:negotiations.',
+      'Valid actions: manage:profile, manage:intents, manage:networks, manage:contacts, manage:opportunities, manage:negotiations.',
     querySchema: z.object({
       agent_id: z.string().min(1).describe('The agent ID to grant permissions to.'),
-      actions: z.array(z.string()).min(1).describe('Permission actions to grant. Valid values: manage:profile, manage:intents, manage:networks, manage:contacts, manage:negotiations.'),
+      actions: z.array(z.string()).min(1).describe('Permission actions to grant. Valid values: manage:profile, manage:intents, manage:networks, manage:contacts, manage:opportunities, manage:negotiations.'),
       scope: z.enum(['global', 'node', 'network']).optional().describe('Optional permission scope.'),
       scope_id: z.string().optional().describe('Scope target ID for node/network scopes.'),
     }),
@@ -467,7 +318,6 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
 
   return [
     registerAgent,
-    addWebhookTransport,
     listAgents,
     updateAgent,
     deleteAgent,
