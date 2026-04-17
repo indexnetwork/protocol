@@ -108,6 +108,31 @@ export interface EvaluatedOpportunity {
 export type OpportunityTrigger = 'ambient' | 'orchestrator';
 
 /**
+ * Resolves the initial status for opportunities created in the persist node.
+ *
+ * Explicit `options.initialStatus` always wins (callers like the chat tool or
+ * maintenance scripts override per-call). When the caller leaves it
+ * undefined, the trigger drives the default:
+ * - 'orchestrator' → 'negotiating' (chat-driven; negotiations run before the
+ *   user sees a draft card).
+ * - 'ambient' (or any other trigger) → 'pending' (long-standing default for
+ *   queue- and intent-driven discovery).
+ *
+ * Lives here rather than in opportunity.graph.ts so unit tests can exercise
+ * it without pulling in the full graph (and the evaluator's LLM requirements).
+ *
+ * @param trigger - The graph invocation's trigger
+ * @param explicit - Caller-supplied initial status from options.initialStatus
+ */
+export function resolveInitialStatus(
+  trigger: OpportunityTrigger,
+  explicit: OpportunityStatus | undefined,
+): OpportunityStatus {
+  if (explicit !== undefined) return explicit;
+  return trigger === 'orchestrator' ? 'negotiating' : 'pending';
+}
+
+/**
  * Options passed to the graph
  */
 export interface OpportunityGraphOptions {

@@ -25,6 +25,7 @@ import {
   type EvaluatedOpportunity,
   type EvaluatedOpportunityActor,
 } from './opportunity.state.js';
+import { resolveInitialStatus } from './opportunity.state.js';
 import {
   OpportunityEvaluator,
   type CandidateProfile,
@@ -2119,9 +2120,11 @@ export class OpportunityGraphFactory {
       async (state: typeof OpportunityGraphState.State) => {
       return timed("OpportunityGraph.persist", async () => {
         const startTime = Date.now();
+        const initialStatus = resolveInitialStatus(state.trigger, state.options.initialStatus);
         logger.verbose('[Graph:Persist] Starting persistence (dedup-v2)', {
           opportunitiesToCreate: state.evaluatedOpportunities.length,
-          initialStatus: state.options.initialStatus ?? 'pending',
+          trigger: state.trigger,
+          initialStatus,
         });
 
         if (state.evaluatedOpportunities.length === 0) {
@@ -2139,7 +2142,6 @@ export class OpportunityGraphFactory {
             existingStatus?: string;
           }> = [];
           const now = new Date().toISOString();
-          const initialStatus = state.options.initialStatus ?? 'pending';
           // Only skip 'draft' (chat-only) opportunities during dedup.
           // 'latent' must NOT be skipped — background discovery creates latent opportunities,
           // and excluding them causes the same user pair to get duplicate opportunities
