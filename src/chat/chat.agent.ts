@@ -88,6 +88,47 @@ export type AgentStreamEvent =
         userId: string;
         name?: string;
       };
+    }
+  | {
+      type: "negotiation_session_start";
+      opportunityId: string;
+      negotiationConversationId: string;
+      sourceUserId: string;
+      candidateUserId: string;
+      candidateName?: string;
+      trigger: "orchestrator" | "ambient";
+      startedAt: number;
+    }
+  | {
+      type: "negotiation_session_end";
+      opportunityId: string;
+      negotiationConversationId: string;
+      durationMs: number;
+    }
+  | {
+      type: "negotiation_turn";
+      opportunityId: string;
+      negotiationConversationId: string;
+      turnIndex: number;
+      actor: "source" | "candidate";
+      action: "propose" | "accept" | "reject" | "counter" | "question";
+      reasoning?: string;
+      message?: string;
+      suggestedRoles?: { ownUser?: string; otherUser?: string };
+      durationMs: number;
+    }
+  | {
+      type: "negotiation_outcome";
+      opportunityId: string;
+      outcome:
+        | "accepted"
+        | "rejected_stalled"
+        | "waiting_for_agent"
+        | "timed_out"
+        | "turn_cap";
+      turnCount: number;
+      reasoning?: string;
+      agreedRoles?: { ownUser?: string; otherUser?: string };
     };
 
 // ═══════════════════════════════════════════════════════════════════════════════
