@@ -398,13 +398,39 @@ export async function negotiateCandidates(
     indexContextOverrides?: Map<string, string>;
     timeoutMs?: number;
     onCandidateResolved?: OnNegotiationResolved;
+    trigger?: "orchestrator" | "ambient";
   },
 ): Promise<NegotiationResult[]> {
-  const { maxTurns, traceEmitter, indexContextOverrides, timeoutMs, onCandidateResolved } = opts ?? {};
+  const { maxTurns, traceEmitter, indexContextOverrides, timeoutMs, onCandidateResolved, trigger } = opts ?? {};
+
+  // Local helper to emit events whose shape is wider than the declared
+  // `TraceEmitter` union (mirrors the cast used in chat.agent at the relay sink
+  // and inside turn/finalize nodes above).
+  const emitWide = (event: Record<string, unknown>) =>
+    (traceEmitter as ((e: Record<string, unknown>) => void) | undefined)?.(event);
 
   const results = await Promise.all(
     candidates.map(async (candidate) => {
       const start = Date.now();
+      const sessionStart = start;
+      if (candidate.opportunityId) {
+        // The candidateUser type canonically carries a `.profile.name`, but some
+        // call-sites pass a flatter shape with a top-level `.name`. Probe both
+        // so the debug panel gets a human-readable label when either is set.
+        const candidateName =
+          candidate.candidateUser?.profile?.name
+          ?? (candidate.candidateUser as unknown as { name?: string } | undefined)?.name;
+        emitWide({
+          type: "negotiation_session_start",
+          opportunityId: candidate.opportunityId,
+          negotiationConversationId: "", // filled in on session_end
+          sourceUserId: sourceUser.id,
+          candidateUserId: candidate.userId,
+          ...(candidateName && { candidateName }),
+          trigger: trigger ?? "ambient",
+          startedAt: sessionStart,
+        });
+      }
       traceEmitter?.({ type: "agent_start", name: "Negotiating candidate" });
 
       try {
@@ -443,6 +469,15 @@ export async function negotiateCandidates(
         const statusTag = hasOpportunity ? "✓ opportunity" : "✗ rejected";
         traceEmitter?.({ type: "agent_end", name: "Negotiating candidate", durationMs, summary: `${candidate.userId}: ${turnFlow} ${statusTag}` });
 
+        if (candidate.opportunityId) {
+          emitWide({
+            type: "negotiation_session_end",
+            opportunityId: candidate.opportunityId,
+            negotiationConversationId: (result as { conversationId?: string }).conversationId ?? "",
+            durationMs: Date.now() - sessionStart,
+          });
+        }
+
         const accepted: NegotiationResult | null = hasOpportunity && outcome
           ? {
               userId: candidate.userId,
@@ -470,6 +505,14 @@ export async function negotiateCandidates(
       } catch (err) {
         const durationMs = Date.now() - start;
         traceEmitter?.({ type: "agent_end", name: "Negotiating candidate", durationMs, summary: `${candidate.userId}: error` });
+        if (candidate.opportunityId) {
+          emitWide({
+            type: "negotiation_session_end",
+            opportunityId: candidate.opportunityId,
+            negotiationConversationId: "",
+            durationMs: Date.now() - sessionStart,
+          });
+        }
         logger.error("[negotiateCandidates] Negotiation failed", { candidateUserId: candidate.userId, error: err });
         if (onCandidateResolved) {
           try {

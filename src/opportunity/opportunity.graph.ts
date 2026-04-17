@@ -1844,6 +1844,7 @@ export class OpportunityGraphFactory {
           { maxTurns, traceEmitter: traceEmitter ?? undefined,
             indexContextOverrides: indexContextMap,
             timeoutMs,
+            trigger: state.trigger === 'orchestrator' ? 'orchestrator' : 'ambient',
             ...(onCandidateResolved && { onCandidateResolved }) },
         );
 

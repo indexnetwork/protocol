@@ -180,3 +180,80 @@ describe("negotiation graph — negotiation_outcome emission", () => {
     expect(outcome?.outcome).toBe("waiting_for_agent");
   }, 30000);
 });
+
+describe("negotiateCandidates — session wrapper events", () => {
+  it("emits negotiation_session_start and _end per candidate with trigger + ids", async () => {
+    const fakeGraph = {
+      invoke: async (input: { opportunityId?: string }) => ({
+        conversationId: `conv-for-${input.opportunityId}`,
+        messages: [],
+        outcome: { hasOpportunity: false, agreedRoles: [], reasoning: "", turnCount: 0 },
+      }),
+    };
+    const events: Array<Record<string, unknown>> = [];
+    const { negotiateCandidates } = await import("../negotiation.graph.js");
+    const { requestContext } = await import("../../shared/observability/request-context.js");
+    await requestContext.run(
+      { traceEmitter: (e: Record<string, unknown>) => events.push(e) },
+      async () => {
+        await negotiateCandidates(
+          fakeGraph as never,
+          { id: "u-src", name: "Alice" } as never,
+          [
+            {
+              userId: "u-1",
+              reasoning: "r",
+              valencyRole: "peer",
+              candidateUser: { id: "u-1", name: "Bob" } as never,
+              opportunityId: "opp-10",
+            },
+          ],
+          { networkId: "net-1", prompt: "" },
+          {
+            traceEmitter: (e: Record<string, unknown>) => events.push(e),
+            trigger: "orchestrator",
+          },
+        );
+      },
+    );
+
+    const starts = events.filter((e) => e.type === "negotiation_session_start");
+    const ends = events.filter((e) => e.type === "negotiation_session_end");
+    expect(starts).toHaveLength(1);
+    expect(ends).toHaveLength(1);
+    expect(starts[0].opportunityId).toBe("opp-10");
+    expect(starts[0].trigger).toBe("orchestrator");
+    expect(starts[0].sourceUserId).toBe("u-src");
+    expect(starts[0].candidateUserId).toBe("u-1");
+    expect(starts[0].candidateName).toBe("Bob");
+    expect(ends[0].opportunityId).toBe("opp-10");
+    expect(typeof ends[0].durationMs).toBe("number");
+  }, 30000);
+
+  it("does not emit session events when opportunityId is missing", async () => {
+    const fakeGraph = {
+      invoke: async () => ({
+        conversationId: "conv-x",
+        messages: [],
+        outcome: { hasOpportunity: false, agreedRoles: [], reasoning: "", turnCount: 0 },
+      }),
+    };
+    const events: Array<Record<string, unknown>> = [];
+    const { negotiateCandidates } = await import("../negotiation.graph.js");
+    const { requestContext } = await import("../../shared/observability/request-context.js");
+    await requestContext.run(
+      { traceEmitter: (e: Record<string, unknown>) => events.push(e) },
+      async () => {
+        await negotiateCandidates(
+          fakeGraph as never,
+          { id: "u-src" } as never,
+          [{ userId: "u-2", reasoning: "r", valencyRole: "peer", candidateUser: { id: "u-2" } as never }],
+          { networkId: "net-1", prompt: "" },
+          { traceEmitter: (e: Record<string, unknown>) => events.push(e), trigger: "ambient" },
+        );
+      },
+    );
+    expect(events.filter((e) => e.type === "negotiation_session_start")).toHaveLength(0);
+    expect(events.filter((e) => e.type === "negotiation_session_end")).toHaveLength(0);
+  }, 30000);
+});
