@@ -21,6 +21,7 @@ import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import { createModel } from "../shared/agent/model.config.js";
 import { sanitizeForDebugMeta } from "../shared/observability/debug-meta.sanitizer.js";
 import type { DebugMetaToolCall } from "./chat-streaming.types.js";
+import type { Opportunity } from "../shared/interfaces/database.interface.js";
 import { Timed } from "../shared/observability/performance.js";
 import { requestContext } from "../shared/observability/request-context.js";
 
@@ -51,6 +52,8 @@ export type StreamWriter = (data: unknown) => void;
  * - `graph_end`       — a LangGraph sub-graph completes
  * - `agent_start`     — an LLM agent begins inside a graph node
  * - `agent_end`       — an LLM agent completes
+ * - `opportunity_draft_ready` — an orchestrator-triggered negotiation finalized
+ *                       to `draft` and the card is ready to render inline
  */
 export type AgentStreamEvent =
   | { type: "iteration_start"; iteration: number }
@@ -71,7 +74,18 @@ export type AgentStreamEvent =
   | { type: "graph_start"; name: string }
   | { type: "graph_end"; name: string; durationMs: number }
   | { type: "agent_start"; name: string }
-  | { type: "agent_end"; name: string; durationMs: number; summary: string };
+  | { type: "agent_end"; name: string; durationMs: number; summary: string }
+  | {
+      // Emitted from the orchestrator branch of OpportunityGraph.negotiateNode
+      // each time a per-candidate negotiation resolves to an accepted draft.
+      // Carries the full opportunity row so the frontend can append an inline
+      // card to the chat timeline using the same <OpportunityCard> it already
+      // uses on the home feed (the home-card LLM presenter is too heavy to
+      // run inline — it would defeat the per-candidate streaming promise).
+      type: "opportunity_draft_ready";
+      opportunityId: string;
+      opportunity: Opportunity;
+    };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -849,7 +863,14 @@ export class ChatAgent {
             logger.verbose("Streaming: executing tool", { name: tc.name });
             const currentCtx = requestContext.getStore() ?? {};
             let result = await requestContext.run(
-              { ...currentCtx, traceEmitter: (e) => emit({ type: e.type, name: e.name, durationMs: e.durationMs, summary: e.summary } as AgentStreamEvent) },
+              {
+                ...currentCtx,
+                traceEmitter: (e) => emit(e as AgentStreamEvent),
+                // Propagate the caller's AbortSignal into requestContext so
+                // long-running graph nodes (orchestrator negotiation fan-out)
+                // can suppress event emits after the chat session closes.
+                ...(signal && { abortSignal: signal }),
+              },
               () => tool.invoke(tc.args),
             );
             const toolDurationMs = Date.now() - toolStart;
@@ -972,7 +993,14 @@ export class ChatAgent {
           try {
             const currentCtx = requestContext.getStore() ?? {};
             const result = await requestContext.run(
-              { ...currentCtx, traceEmitter: (e) => emit({ type: e.type, name: e.name, durationMs: e.durationMs, summary: e.summary } as AgentStreamEvent) },
+              {
+                ...currentCtx,
+                traceEmitter: (e) => emit(e as AgentStreamEvent),
+                // Propagate the caller's AbortSignal into requestContext so
+                // long-running graph nodes (orchestrator negotiation fan-out)
+                // can suppress event emits after the chat session closes.
+                ...(signal && { abortSignal: signal }),
+              },
               () => tool.invoke(toolArgs),
             );
             const rawResultStr = typeof result === "string" ? result : JSON.stringify(result);

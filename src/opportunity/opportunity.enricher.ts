@@ -21,10 +21,24 @@ const logger = protocolLogger('OpportunityEnricher');
 const DEFAULT_SIMILARITY_THRESHOLD = 0.7;
 const MIN_REASONING_LENGTH_FOR_EMBEDDING = 10;
 
+/**
+ * Statuses excluded from the merge-candidate pool by default.
+ *
+ * - 'accepted': the pair already connected — do NOT fold a new discovery into
+ *   the historical opp. IND-237 surfaces the existing conversation separately.
+ * - 'negotiating': a negotiation is in-flight for this pair; rolling a new
+ *   candidate into it would blur the outcome of the active turn. Wait for the
+ *   negotiation to finalize (→ draft/pending/rejected/stalled) first, then
+ *   enrichment can pick it up on the next pass.
+ *
+ * Exported for callers that want to extend rather than replace the default.
+ */
+export const DEFAULT_ENRICHER_EXCLUDE_STATUSES: OpportunityStatus[] = ['accepted', 'negotiating'];
+
 export type EnricherDatabase = {
   findOverlappingOpportunities(
     actorUserIds: Id<'users'>[],
-    options?: { excludeStatuses?: ('latent' | 'pending' | 'stalled' | 'accepted' | 'rejected' | 'expired')[] }
+    options?: { excludeStatuses?: OpportunityStatus[] }
   ): Promise<Opportunity[]>;
 };
 
@@ -34,6 +48,12 @@ export type EnrichmentResult =
 
 export type EnrichOrCreateOptions = {
   similarityThreshold?: number;
+  /**
+   * Statuses to exclude from the merge-candidate pool. Defaults to
+   * {@link DEFAULT_ENRICHER_EXCLUDE_STATUSES} (`['accepted', 'negotiating']`).
+   * Pass an empty array `[]` to consider all statuses.
+   */
+  excludeStatuses?: OpportunityStatus[];
 };
 
 /**
@@ -207,7 +227,8 @@ export async function enrichOrCreate(
     return { enriched: false, data: newData };
   }
 
-  const overlapping = await database.findOverlappingOpportunities(actorUserIds);
+  const excludeStatuses = options?.excludeStatuses ?? DEFAULT_ENRICHER_EXCLUDE_STATUSES;
+  const overlapping = await database.findOverlappingOpportunities(actorUserIds, { excludeStatuses });
   if (overlapping.length === 0) {
     return { enriched: false, data: newData };
   }
