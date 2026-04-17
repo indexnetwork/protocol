@@ -1808,22 +1808,26 @@ export class OpportunityGraphFactory {
               if (abortSignal?.aborted) return;
               if (!accepted || !candidate.opportunityId) return;
 
+              // Only emit after a successful status flip — the frontend keys
+              // cards off `opportunity.status === 'draft'`, so emitting a row
+              // with its pre-flip status would render inconsistently. If the
+              // flip fails we log and drop the event; the negotiation result
+              // is still captured in acceptedResults for the final summary.
               const updated = await this.database
                 .updateOpportunityStatus(candidate.opportunityId, 'draft')
                 .catch((err) => {
-                  logger.warn('[Graph:Negotiate] failed to flip opp to draft; emitting with stale status', {
+                  logger.warn('[Graph:Negotiate] failed to flip opp to draft; suppressing draft-ready event', {
                     opportunityId: candidate.opportunityId,
                     error: err,
                   });
                   return null;
                 });
-              const opp = updated ?? await this.database.getOpportunity(candidate.opportunityId).catch(() => null);
-              if (!opp || abortSignal?.aborted) return;
+              if (!updated || abortSignal?.aborted) return;
 
               traceEmitter?.({
                 type: 'opportunity_draft_ready',
                 opportunityId: candidate.opportunityId,
-                opportunity: opp,
+                opportunity: updated,
               });
             }
           : undefined;
@@ -2205,18 +2209,23 @@ export class OpportunityGraphFactory {
           // Failures are swallowed — the per-pair query is best-effort.
           const dedupAlreadyAccepted: Array<{ opportunityId: string; counterpartyUserId: string }> = [];
           if (state.trigger === 'orchestrator') {
+            // Use the same viewer-resolution as evaluation/negotiate/persist
+            // on-behalf branches so an introducer-driven orchestrator run
+            // queries accepted opps between the *target* user and the
+            // counterparty, not between the introducer and the counterparty.
+            const dedupUserId = (state.onBehalfOfUserId ?? state.userId) as string;
             const uniqueCounterparts = new Set<string>();
             for (const evaluated of state.evaluatedOpportunities) {
-              const candidateUserId = evaluated.actors.find(a => a.userId !== state.userId)?.userId;
+              const candidateUserId = evaluated.actors.find(a => a.userId !== dedupUserId)?.userId;
               if (candidateUserId) uniqueCounterparts.add(candidateUserId);
             }
             const lookups = await Promise.all(
               [...uniqueCounterparts].map(async (counterpartyUserId) => {
                 const accepted = await this.database
-                  .getAcceptedOpportunitiesBetweenActors(state.userId, counterpartyUserId)
+                  .getAcceptedOpportunitiesBetweenActors(dedupUserId, counterpartyUserId)
                   .catch((err: unknown) => {
                     logger.warn('[Graph:Persist] getAcceptedOpportunitiesBetweenActors failed', {
-                      userId: state.userId,
+                      userId: dedupUserId,
                       counterpartyUserId,
                       error: err,
                     });
