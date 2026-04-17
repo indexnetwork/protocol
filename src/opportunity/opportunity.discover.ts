@@ -524,6 +524,12 @@ interface CachedDiscoverySession {
   query: string;
   indexScope: string[];
   options: OpportunityGraphOptions;
+  /**
+   * Carried across pagination so page 2+ stays on the same flow as page 1.
+   * Without this, orchestrator runs would fall back to the 'ambient' default
+   * mid-search and lose the shorter park window + accepted-pair dedup.
+   */
+  trigger?: 'ambient' | 'orchestrator';
 }
 
 /**
@@ -562,9 +568,15 @@ export async function runDiscoverFromQuery(
   // When query is empty, the opportunity graph uses the user's intents in scope (indexedIntents[0].payload)
   // Lens inference is handled automatically by the HyDE graph's LensInferrer
   const queryOrEmpty = query?.trim() ?? "";
+  // Orchestrator discovery defers the initial status to the graph's
+  // trigger-aware `resolveInitialStatus`, which opens at 'negotiating' so
+  // the accepted-draft streaming flow can run. Ambient chat discovery still
+  // wants the legacy 'draft' status so the chat-only lifecycle holds; other
+  // ambient callers keep 'latent'.
+  const isOrchestrator = trigger === 'orchestrator';
   const options: OpportunityGraphOptions = {
     limit,
-    initialStatus: chatSessionId ? "draft" : "latent",
+    ...(!isOrchestrator && { initialStatus: chatSessionId ? "draft" : "latent" }),
     ...(chatSessionId ? { conversationId: chatSessionId } : {}),
   };
 
@@ -626,6 +638,7 @@ export async function runDiscoverFromQuery(
             query: queryOrEmpty,
             indexScope,
             options,
+            ...(trigger && { trigger }),
           } satisfies CachedDiscoverySession, { ttl: 1800 }); // 30 minutes
           pagination = {
             discoveryId,
@@ -856,6 +869,10 @@ export async function continueDiscovery(input: {
     candidates: cached.candidates,
     operationMode: 'continue_discovery' as const,
     onBehalfOfUserId: cached.onBehalfOfUserId,
+    // Carry the original trigger so page 2+ stays on the same flow as page
+    // 1 (orchestrator negotiations with 60s park window + accepted-pair
+    // dedup, or ambient with 5-min park window).
+    ...(cached.trigger && { trigger: cached.trigger }),
     options: {
       ...cached.options,
       limit,
