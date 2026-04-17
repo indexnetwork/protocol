@@ -27,6 +27,17 @@ export type TraceEmitter = (
         type: "opportunity_draft_ready";
         opportunityId: string;
         opportunity: Opportunity;
+        /**
+         * Minimal counterparty data for rendering the inline card without a
+         * second-round-trip user lookup. Populated from the negotiation
+         * candidate's profile; avatar is intentionally omitted (the card
+         * falls back to initials) since UserNegotiationContext doesn't
+         * carry avatars.
+         */
+        counterparty: {
+          userId: string;
+          name?: string;
+        };
       },
 ) => void;
 

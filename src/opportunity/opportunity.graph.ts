@@ -1828,6 +1828,12 @@ export class OpportunityGraphFactory {
                 type: 'opportunity_draft_ready',
                 opportunityId: candidate.opportunityId,
                 opportunity: updated,
+                counterparty: {
+                  userId: candidate.candidateUser.id,
+                  ...(candidate.candidateUser.profile?.name
+                    ? { name: candidate.candidateUser.profile.name }
+                    : {}),
+                },
               });
             }
           : undefined;

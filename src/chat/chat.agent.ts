@@ -78,13 +78,16 @@ export type AgentStreamEvent =
   | {
       // Emitted from the orchestrator branch of OpportunityGraph.negotiateNode
       // each time a per-candidate negotiation resolves to an accepted draft.
-      // Carries the full opportunity row so the frontend can append an inline
-      // card to the chat timeline using the same <OpportunityCard> it already
-      // uses on the home feed (the home-card LLM presenter is too heavy to
-      // run inline — it would defeat the per-candidate streaming promise).
+      // Carries the opportunity row plus the counterparty's display basics so
+      // the frontend can append an inline card to the chat timeline without a
+      // second round-trip user lookup.
       type: "opportunity_draft_ready";
       opportunityId: string;
       opportunity: Opportunity;
+      counterparty: {
+        userId: string;
+        name?: string;
+      };
     };
 
 // ═══════════════════════════════════════════════════════════════════════════════
