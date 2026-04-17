@@ -108,11 +108,16 @@ describe("negotiation graph — negotiation_outcome emission", () => {
         } as Partial<typeof NegotiationGraphState.State>);
       });
 
-      const outcome = events.find((e) => e.type === "negotiation_outcome");
+      const outcomes = events.filter((e) => e.type === "negotiation_outcome");
+      expect(outcomes).toHaveLength(1);
+      const outcome = outcomes[0];
       expect(outcome).toBeTruthy();
       expect(outcome!.opportunityId).toBe("opp-accept");
       expect(outcome!.outcome).toBe("accepted");
       expect(outcome!.turnCount).toBe(2);
+      expect(outcome!.agreedRoles).toBeDefined();
+      expect(outcome!.agreedRoles?.ownUser).toBeTruthy();
+      expect(outcome!.agreedRoles?.otherUser).toBeTruthy();
     } finally {
       IndexNegotiator.prototype.invoke = orig;
     }
@@ -141,7 +146,9 @@ describe("negotiation graph — negotiation_outcome emission", () => {
           opportunityId: "opp-cap", maxTurns: 2,
         } as Partial<typeof NegotiationGraphState.State>);
       });
-      const outcome = events.find((e) => e.type === "negotiation_outcome");
+      const outcomes = events.filter((e) => e.type === "negotiation_outcome");
+      expect(outcomes).toHaveLength(1);
+      const outcome = outcomes[0];
       expect(outcome?.outcome).toBe("turn_cap");
       expect(outcome?.turnCount).toBe(2);
     } finally {
@@ -166,7 +173,9 @@ describe("negotiation graph — negotiation_outcome emission", () => {
         opportunityId: "opp-park", maxTurns: 4,
       } as Partial<typeof NegotiationGraphState.State>);
     });
-    const outcome = events.find((e) => e.type === "negotiation_outcome");
+    const outcomes = events.filter((e) => e.type === "negotiation_outcome");
+    expect(outcomes).toHaveLength(1);
+    const outcome = outcomes[0];
     expect(outcome?.outcome).toBe("waiting_for_agent");
   }, 30000);
 });

@@ -306,10 +306,10 @@ export class NegotiationGraphFactory {
             ? "accepted"
             : atCap
             ? "turn_cap"
-            : lastTurn?.action === "reject"
-            ? "rejected_stalled"
             : state.error && /timeout/i.test(state.error)
             ? "timed_out"
+            : lastTurn?.action === "reject"
+            ? "rejected_stalled"
             : "rejected_stalled";
 
         emitWide({
