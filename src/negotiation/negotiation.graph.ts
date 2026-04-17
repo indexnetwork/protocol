@@ -313,6 +313,18 @@ export interface NegotiationResult {
 }
 
 /**
+ * Per-candidate resolution hook — fires as each negotiation settles, before
+ * Promise.all aggregates. Used by the orchestrator branch to progressively
+ * stream `opportunity_draft_ready` events as each candidate resolves, rather
+ * than emitting all at once after the full fan-out completes. Awaited so the
+ * caller can run async work (DB update, event emit) before the next settle.
+ */
+export type OnNegotiationResolved = (entry: {
+  candidate: NegotiationCandidate;
+  accepted: NegotiationResult | null;
+}) => Promise<void>;
+
+/**
  * Runs bilateral negotiation for each candidate in parallel.
  * @returns Only candidates that produced an opportunity
  */
@@ -321,9 +333,15 @@ export async function negotiateCandidates(
   sourceUser: UserNegotiationContext,
   candidates: NegotiationCandidate[],
   indexContext: { networkId: string; prompt: string },
-  opts?: { maxTurns?: number; traceEmitter?: TraceEmitter; indexContextOverrides?: Map<string, string>; timeoutMs?: number },
+  opts?: {
+    maxTurns?: number;
+    traceEmitter?: TraceEmitter;
+    indexContextOverrides?: Map<string, string>;
+    timeoutMs?: number;
+    onCandidateResolved?: OnNegotiationResolved;
+  },
 ): Promise<NegotiationResult[]> {
-  const { maxTurns, traceEmitter, indexContextOverrides, timeoutMs } = opts ?? {};
+  const { maxTurns, traceEmitter, indexContextOverrides, timeoutMs, onCandidateResolved } = opts ?? {};
 
   const results = await Promise.all(
     candidates.map(async (candidate) => {
@@ -366,19 +384,41 @@ export async function negotiateCandidates(
         const statusTag = hasOpportunity ? "✓ opportunity" : "✗ rejected";
         traceEmitter?.({ type: "agent_end", name: "Negotiating candidate", durationMs, summary: `${candidate.userId}: ${turnFlow} ${statusTag}` });
 
-        if (hasOpportunity && outcome) {
-          return {
-            userId: candidate.userId,
-            agreedRoles: outcome.agreedRoles,
-            reasoning: outcome.reasoning,
-            turnCount: outcome.turnCount,
-          };
+        const accepted: NegotiationResult | null = hasOpportunity && outcome
+          ? {
+              userId: candidate.userId,
+              agreedRoles: outcome.agreedRoles,
+              reasoning: outcome.reasoning,
+              turnCount: outcome.turnCount,
+            }
+          : null;
+
+        if (onCandidateResolved) {
+          try {
+            await onCandidateResolved({ candidate, accepted });
+          } catch (hookErr) {
+            // Hook failures must not sink the candidate result — the aggregate
+            // return is still useful, and the orchestrator branch logs its own
+            // failures inline.
+            logger.error("[negotiateCandidates] onCandidateResolved hook threw", {
+              candidateUserId: candidate.userId,
+              error: hookErr,
+            });
+          }
         }
-        return null;
+
+        return accepted;
       } catch (err) {
         const durationMs = Date.now() - start;
         traceEmitter?.({ type: "agent_end", name: "Negotiating candidate", durationMs, summary: `${candidate.userId}: error` });
         logger.error("[negotiateCandidates] Negotiation failed", { candidateUserId: candidate.userId, error: err });
+        if (onCandidateResolved) {
+          try {
+            await onCandidateResolved({ candidate, accepted: null });
+          } catch {
+            // ignore hook failure on error path
+          }
+        }
         return null;
       }
     }),

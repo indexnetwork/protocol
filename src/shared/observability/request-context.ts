@@ -1,16 +1,49 @@
+import type { Opportunity } from "../interfaces/database.interface.js";
 import { AsyncLocalStorage } from "async_hooks";
 
-/** Callback for streaming graph/agent trace events from deep inside graph nodes. */
-export type TraceEmitter = (event: {
-  type: "graph_start" | "graph_end" | "agent_start" | "agent_end";
-  name: string;
-  durationMs?: number;
-  summary?: string;
-}) => void;
+/**
+ * Callback for streaming trace / domain events from deep inside graph nodes
+ * back to the caller (typically chat.agent's stream pipeline).
+ *
+ * Carries two flavors of event:
+ * - Trace events (`graph_start | graph_end | agent_start | agent_end`) — used
+ *   by the chat TRACE panel to visualize what the agent is doing.
+ * - Domain events (`opportunity_draft_ready`) — emitted by the orchestrator
+ *   branch of OpportunityGraph.negotiateNode so the frontend can render each
+ *   accepted draft card progressively as its negotiation resolves.
+ *
+ * Kept as a single emitter rather than splitting into two to minimize plumbing
+ * through AsyncLocalStorage; the chat.agent relay branches on event.type.
+ */
+export type TraceEmitter = (
+  event:
+    | {
+        type: "graph_start" | "graph_end" | "agent_start" | "agent_end";
+        name: string;
+        durationMs?: number;
+        summary?: string;
+      }
+    | {
+        type: "opportunity_draft_ready";
+        opportunityId: string;
+        opportunity: Opportunity;
+      },
+) => void;
 
 interface RequestContext {
   originUrl?: string;
   traceEmitter?: TraceEmitter;
+  /**
+   * Signal for cooperative cancellation — propagates the caller's AbortSignal
+   * into long-running graph nodes (e.g. orchestrator negotiation fan-out) so
+   * they can stop emitting events when the chat session closes.
+   *
+   * The orchestrator branch checks this before persisting status flips or
+   * pushing `opportunity_draft_ready` events. In-flight negotiations are not
+   * forcibly cancelled — they finish or time out naturally via their park
+   * window — but their results are suppressed once the signal trips.
+   */
+  abortSignal?: AbortSignal;
 }
 
 /**

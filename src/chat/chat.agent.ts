@@ -21,7 +21,7 @@ import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import { createModel } from "../shared/agent/model.config.js";
 import { sanitizeForDebugMeta } from "../shared/observability/debug-meta.sanitizer.js";
 import type { DebugMetaToolCall } from "./chat-streaming.types.js";
-import type { HomeCardPresentationResult } from "../opportunity/opportunity.presenter.js";
+import type { Opportunity } from "../shared/interfaces/database.interface.js";
 import { Timed } from "../shared/observability/performance.js";
 import { requestContext } from "../shared/observability/request-context.js";
 
@@ -78,10 +78,13 @@ export type AgentStreamEvent =
   | {
       // Emitted from the orchestrator branch of OpportunityGraph.negotiateNode
       // each time a per-candidate negotiation resolves to an accepted draft.
-      // The frontend appends `rendered` as an inline card in the chat timeline.
+      // Carries the full opportunity row so the frontend can append an inline
+      // card to the chat timeline using the same <OpportunityCard> it already
+      // uses on the home feed (the home-card LLM presenter is too heavy to
+      // run inline — it would defeat the per-candidate streaming promise).
       type: "opportunity_draft_ready";
       opportunityId: string;
-      rendered: HomeCardPresentationResult;
+      opportunity: Opportunity;
     };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -860,7 +863,7 @@ export class ChatAgent {
             logger.verbose("Streaming: executing tool", { name: tc.name });
             const currentCtx = requestContext.getStore() ?? {};
             let result = await requestContext.run(
-              { ...currentCtx, traceEmitter: (e) => emit({ type: e.type, name: e.name, durationMs: e.durationMs, summary: e.summary } as AgentStreamEvent) },
+              { ...currentCtx, traceEmitter: (e) => emit(e as AgentStreamEvent) },
               () => tool.invoke(tc.args),
             );
             const toolDurationMs = Date.now() - toolStart;
@@ -983,7 +986,7 @@ export class ChatAgent {
           try {
             const currentCtx = requestContext.getStore() ?? {};
             const result = await requestContext.run(
-              { ...currentCtx, traceEmitter: (e) => emit({ type: e.type, name: e.name, durationMs: e.durationMs, summary: e.summary } as AgentStreamEvent) },
+              { ...currentCtx, traceEmitter: (e) => emit(e as AgentStreamEvent) },
               () => tool.invoke(toolArgs),
             );
             const rawResultStr = typeof result === "string" ? result : JSON.stringify(result);

@@ -65,7 +65,7 @@ import type {
   ActiveIntent,
 } from '../shared/interfaces/database.interface.js';
 import { persistOpportunities } from './opportunity.persist.js';
-import { negotiateCandidates, type NegotiationCandidate } from "../negotiation/negotiation.graph.js";
+import { negotiateCandidates, type NegotiationCandidate, type OnNegotiationResolved } from "../negotiation/negotiation.graph.js";
 import { AMBIENT_PARK_WINDOW_MS } from "../negotiation/negotiation.tools.js";
 import type { NegotiationGraphLike } from "../negotiation/negotiation.state.js";
 import type { AgentDispatcher } from "../shared/interfaces/agent-dispatcher.interface.js";
@@ -1772,12 +1772,21 @@ export class OpportunityGraphFactory {
                 )).every(Boolean)
               : false)
           : false;
+        // Orchestrator (chat-driven a2h) fan-out uses a tight 60s park window —
+        // the user is watching the stream, so we cannot afford the 5-min ambient
+        // budget. Ambient keeps its heartbeat-aware long/short split.
+        const ORCHESTRATOR_PARK_WINDOW_MS = 60_000;
+        const isOrchestrator = state.trigger === 'orchestrator';
         const useLongTimeout = !isChatPath || hasPersonalAgent;
-        const timeoutMs = useLongTimeout ? AMBIENT_PARK_WINDOW_MS : 30_000;
+        const timeoutMs = isOrchestrator
+          ? ORCHESTRATOR_PARK_WINDOW_MS
+          : useLongTimeout ? AMBIENT_PARK_WINDOW_MS : 30_000;
 
         logger.info('negotiateNode timeout decision', {
           discoveryUserId,
+          trigger: state.trigger,
           isChatPath,
+          isOrchestrator,
           hasDispatcher: !!this.agentDispatcher,
           hasPersonalAgent,
           useLongTimeout,
@@ -1785,12 +1794,47 @@ export class OpportunityGraphFactory {
           candidateCount: candidates.length,
         });
 
+        // Orchestrator-only: per-candidate streaming hook. Each accepted
+        // negotiation flips the opp from 'pending' (negotiation finalize's
+        // default) to 'draft' (chat-only surface) and pushes an
+        // `opportunity_draft_ready` event so the frontend can render it
+        // inline as soon as it resolves, rather than waiting for the full
+        // fan-out. Abort (e.g. user closed the chat) suppresses both the
+        // status flip and the event — the in-flight negotiation finishes
+        // naturally but its card never reaches the user.
+        const onCandidateResolved: OnNegotiationResolved | undefined = isOrchestrator
+          ? async ({ candidate, accepted }) => {
+              const abortSignal = requestContext.getStore()?.abortSignal;
+              if (abortSignal?.aborted) return;
+              if (!accepted || !candidate.opportunityId) return;
+
+              const updated = await this.database
+                .updateOpportunityStatus(candidate.opportunityId, 'draft')
+                .catch((err) => {
+                  logger.warn('[Graph:Negotiate] failed to flip opp to draft; emitting with stale status', {
+                    opportunityId: candidate.opportunityId,
+                    error: err,
+                  });
+                  return null;
+                });
+              const opp = updated ?? await this.database.getOpportunity(candidate.opportunityId).catch(() => null);
+              if (!opp || abortSignal?.aborted) return;
+
+              traceEmitter?.({
+                type: 'opportunity_draft_ready',
+                opportunityId: candidate.opportunityId,
+                opportunity: opp,
+              });
+            }
+          : undefined;
+
         const acceptedResults = await negotiateCandidates(
           this.negotiationGraph, sourceUser, candidates,
           { networkId: '', prompt: '' }, // base context, overridden per-candidate below
           { maxTurns, traceEmitter: traceEmitter ?? undefined,
             indexContextOverrides: indexContextMap,
-            timeoutMs },
+            timeoutMs,
+            ...(onCandidateResolved && { onCandidateResolved }) },
         );
 
         // No filtering: every candidate's outcome (accept/reject/stalled) was applied to its
