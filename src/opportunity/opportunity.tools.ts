@@ -654,6 +654,12 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       const _discoverTraceEmitter = requestContext.getStore()?.traceEmitter;
       const _discoverGraphStart = Date.now();
       _discoverTraceEmitter?.({ type: "graph_start", name: "opportunity" });
+      // Chat-driven invocations run under the orchestrator trigger: persist
+      // opens at 'negotiating', negotiate fans out with a 60s park window,
+      // each accepted draft streams via traceEmitter, and the persist step
+      // surfaces already-accepted pairs. Other callers (maintenance, queue
+      // workers) still get the 'ambient' default.
+      const runDiscoveryOrchestrator = !!context.sessionId;
       const result = await runDiscoverFromQuery({
         opportunityGraph: graphs.opportunity,
         database,
@@ -667,6 +673,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         onBehalfOfUserId: query.introTargetUserId?.trim() || undefined,
         cache,
         ...(context.sessionId ? { chatSessionId: context.sessionId } : {}),
+        ...(runDiscoveryOrchestrator && { trigger: 'orchestrator' as const }),
       });
       const _discoverGraphMs = Date.now() - _discoverGraphStart;
       _discoverTraceEmitter?.({ type: "graph_end", name: "opportunity", durationMs: _discoverGraphMs });
@@ -773,6 +780,14 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           "\n\nYou already have a connection with: " +
           existingForMention.map((c) => c.name + (c.status ? " (" + c.status + ")" : "")).join(", ") +
           ". View on your home page.";
+      }
+      // Orchestrator-only: dedupAlreadyAccepted surfaces pairs that already
+      // have an accepted opp between the users. Tell the LLM so it can guide
+      // the user to the existing chat instead of treating this like a brand-
+      // new connection.
+      if (result.alreadyAcceptedPairs && result.alreadyAcceptedPairs.length > 0) {
+        message +=
+          `\n\nYou already have ${result.alreadyAcceptedPairs.length} accepted opportunity(ies) with some of these candidates — open the existing chat with them rather than creating a new draft.`;
       }
 
       const totalRemaining = (result.pagination?.remaining ?? 0) + extraFromCap;

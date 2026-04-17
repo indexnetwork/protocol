@@ -863,7 +863,14 @@ export class ChatAgent {
             logger.verbose("Streaming: executing tool", { name: tc.name });
             const currentCtx = requestContext.getStore() ?? {};
             let result = await requestContext.run(
-              { ...currentCtx, traceEmitter: (e) => emit(e as AgentStreamEvent) },
+              {
+                ...currentCtx,
+                traceEmitter: (e) => emit(e as AgentStreamEvent),
+                // Propagate the caller's AbortSignal into requestContext so
+                // long-running graph nodes (orchestrator negotiation fan-out)
+                // can suppress event emits after the chat session closes.
+                ...(signal && { abortSignal: signal }),
+              },
               () => tool.invoke(tc.args),
             );
             const toolDurationMs = Date.now() - toolStart;
@@ -986,7 +993,14 @@ export class ChatAgent {
           try {
             const currentCtx = requestContext.getStore() ?? {};
             const result = await requestContext.run(
-              { ...currentCtx, traceEmitter: (e) => emit(e as AgentStreamEvent) },
+              {
+                ...currentCtx,
+                traceEmitter: (e) => emit(e as AgentStreamEvent),
+                // Propagate the caller's AbortSignal into requestContext so
+                // long-running graph nodes (orchestrator negotiation fan-out)
+                // can suppress event emits after the chat session closes.
+                ...(signal && { abortSignal: signal }),
+              },
               () => tool.invoke(toolArgs),
             );
             const rawResultStr = typeof result === "string" ? result : JSON.stringify(result);
