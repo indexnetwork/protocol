@@ -9,6 +9,17 @@
  * @param enrichedName - `enrichment.identity.name` from Parallel (may be untrimmed)
  * @returns True if `users.name` should be updated to the enriched full name
  */
+/**
+ * Returns true when the enriched name is meaningfully better than the email local-part.
+ * A name that is empty, contains '@', or case-insensitively matches the prefix is NOT meaningful.
+ */
+export function isEnrichedNameMeaningful(email: string, enrichedName: string): boolean {
+  const trimmed = enrichedName.trim();
+  if (!trimmed || trimmed.includes('@')) return false;
+  const localPart = email.split('@')[0].toLowerCase();
+  return trimmed.toLowerCase() !== localPart;
+}
+
 export function shouldEnrichGhostDisplayNameFromParallel(
   user: { name: string; email: string; isGhost?: boolean | null },
   enrichedName: string,
@@ -17,8 +28,8 @@ export function shouldEnrichGhostDisplayNameFromParallel(
   const trimmed = enrichedName.trim();
   if (!trimmed || trimmed.includes("@")) return false;
 
-  const current = user.name.trim();
-  if (current === trimmed.toLowerCase()) return false;
+  // Skip only if exactly the same (case-sensitive)
+  if (user.name.trim() === trimmed) return false;
 
   return true;
 }

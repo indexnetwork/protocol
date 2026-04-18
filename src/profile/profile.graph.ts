@@ -6,7 +6,7 @@ import { ProfileGraphDatabase } from "../shared/interfaces/database.interface.js
 import { Embedder } from "../shared/interfaces/embedder.interface.js";
 import { Scraper } from "../shared/interfaces/scraper.interface.js";
 import type { ProfileEnricher } from "../shared/interfaces/enrichment.interface.js";
-import { shouldEnrichGhostDisplayNameFromParallel } from "./profile.enricher.js";
+import { shouldEnrichGhostDisplayNameFromParallel, isEnrichedNameMeaningful } from "./profile.enricher.js";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import { timed } from "../shared/observability/performance.js";
 import { requestContext } from "../shared/observability/request-context.js";
@@ -430,6 +430,12 @@ export class ProfileGraphFactory {
               );
 
             if (hasMeaningfulEnrichment) {
+              if (user.isGhost && !isEnrichedNameMeaningful(user.email || '', enrichment!.identity.name || '')) {
+                logger.info("Enrichment has content but no real name for ghost, soft-deleting", { userId: state.userId });
+                await this.database.softDeleteGhost(state.userId);
+                return { error: "No real name found for ghost user" };
+              }
+
               logger.verbose("Chat API enrichment succeeded", {
                 userId: state.userId,
                 skillsCount: enrichment!.attributes.skills.length,
@@ -921,12 +927,17 @@ export class ProfileGraphFactory {
             logger.verbose("Enrichment succeeded — using pre-populated profile");
             return "use_prepopulated_profile";
           }
-          logger.verbose("Enrichment failed — falling back to LLM profile generation");
-          return "generate_profile";
+          if (state.input) {
+            logger.verbose("Enrichment fell back — using basic info for LLM generation");
+            return "generate_profile";
+          }
+          logger.verbose("Enrichment ended without data (ghost soft-deleted or error) — done");
+          return END;
         },
         {
           use_prepopulated_profile: "use_prepopulated_profile",
           generate_profile: "generate_profile",
+          [END]: END,
         }
       )
 
