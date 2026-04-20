@@ -3014,6 +3014,44 @@ export class OpportunityGraphFactory {
       return {};
     };
 
+    /**
+     * Node: Approve Introduction
+     * Called by the introducer to approve a latent introducer-pattern opportunity.
+     * Sets approved=true on the introducer actor (status stays latent), then
+     * enqueues a negotiate_existing job so the parties negotiate normally.
+     */
+    const approveIntroductionNode = async (state: typeof OpportunityGraphState.State) => {
+      const { opportunityId, userId } = state;
+      if (!opportunityId) {
+        return { mutationResult: { success: false, error: 'opportunityId required for approve_introduction' } };
+      }
+
+      const opp = await this.database.getOpportunity(opportunityId as string);
+      if (!opp) {
+        return { mutationResult: { success: false, error: 'Opportunity not found' } };
+      }
+
+      const introducerActor = (opp.actors as OpportunityActor[])
+        .find(a => a.role === 'introducer' && a.userId === userId);
+      if (!introducerActor) {
+        return { mutationResult: { success: false, error: 'You are not the introducer for this opportunity' } };
+      }
+      if (introducerActor.approved === true) {
+        return { mutationResult: { success: false, error: 'Introduction already approved' } };
+      }
+
+      const updated = await this.database.updateOpportunityActorApproval(opportunityId as string, userId as string, true);
+      if (!updated) {
+        return { mutationResult: { success: false, error: 'Failed to update approval' } };
+      }
+
+      if (this.queueNegotiateExisting) {
+        await this.queueNegotiateExisting(opportunityId as string, userId as string);
+      }
+
+      return { mutationResult: { success: true, opportunityId } };
+    };
+
     // ═══════════════════════════════════════════════════════════════
     // CONDITIONAL ROUTING FUNCTIONS
     // ═══════════════════════════════════════════════════════════════
@@ -3109,6 +3147,7 @@ export class OpportunityGraphFactory {
       .addNode('delete_opp', deleteNode)
       .addNode('send', sendNode)
       .addNode('negotiate_existing', negotiateExistingNode)
+      .addNode('approve_introduction', approveIntroductionNode)
 
       // Route by operation mode from START
       .addConditionalEdges(START, routeByMode, {
@@ -3119,6 +3158,7 @@ export class OpportunityGraphFactory {
         delete_opp: 'delete_opp',
         send: 'send',
         negotiate_existing: 'negotiate_existing',
+        approve_introduction: 'approve_introduction',
       })
 
       // Introduction path: validation -> evaluation -> persist (or END on validation error)
@@ -3134,6 +3174,7 @@ export class OpportunityGraphFactory {
       .addEdge('delete_opp', END)
       .addEdge('send', END)
       .addEdge('negotiate_existing', END)
+      .addEdge('approve_introduction', END)
 
       // Conditional routing: early exit if no indexed intents
       .addConditionalEdges('prep', shouldContinueAfterPrep, {

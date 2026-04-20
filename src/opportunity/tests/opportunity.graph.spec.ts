@@ -2314,6 +2314,88 @@ describe('Opportunity Graph', () => {
       expect(notifiedUserIds).not.toContain('introducer-user');
     });
   });
+
+  // ─── approve_introduction mode tests ─────────────────────────────────────────
+
+  describe('approve_introduction mode', () => {
+    test('sets approved=true on introducer actor and enqueues negotiate job', async () => {
+      const approvalCalls: Array<[string, string, boolean]> = [];
+      const negotiateJobsEnqueued: Array<{ opportunityId: string; userId: string }> = [];
+
+      const existingOpp = {
+        id: 'opp-456',
+        status: 'latent' as const,
+        actors: [
+          { networkId: 'idx-1' as Id<'networks'>, userId: 'target-user' as Id<'users'>, role: 'patient' as const },
+          { networkId: 'idx-1' as Id<'networks'>, userId: 'candidate-user' as Id<'users'>, role: 'agent' as const },
+          { networkId: 'idx-1' as Id<'networks'>, userId: 'introducer-user' as Id<'users'>, role: 'introducer' as const, approved: false },
+        ],
+        detection: { source: 'manual' as const, createdBy: 'introducer-user', timestamp: new Date().toISOString() },
+        interpretation: { category: 'collaboration', reasoning: 'test', confidence: 0.8, signals: [] },
+        context: { networkId: 'idx-1' as Id<'networks'> },
+        confidence: '0.8',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        expiresAt: null,
+      };
+
+      // Build the mock db directly (same pattern as negotiate_existing tests)
+      const mockDb: OpportunityGraphDatabase = {
+        getProfile: () => Promise.resolve(null),
+        createOpportunity: (data) => Promise.resolve({ id: 'opp-new', ...data, status: data.status ?? 'latent', createdAt: new Date(), updatedAt: new Date(), expiresAt: null }),
+        opportunityExistsBetweenActors: () => Promise.resolve(false),
+        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
+        getOpportunityBetweenActors: () => Promise.resolve(null),
+        findOverlappingOpportunities: () => Promise.resolve([]),
+        getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
+        getNetworkMemberships: async () => [],
+        getActiveIntents: () => Promise.resolve([]),
+        getNetworkIdsForIntent: () => Promise.resolve([]),
+        getNetwork: () => Promise.resolve(null),
+        getNetworkMemberCount: () => Promise.resolve(0),
+        getIntentIndexScores: async () => [],
+        getNetworkMemberContext: async () => null,
+        getUser: (_id: string) => Promise.resolve({ id: _id, name: 'Test', email: 'test@test.com' }),
+        isNetworkMember: () => Promise.resolve(false),
+        isIndexOwner: () => Promise.resolve(false),
+        getOpportunity: () => Promise.resolve(existingOpp as any),
+        getOpportunitiesForUser: () => Promise.resolve([]),
+        updateOpportunityStatus: () => Promise.resolve(null),
+        updateOpportunityActorApproval: (_id: string, userId: string, approved: boolean) => {
+          approvalCalls.push([_id, userId, approved]);
+          return Promise.resolve({ ...existingOpp, actors: existingOpp.actors.map((a: any) => a.userId === userId && a.role === 'introducer' ? { ...a, approved } : a) } as any);
+        },
+        getIntent: () => Promise.resolve(null),
+      };
+
+      const mockEmbedder = { generate: async () => new Array(2000).fill(0.1) };
+      const mockHyde = { invoke: async () => ({ hydeEmbeddings: {} }) };
+
+      const factory = new OpportunityGraphFactory(
+        mockDb,
+        mockEmbedder as any,
+        mockHyde as any,
+        undefined, // evaluator
+        undefined, // queueNotification
+        undefined, // negotiationGraph
+        undefined, // agentDispatcher
+        async (opportunityId: string, userId: string) => {
+          negotiateJobsEnqueued.push({ opportunityId, userId });
+        },
+      );
+
+      await factory.createGraph().invoke({
+        userId: 'introducer-user' as Id<'users'>,
+        opportunityId: 'opp-456',
+        operationMode: 'approve_introduction' as any,
+      });
+
+      expect(approvalCalls).toHaveLength(1);
+      expect(approvalCalls[0]).toEqual(['opp-456', 'introducer-user', true]);
+      expect(negotiateJobsEnqueued).toHaveLength(1);
+      expect(negotiateJobsEnqueued[0].opportunityId).toBe('opp-456');
+    });
+  });
 });
 
 // ─── buildDiscovererContext tests ───────────────────────────────────────────
