@@ -40,7 +40,9 @@ describe("update_intent", () => {
   test("accepts description and rejects legacy newDescription", () => {
     const tools = captureTools({
       userDb: {},
-      systemDb: {},
+      systemDb: {
+        getIntentWithOwnership: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "user-123" }),
+      },
       graphs: {
         profile: { invoke: async () => ({ profile: null }) },
         intent: { invoke: async () => ({ executionResults: [] }) },
@@ -66,7 +68,9 @@ describe("update_intent", () => {
     let capturedInputContent: string | undefined;
     const tools = captureTools({
       userDb: {},
-      systemDb: {},
+      systemDb: {
+        getIntentWithOwnership: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "alice" }),
+      },
       graphs: {
         profile: { invoke: async () => ({ profile: null, agentTimings: [] }) },
         intent: {
@@ -94,5 +98,56 @@ describe("update_intent", () => {
     expect(capturedInputContent).toBe("Find a design partner for a CRPG UI");
     expect(parsed.success).toBe(true);
     expect(parsed.data.message).toBe("Intent updated.");
+  });
+});
+
+describe("update_intent — ownership", () => {
+  test("returns error when intent belongs to another user", async () => {
+    const tools = captureTools({
+      userDb: {},
+      systemDb: {
+        isNetworkMember: async () => true,
+        getNetworksByScope: async () => [],
+        getIntentWithOwnership: async () => null,
+      },
+      graphs: {
+        profile: { invoke: async () => ({ profile: null, agentTimings: [] }) },
+        intent: { invoke: async () => ({ executionResults: [] }) },
+      },
+    } as unknown as ToolDeps);
+
+    const tool = tools.find((t) => t.name === "update_intent")!;
+    const result = JSON.parse(
+      await tool.handler({
+        context: makeContext("caller-user"),
+        query: { intentId: "11111111-1111-4111-8111-111111111111", description: "Updated" },
+      })
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("own");
+  });
+
+  test("proceeds when intent belongs to the caller", async () => {
+    const tools = captureTools({
+      userDb: {},
+      systemDb: {
+        isNetworkMember: async () => true,
+        getNetworksByScope: async () => [],
+        getIntentWithOwnership: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "caller-user" }),
+      },
+      graphs: {
+        profile: { invoke: async () => ({ profile: null, agentTimings: [] }) },
+        intent: { invoke: async () => ({ executionResults: [{ success: true }], inferredIntents: [] }) },
+      },
+    } as unknown as ToolDeps);
+
+    const tool = tools.find((t) => t.name === "update_intent")!;
+    const result = JSON.parse(
+      await tool.handler({
+        context: makeContext("caller-user"),
+        query: { intentId: "11111111-1111-4111-8111-111111111111", description: "Updated" },
+      })
+    );
+    expect(result.success).toBe(true);
   });
 });
