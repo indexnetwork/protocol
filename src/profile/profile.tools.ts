@@ -126,7 +126,11 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
                     }
                   : undefined,
               };
-            } catch {
+            } catch (err) {
+              logger.warn("read_user_profiles: getProfile failed; degrading to hasProfile=false", {
+                userId: m.userId,
+                error: err instanceof Error ? err.message : String(err),
+              });
               return { userId: m.userId, name: m.name, hasProfile: false };
             }
           })

@@ -366,6 +366,9 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       if (!intent || intent.userId !== context.userId) {
         return error("Intent not found or you can only update your own intents.");
       }
+      if (intent.archivedAt) {
+        return error("This intent is archived and cannot be updated. Create a new intent instead.");
+      }
 
       // Strict scope enforcement: when chat is index-scoped, verify intent is linked to that index
       if (context.networkId) {

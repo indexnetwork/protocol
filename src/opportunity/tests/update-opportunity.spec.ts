@@ -68,6 +68,24 @@ describe("update_opportunity — state machine", () => {
     expect(result.success).toBe(false);
   });
 
+  test("blocks update while opportunity is negotiating (in-flight)", async () => {
+    const deps = {
+      systemDb: {
+        getOpportunity: async () => makeOpportunity("negotiating"),
+      },
+      graphs: {
+        opportunity: { invoke: async () => ({ mutationResult: { success: true, opportunityId: OPP_ID, message: "ok" } }) },
+      },
+    } as unknown as ToolDeps;
+
+    const tool = captureTool(deps);
+    const result = JSON.parse(
+      await tool.handler({ context: makeContext(), query: { opportunityId: OPP_ID, status: "accepted" } })
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/negotiating|cannot/i);
+  });
+
   test("allows pending to accepted", async () => {
     const deps = {
       systemDb: {
@@ -103,7 +121,8 @@ describe("update_opportunity — actor guard", () => {
       await tool.handler({ context: makeContext(CALLER_ID), query: { opportunityId: OPP_ID, status: "accepted" } })
     );
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found|not a party/i);
+    // Privacy: unauthorized callers should see the same message as missing opportunities.
+    expect(result.error).toMatch(/not found/i);
   });
 
   test("allows update when caller is an actor", async () => {

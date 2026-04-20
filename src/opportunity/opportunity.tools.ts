@@ -9,9 +9,22 @@ import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "./opportu
 import { runDiscoverFromQuery, continueDiscovery } from "./opportunity.discover.js";
 import type { EvaluatorEntity } from "./opportunity.evaluator.js";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
-import type { Opportunity } from "../shared/interfaces/database.interface.js";
+import type { Opportunity, OpportunityStatus } from "../shared/interfaces/database.interface.js";
 
 const logger = protocolLogger("ChatTools:Opportunity");
+
+/**
+ * Statuses for which `update_opportunity` must refuse mutations.
+ * - `accepted` / `rejected` / `expired`: terminal outcomes.
+ * - `negotiating`: an async negotiation graph is actively writing this row;
+ *   a concurrent user/agent override would race with it.
+ */
+const UPDATE_OPPORTUNITY_BLOCKED_STATUSES = new Set<OpportunityStatus>([
+  "accepted",
+  "rejected",
+  "expired",
+  "negotiating",
+]);
 
 /** Maximum number of opportunity cards to show per chat response. */
 const CHAT_DISPLAY_LIMIT = 3;
@@ -1078,9 +1091,10 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         return error("Opportunity not found.");
       }
 
-      // State machine: terminal statuses cannot be updated
-      const TERMINAL = new Set(["accepted", "rejected", "expired"]);
-      if (TERMINAL.has(opportunity.status)) {
+      // Terminal-state and in-flight-negotiation guard.
+      // Not a full state-machine: the Zod enum already constrains the target status,
+      // and source statuses like `draft` / `latent` remain permitted.
+      if (UPDATE_OPPORTUNITY_BLOCKED_STATUSES.has(opportunity.status)) {
         return error(`This opportunity is already ${opportunity.status} and cannot be updated.`);
       }
 

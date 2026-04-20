@@ -152,6 +152,35 @@ describe("update_intent — ownership", () => {
     expect(result.error).toContain("own");
   });
 
+  test("returns error when intent is archived", async () => {
+    const tools = captureTools({
+      userDb: {},
+      systemDb: {
+        isNetworkMember: async () => true,
+        getNetworksByScope: async () => [],
+        getIntent: async () => ({
+          id: "11111111-1111-4111-8111-111111111111",
+          userId: "caller-user",
+          archivedAt: new Date(),
+        }),
+      },
+      graphs: {
+        profile: { invoke: async () => ({ profile: null, agentTimings: [] }) },
+        intent: { invoke: async () => ({ executionResults: [] }) },
+      },
+    } as unknown as ToolDeps);
+
+    const tool = tools.find((t) => t.name === "update_intent")!;
+    const result = JSON.parse(
+      await tool.handler({
+        context: makeContext("caller-user"),
+        query: { intentId: "11111111-1111-4111-8111-111111111111", description: "Updated" },
+      })
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/archived/i);
+  });
+
   test("proceeds when intent belongs to the caller", async () => {
     const tools = captureTools({
       userDb: {},
