@@ -1056,7 +1056,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       "**Status transitions:**\n" +
       "- `pending`: Sends a draft opportunity to the other party. They'll be notified and can accept or reject. " +
       "This is the primary action after create_opportunities returns a draft.\n" +
-      "- `accepted`: Accept a received opportunity — signals interest in connecting. Both parties can now communicate.\n" +
+      "- `accepted`: Accept a received opportunity — opens a direct conversation between both parties. Returns a conversationId to surface to the user.\n" +
       "- `rejected`: Decline a received opportunity.\n" +
       "- `expired`: Mark as expired (typically done by the system after timeout).\n\n" +
       "**When to use:** After create_opportunities or list_opportunities returns opportunity cards. " +
@@ -1128,6 +1128,9 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
             status: query.status,
             message: result.mutationResult.message,
             ...(result.mutationResult.notified && { notified: result.mutationResult.notified }),
+            ...(result.mutationResult.conversationId && {
+              conversationId: result.mutationResult.conversationId,
+            }),
             _graphTimings: [{ name: 'opportunity', durationMs: _updateGraphMs, agents: result.agentTimings ?? [] }],
           });
         }
