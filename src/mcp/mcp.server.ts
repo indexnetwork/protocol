@@ -176,6 +176,16 @@ Each tool's description contains its own usage rules (when to call, when NOT to 
 
 # Authentication
 Pass your API key in the \`x-api-key\` request header (not \`Authorization: Bearer\`).
+
+# Opportunity lifecycle
+Opportunities move through: draft → pending → accepted (or rejected).
+
+- **draft** (you created it, not yet sent): offer to send it; confirm before calling update_opportunity with pending.
+- **pending, you sent it**: waiting for the other side — nothing to do.
+- **pending, you received it**: the other person is waiting for your response. Surface it to the user and ask if they want to start a chat. Only call update_opportunity with accepted after explicit user confirmation.
+- **accepted**: both sides are connected — a direct conversation exists. Surface the conversationId to the user if available.
+
+Never accept a received opportunity without explicit user approval in the current conversation.
 `.trim();
 
 export function createMcpServer(
