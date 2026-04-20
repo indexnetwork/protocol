@@ -41,4 +41,20 @@ describe('IntentReconciler', () => {
     expect((result.actions[0] as any).id).toBe("456");
     expect((result.actions[0] as any).payload).toContain("Redux");
   }, 30000);
+
+  it('should create (not compound) when inferred goal is distinct from active intent on same topic', async () => {
+    // Two related but distinct goals about game art - should NOT be merged into a compound
+    const inferred = `- [GOAL] "Collaborate on art direction for a text-first CRPG" (Confidence: high, Score: 85)`;
+    const active = `1. [ID: 789] "Find an artist for visual identity, UI language, and iconography for a desktop CRPG interface" (Status: Active)`;
+
+    const result = await reconciler.invoke(inferred, active);
+
+    // Should create a new intent, not update the existing one
+    expect(result.actions.length).toBe(1);
+    expect(result.actions[0].type).toBe("create");
+    // The payload should NOT be a compound (should not contain both goals joined by "and")
+    const payload = (result.actions[0] as any).payload;
+    expect(payload).not.toMatch(/find.*and.*collaborate/i);
+    expect(payload).not.toMatch(/artist.*and.*art direction/i);
+  }, 30000);
 });

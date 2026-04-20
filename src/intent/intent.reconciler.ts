@@ -61,6 +61,13 @@ ACTIONS:
   * Think of updates as REFINEMENTS or ADDITIONS, not REPLACEMENTS.
   * If the Inferred Intent is a complete restatement, it's fine to use it directly.
   * If the Inferred Intent adds/modifies specific aspects, merge it with existing details.
+
+  COMPOUND INTENT SANITY CHECK (CRITICAL):
+  * NEVER produce a compound intent — an intent with multiple distinct goals joined by "and", "as well as", commas, or similar.
+  * If merging would create a compound (e.g., "Find an artist for X, and collaborate on Y"), the intents are NOT the same — CREATE the new one instead.
+  * Valid UPDATE: adding detail to ONE goal (e.g., "Find a developer" → "Find a senior React developer in Berlin")
+  * Invalid UPDATE (compound): joining TWO goals (e.g., "Find an artist" + "Collaborate on art direction" → "Find an artist and collaborate on art direction")
+  * When in doubt, CREATE a new intent rather than risk a compound.
 - EXPIRE: If an Inferred Tombstone matches an Active Intent (semantically), EXPIRE it.
 - CONFLICT RESOLUTION: If a NEW Goal contradicts an Active Intent, EXPIRE the old and CREATE the new.
 - DEDUPLICATION: Use Donnellan's Distinction above to merge duplicates. For duplicates, output UPDATE (not an empty list) so the intent can be linked to an index.
