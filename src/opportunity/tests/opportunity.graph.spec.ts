@@ -2387,7 +2387,7 @@ describe('Opportunity Graph', () => {
       await factory.createGraph().invoke({
         userId: 'introducer-user' as Id<'users'>,
         opportunityId: 'opp-456',
-        operationMode: 'approve_introduction' as any,
+        operationMode: 'approve_introduction',
       });
 
       expect(approvalCalls).toHaveLength(1);

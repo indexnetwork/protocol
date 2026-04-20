@@ -136,6 +136,8 @@ export interface ToolContext {
   grantDefaultSystemPermissions?: (userId: string) => Promise<void>;
   /** Dispatcher for routing negotiation turns to personal agents (optional — falls back to system AI). */
   agentDispatcher?: AgentDispatcher;
+  /** Enqueue a negotiate_existing job after introducer approval (optional). */
+  queueNegotiateExisting?: (opportunityId: string, userId: string) => Promise<void>;
 }
 
 /**

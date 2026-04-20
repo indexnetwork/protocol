@@ -2895,7 +2895,13 @@ export class OpportunityGraphFactory {
      * Used after introducer approval to trigger the normal negotiation flow for a latent opportunity.
      */
     const negotiateExistingNode = async (state: typeof OpportunityGraphState.State) => {
-      if (!state.opportunityId || !this.negotiationGraph) return {};
+      if (!state.opportunityId) return {};
+      if (!this.negotiationGraph) {
+        logger.warn('[Graph:NegotiateExisting] No negotiationGraph wired; skipping', {
+          opportunityId: state.opportunityId,
+        });
+        return {};
+      }
 
       try {
         const opp = await this.database.getOpportunity(state.opportunityId as string);
@@ -2923,7 +2929,7 @@ export class OpportunityGraphFactory {
         }
 
         // Load user data for both actors in parallel
-        const [sourceUser_account, sourceProfile, sourceIntents, candidateAccount, candidateProfile, candidateIntents] =
+        const [sourceUserAccount, sourceProfile, sourceIntents, candidateAccount, candidateProfile, candidateIntents] =
           await Promise.all([
             this.database.getUser(sourceActor.userId).catch(() => null),
             this.database.getProfile(sourceActor.userId).catch(() => null),
@@ -2944,9 +2950,9 @@ export class OpportunityGraphFactory {
           id: sourceActor.userId,
           intents: sourceIntents.slice(0, 5).map(toNegIntent),
           profile: {
-            name: sourceProfile?.identity?.name ?? sourceUser_account?.name,
-            bio: sourceProfile?.identity?.bio ?? sourceUser_account?.intro ?? undefined,
-            location: sourceProfile?.identity?.location ?? sourceUser_account?.location ?? undefined,
+            name: sourceProfile?.identity?.name ?? sourceUserAccount?.name,
+            bio: sourceProfile?.identity?.bio ?? sourceUserAccount?.intro ?? undefined,
+            location: sourceProfile?.identity?.location ?? sourceUserAccount?.location ?? undefined,
             skills: sourceProfile?.attributes?.skills,
             interests: sourceProfile?.attributes?.interests,
           },
