@@ -1674,6 +1674,7 @@ export type ChatGraphCompositeDatabase = Pick<
   | 'getOpportunitiesForUser'
   | 'updateOpportunityStatus'
   | 'updateOpportunityActorApproval'
+  | 'getOrCreateDM'
   // HyDE graph (used by OpportunityGraph)
   | 'getHydeDocument'
   | 'getHydeDocumentsForSource'
@@ -1745,6 +1746,7 @@ export type OpportunityGraphDatabase = Pick<
   | 'isNetworkMember'
   | 'isIndexOwner'
   | 'getUser'
+  | 'getOrCreateDM'
   // Load candidate intent payload/summary for evaluator
   | 'getIntent'
 >;
