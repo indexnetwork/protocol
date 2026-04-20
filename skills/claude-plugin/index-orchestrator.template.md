@@ -93,7 +93,7 @@ Exception: for profile creation, pass URLs directly to `create_user_profile` —
 ```
 1. read_intents() → get current intents with their IDs
 2. Match the user's request to the correct intent
-3. update_intent(intentId=..., newDescription=...) or delete_intent(intentId=...)
+3. update_intent(intentId=..., description=...) or delete_intent(intentId=...)
 ```
 
 ## Pattern 5: Introduce two people
@@ -127,7 +127,7 @@ Do NOT use Pattern 5 here. Do NOT ask for a second person. Do NOT suggest creati
 
 - **Import many**: `import_contacts(contacts=[{name, email}, ...])` — for CSV or bulk input; use `import_gmail_contacts` for Gmail
 - **Add one**: `add_contact(email=..., name=...)` — creates or links the person, then adds them as a contact
-- **Remove one**: first `list_contacts` or `search_contacts(q=name)` to find the userId, then `remove_contact(contactUserId=...)`
+- **Remove one**: first `list_contacts` or `search_contacts(query=name)` to find the userId, then `remove_contact(contactUserId=...)`
 
 ## Pattern 7: Community / index management
 
