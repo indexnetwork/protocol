@@ -110,21 +110,25 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
         // Fetch full profiles for matches
         const profiles = await Promise.all(
           matched.map(async (m) => {
-            const profile = await systemDb.getProfile(m.userId);
-            return {
-              userId: m.userId,
-              name: m.name,
-              hasProfile: !!profile,
-              profile: profile
-                ? {
-                    name: profile.identity.name,
-                    bio: profile.identity.bio,
-                    location: profile.identity.location,
-                    skills: profile.attributes.skills,
-                    interests: profile.attributes.interests,
-                  }
-                : undefined,
-            };
+            try {
+              const profile = await systemDb.getProfile(m.userId);
+              return {
+                userId: m.userId,
+                name: m.name,
+                hasProfile: !!profile,
+                profile: profile
+                  ? {
+                      name: profile.identity.name,
+                      bio: profile.identity.bio,
+                      location: profile.identity.location,
+                      skills: profile.attributes.skills,
+                      interests: profile.attributes.interests,
+                    }
+                  : undefined,
+              };
+            } catch {
+              return { userId: m.userId, name: m.name, hasProfile: false };
+            }
           })
         );
 
