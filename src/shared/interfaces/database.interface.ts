@@ -1109,6 +1109,17 @@ export interface Database {
   ): Promise<Opportunity | null>;
 
   /**
+   * Update the `approved` field on an opportunity's introducer actor.
+   * Fetches the opportunity, patches the matching actor in JS, and writes
+   * the updated actors JSONB back. Returns the updated opportunity or null.
+   */
+  updateOpportunityActorApproval(
+    id: string,
+    introducerUserId: string,
+    approved: boolean,
+  ): Promise<Opportunity | null>;
+
+  /**
    * Create one opportunity and expire others in a single transaction.
    * Atomic: insert then update status to 'expired' for each id in expireIds.
    * Used when enriching replaces overlapping opportunities so subscribers see consistent state.
@@ -1729,6 +1740,7 @@ export type OpportunityGraphDatabase = Pick<
   | 'getOpportunity'
   | 'getOpportunitiesForUser'
   | 'updateOpportunityStatus'
+  | 'updateOpportunityActorApproval'
   | 'isNetworkMember'
   | 'isIndexOwner'
   | 'getUser'
