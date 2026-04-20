@@ -130,6 +130,7 @@ export async function createChatTools(
     undefined, // queueNotification
     negotiationGraph,
     deps.agentDispatcher,
+    undefined, // TODO: wire queueNegotiateExisting when factory has queue access
   ).createGraph();
   const networkGraph = new NetworkGraphFactory(database).createGraph();
   const networkMembershipGraph = new NetworkMembershipGraphFactory(database).createGraph();

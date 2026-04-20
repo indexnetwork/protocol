@@ -1678,10 +1678,10 @@ export class OpportunityGraphFactory {
         // so the negotiation graph's finalize node can update its status from the outcome.
         const candidateEntries = state.opportunities
           .map(opp => {
-            // Skip opportunities where an introducer exists but has not yet approved.
-            const introducerActor = (opp.actors as OpportunityActor[])
-              .find(a => a.role === 'introducer');
-            if (introducerActor && introducerActor.approved !== true) return null;
+            // Skip opportunities where any introducer exists but has not yet approved.
+            const introducerActors = (opp.actors as OpportunityActor[])
+              .filter(a => a.role === 'introducer');
+            if (introducerActors.length > 0 && !introducerActors.every(a => a.approved === true)) return null;
 
             const candidateActor = (opp.actors as Array<{ userId: string; role?: string; networkId?: string; intentId?: string }>)
               .find(a => a.userId !== discoveryUserId);
@@ -3009,6 +3009,7 @@ export class OpportunityGraphFactory {
         });
       } catch (err) {
         logger.error('[Graph:NegotiateExisting] Failed', { opportunityId: state.opportunityId, error: err });
+        return { error: `Failed to load opportunity: ${err instanceof Error ? err.message : String(err)}` };
       }
 
       return {};
@@ -3026,7 +3027,12 @@ export class OpportunityGraphFactory {
         return { mutationResult: { success: false, error: 'opportunityId required for approve_introduction' } };
       }
 
-      const opp = await this.database.getOpportunity(opportunityId as string);
+      let opp;
+      try {
+        opp = await this.database.getOpportunity(opportunityId as string);
+      } catch (err) {
+        return { mutationResult: { success: false, error: `Failed to load opportunity: ${err instanceof Error ? err.message : String(err)}` } };
+      }
       if (!opp) {
         return { mutationResult: { success: false, error: 'Opportunity not found' } };
       }
