@@ -1066,14 +1066,29 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         return error("Valid opportunityId required.");
       }
 
+      // Always fetch the opportunity — needed for actor guard and state machine
+      const opportunity = await systemDb.getOpportunity(opportunityId);
+      if (!opportunity) {
+        return error("Opportunity not found.");
+      }
+
+      // Actor guard: caller must be a party to the opportunity
+      const isActor = opportunity.actors?.some((a) => a.userId === context.userId);
+      if (!isActor) {
+        return error("Opportunity not found.");
+      }
+
+      // State machine: terminal statuses cannot be updated
+      const TERMINAL = new Set(["accepted", "rejected", "expired"]);
+      if (TERMINAL.has(opportunity.status)) {
+        return error(`This opportunity is already ${opportunity.status} and cannot be updated.`);
+      }
+
       // Strict scope enforcement: when chat is index-scoped, verify opportunity is in that index
       if (context.networkId) {
-        const opportunity = await systemDb.getOpportunity(opportunityId);
-        if (!opportunity) {
-          return error("Opportunity not found.");
-        }
-        const opportunityIndexId = opportunity.context?.networkId
-          ?? opportunity.actors?.find((a) => a.networkId === context.networkId)?.networkId;
+        const opportunityIndexId =
+          opportunity.context?.networkId ??
+          opportunity.actors?.find((a) => a.networkId === context.networkId)?.networkId;
         if (!opportunityIndexId || opportunityIndexId !== context.networkId) {
           return error("Opportunity not found.");
         }
@@ -1098,15 +1113,11 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
             opportunityId: result.mutationResult.opportunityId,
             status: query.status,
             message: result.mutationResult.message,
-            ...(result.mutationResult.notified && {
-              notified: result.mutationResult.notified,
-            }),
+            ...(result.mutationResult.notified && { notified: result.mutationResult.notified }),
             _graphTimings: [{ name: 'opportunity', durationMs: _updateGraphMs, agents: result.agentTimings ?? [] }],
           });
         }
-        return error(
-          result.mutationResult.error || "Failed to update opportunity.",
-        );
+        return error(result.mutationResult.error || "Failed to update opportunity.");
       }
       return error("Failed to update opportunity.");
     },
