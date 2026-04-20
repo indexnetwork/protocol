@@ -134,4 +134,30 @@ describe('opportunity graph — update node (accepted)', () => {
     expect(result.mutationResult?.conversationId).toBeUndefined();
     expect(dmCalled).toBe(false);
   });
+
+  test('does NOT flip status when getOrCreateDM throws', async () => {
+    let statusUpdateCalled = false;
+
+    const db = buildDb({
+      getOpportunity: async () => mockOpportunity,
+      getOrCreateDM: async () => {
+        throw new Error('DM creation failed');
+      },
+      updateOpportunityStatus: async () => {
+        statusUpdateCalled = true;
+        return null;
+      },
+    });
+
+    const graph = new OpportunityGraphFactory(db, dummyEmbedder, dummyHyde, mockEvaluator, async () => undefined).createGraph();
+    const result = await graph.invoke({
+      userId: USER_ID,
+      operationMode: 'update' as const,
+      opportunityId: OPP_ID,
+      newStatus: 'accepted',
+    });
+
+    expect(result.mutationResult?.success).toBe(false);
+    expect(statusUpdateCalled).toBe(false);
+  });
 });
