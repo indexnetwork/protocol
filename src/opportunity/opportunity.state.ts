@@ -243,10 +243,14 @@ export const OpportunityGraphState = Annotation.Root({
    * - 'update': Change opportunity status (accept, reject, etc.)
    * - 'delete': Expire/archive an opportunity
    * - 'send': Promote latent opportunity to pending + queue notification
+   * - 'negotiate_existing': Load an existing opportunity by opportunityId and run bilateral negotiation.
+   *   Used after introducer approval to trigger the normal negotiation flow.
+   * - 'approve_introduction': Mark the caller as having approved a latent introducer opportunity,
+   *   then enqueue a negotiate_existing job for that opportunity.
    *
    * Defaults to 'create' for backward compatibility.
    */
-  operationMode: Annotation<'create' | 'create_introduction' | 'continue_discovery' | 'read' | 'update' | 'delete' | 'send'>({
+  operationMode: Annotation<'create' | 'create_introduction' | 'continue_discovery' | 'read' | 'update' | 'delete' | 'send' | 'negotiate_existing' | 'approve_introduction'>({
     reducer: (curr, next) => next ?? curr,
     default: () => 'create' as const,
   }),

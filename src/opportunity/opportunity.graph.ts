@@ -158,6 +158,12 @@ export class OpportunityGraphFactory {
      * (short timeout). Without it, the chat path always uses a short timeout.
      */
     private agentDispatcher?: Pick<AgentDispatcher, 'hasPersonalAgent'>,
+    /**
+     * Callback to enqueue a negotiate_existing job for an opportunity.
+     * When provided, negotiate_existing mode uses this to queue follow-up
+     * negotiations after introducer approval.
+     */
+    private queueNegotiateExisting?: (opportunityId: string, userId: string) => Promise<void>,
   ) {}
 
   public createGraph() {
@@ -2884,6 +2890,130 @@ export class OpportunityGraphFactory {
       });
     };
 
+    /**
+     * Negotiate Existing Node: Load an existing opportunity by ID and run bilateral negotiation.
+     * Used after introducer approval to trigger the normal negotiation flow for a latent opportunity.
+     */
+    const negotiateExistingNode = async (state: typeof OpportunityGraphState.State) => {
+      if (!state.opportunityId || !this.negotiationGraph) return {};
+
+      try {
+        const opp = await this.database.getOpportunity(state.opportunityId as string);
+        if (!opp) {
+          logger.warn('[Graph:NegotiateExisting] Opportunity not found', { opportunityId: state.opportunityId });
+          return {};
+        }
+
+        const actors = opp.actors as OpportunityActor[];
+        const nonIntroducerActors = actors.filter(a => a.role !== 'introducer');
+
+        // Find the sourceActor: non-introducer with role patient or party, fallback to first non-introducer
+        const sourceActor = nonIntroducerActors.find(a => a.role === 'patient' || a.role === 'party')
+          ?? nonIntroducerActors[0];
+        if (!sourceActor) {
+          logger.warn('[Graph:NegotiateExisting] No source actor found', { opportunityId: state.opportunityId });
+          return {};
+        }
+
+        // Find the candidateActor: non-introducer that is NOT the sourceActor
+        const candidateActor = nonIntroducerActors.find(a => a.userId !== sourceActor.userId);
+        if (!candidateActor) {
+          logger.warn('[Graph:NegotiateExisting] No candidate actor found', { opportunityId: state.opportunityId });
+          return {};
+        }
+
+        // Load user data for both actors in parallel
+        const [sourceUser_account, sourceProfile, sourceIntents, candidateAccount, candidateProfile, candidateIntents] =
+          await Promise.all([
+            this.database.getUser(sourceActor.userId).catch(() => null),
+            this.database.getProfile(sourceActor.userId).catch(() => null),
+            this.database.getActiveIntents(sourceActor.userId).catch(() => [] as ActiveIntent[]),
+            this.database.getUser(candidateActor.userId).catch(() => null),
+            this.database.getProfile(candidateActor.userId).catch(() => null),
+            this.database.getActiveIntents(candidateActor.userId).catch(() => [] as ActiveIntent[]),
+          ]);
+
+        const toNegIntent = (ai: ActiveIntent) => ({
+          id: ai.id as string,
+          title: ai.summary ?? '',
+          description: ai.payload ?? '',
+          confidence: 1,
+        });
+
+        const sourceUser = {
+          id: sourceActor.userId,
+          intents: sourceIntents.slice(0, 5).map(toNegIntent),
+          profile: {
+            name: sourceProfile?.identity?.name ?? sourceUser_account?.name,
+            bio: sourceProfile?.identity?.bio ?? sourceUser_account?.intro ?? undefined,
+            location: sourceProfile?.identity?.location ?? sourceUser_account?.location ?? undefined,
+            skills: sourceProfile?.attributes?.skills,
+            interests: sourceProfile?.attributes?.interests,
+          },
+        };
+
+        const candidateIntentsForNeg = candidateIntents.slice(0, 5).map(toNegIntent);
+
+        const candidate: NegotiationCandidate = {
+          userId: candidateActor.userId,
+          opportunityId: opp.id as string,
+          reasoning: (opp.interpretation as { reasoning?: string } | null)?.reasoning ?? '',
+          valencyRole: candidateActor.role ?? 'peer',
+          networkId: (candidateActor as { networkId?: string }).networkId as string,
+          candidateUser: {
+            id: candidateActor.userId,
+            intents: candidateIntentsForNeg,
+            profile: {
+              name: candidateProfile?.identity?.name ?? candidateAccount?.name,
+              bio: candidateProfile?.identity?.bio ?? candidateAccount?.intro ?? undefined,
+              location: candidateProfile?.identity?.location ?? candidateAccount?.location ?? undefined,
+              skills: candidateProfile?.attributes?.skills,
+              interests: candidateProfile?.attributes?.interests,
+            },
+          },
+        };
+
+        // Load index context for the candidate's network
+        const indexContextMap = new Map<string, string>();
+        if (candidate.networkId) {
+          const ctx = await this.database.getNetworkMemberContext(candidate.networkId, sourceActor.userId).catch(() => null);
+          const prompt = [ctx?.indexPrompt, ctx?.memberPrompt]
+            .filter((v): v is string => !!v?.trim())
+            .join('\n\n');
+          if (prompt) indexContextMap.set(candidate.networkId, prompt);
+        }
+
+        const acceptedResults = await negotiateCandidates(
+          this.negotiationGraph, sourceUser, [candidate],
+          { networkId: '', prompt: '' },
+          {
+            maxTurns: 6,
+            indexContextOverrides: indexContextMap,
+            timeoutMs: AMBIENT_PARK_WINDOW_MS,
+            trigger: 'ambient',
+          },
+        );
+
+        // Send notifications to non-introducer actors if negotiation was accepted
+        if (acceptedResults.length > 0 && this.queueNotification) {
+          for (const actor of nonIntroducerActors) {
+            await this.queueNotification(opp.id, actor.userId, 'high').catch((err) => {
+              logger.warn('[Graph:NegotiateExisting] Failed to queue notification', { actorId: actor.userId, error: err });
+            });
+          }
+        }
+
+        logger.info('[Graph:NegotiateExisting] Negotiation complete', {
+          opportunityId: opp.id,
+          accepted: acceptedResults.length > 0,
+        });
+      } catch (err) {
+        logger.error('[Graph:NegotiateExisting] Failed', { opportunityId: state.opportunityId, error: err });
+      }
+
+      return {};
+    };
+
     // ═══════════════════════════════════════════════════════════════
     // CONDITIONAL ROUTING FUNCTIONS
     // ═══════════════════════════════════════════════════════════════
@@ -2898,6 +3028,8 @@ export class OpportunityGraphFactory {
       if (mode === 'delete') return 'delete_opp';
       if (mode === 'send') return 'send';
       if (mode === 'create_introduction') return 'intro_validation';
+      if (mode === 'negotiate_existing') return 'negotiate_existing';
+      if (mode === 'approve_introduction') return 'approve_introduction';
       // 'create' is the default discovery pipeline
       return 'prep';
     };
@@ -2976,6 +3108,7 @@ export class OpportunityGraphFactory {
       .addNode('update', updateNode)
       .addNode('delete_opp', deleteNode)
       .addNode('send', sendNode)
+      .addNode('negotiate_existing', negotiateExistingNode)
 
       // Route by operation mode from START
       .addConditionalEdges(START, routeByMode, {
@@ -2985,6 +3118,7 @@ export class OpportunityGraphFactory {
         update: 'update',
         delete_opp: 'delete_opp',
         send: 'send',
+        negotiate_existing: 'negotiate_existing',
       })
 
       // Introduction path: validation -> evaluation -> persist (or END on validation error)
@@ -2999,6 +3133,7 @@ export class OpportunityGraphFactory {
       .addEdge('update', END)
       .addEdge('delete_opp', END)
       .addEdge('send', END)
+      .addEdge('negotiate_existing', END)
 
       // Conditional routing: early exit if no indexed intents
       .addConditionalEdges('prep', shouldContinueAfterPrep, {

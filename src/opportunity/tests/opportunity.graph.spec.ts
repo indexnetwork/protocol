@@ -2151,6 +2151,162 @@ describe('Opportunity Graph', () => {
       expect(negotiationInvocations.length).toBeGreaterThan(0);
     });
   });
+
+  // ─── negotiate_existing mode tests ───────────────────────────────────────────
+
+  describe('negotiate_existing mode', () => {
+    test('invokes negotiation with source and candidate actors, notifies non-introducer actors on acceptance', async () => {
+      const negotiationInvocations: unknown[] = [];
+      const notifiedUserIds: string[] = [];
+
+      // Mock negotiation graph that records invocations and returns acceptance
+      const mockNegotiationGraph = {
+        invoke: async (input: unknown) => {
+          negotiationInvocations.push(input);
+          return {
+            outcome: {
+              hasOpportunity: true,
+              agreedRoles: { source: 'patient', candidate: 'agent' },
+              reasoning: 'Great match.',
+              turnCount: 2,
+            },
+          };
+        },
+      };
+
+      const existingOpportunity = {
+        id: 'opp-existing',
+        detection: { source: 'manual' as const, createdBy: 'introducer-user' as Id<'users'> },
+        actors: [
+          {
+            userId: 'patient-user' as Id<'users'>,
+            role: 'patient' as const,
+            networkId: 'idx-1' as Id<'networks'>,
+            intentId: 'intent-patient' as Id<'intents'>,
+            approved: undefined,
+          },
+          {
+            userId: 'agent-user' as Id<'users'>,
+            role: 'agent' as const,
+            networkId: 'idx-1' as Id<'networks'>,
+            intentId: 'intent-agent' as Id<'intents'>,
+            approved: undefined,
+          },
+          {
+            userId: 'introducer-user' as Id<'users'>,
+            role: 'introducer' as const,
+            networkId: 'idx-1' as Id<'networks'>,
+            intentId: undefined,
+            approved: true,
+          },
+        ],
+        interpretation: { reasoning: 'Great match.' },
+        context: null,
+        confidence: 0.9,
+        status: 'latent' as const,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        expiresAt: null,
+      };
+
+      const mockDb: OpportunityGraphDatabase = {
+        getProfile: () => Promise.resolve(null),
+        createOpportunity: (data) =>
+          Promise.resolve({
+            id: 'opp-1',
+            detection: data.detection,
+            actors: data.actors,
+            interpretation: data.interpretation,
+            context: data.context,
+            confidence: data.confidence,
+            status: data.status ?? 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            expiresAt: null,
+          }),
+        opportunityExistsBetweenActors: () => Promise.resolve(false),
+        getOpportunityBetweenActors: () => Promise.resolve(null),
+        findOverlappingOpportunities: () => Promise.resolve([]),
+        getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
+        getNetworkMemberships: () => Promise.resolve([{
+          networkId: 'idx-1',
+          networkTitle: 'Test Index',
+          indexPrompt: null,
+          permissions: ['member'],
+          memberPrompt: null,
+          autoAssign: true,
+          isPersonal: false,
+          joinedAt: new Date(),
+        }]),
+        getActiveIntents: (userId: string) => Promise.resolve([
+          {
+            id: `intent-${userId}` as Id<'intents'>,
+            payload: `Intent for ${userId}`,
+            summary: null,
+            createdAt: new Date(),
+          },
+        ]),
+        getNetwork: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
+        getNetworkMemberCount: () => Promise.resolve(2),
+        getNetworkIdsForIntent: () => Promise.resolve(['idx-1']),
+        getUser: (userId: string) => Promise.resolve({ id: userId, name: `User ${userId}`, email: `${userId}@example.com` }),
+        isNetworkMember: () => Promise.resolve(true),
+        isIndexOwner: () => Promise.resolve(false),
+        getOpportunity: (id: string) => id === 'opp-existing'
+          ? Promise.resolve(existingOpportunity as unknown as Opportunity)
+          : Promise.resolve(null),
+        getOpportunitiesForUser: () => Promise.resolve([]),
+        updateOpportunityStatus: () => Promise.resolve(null),
+        updateOpportunityActorApproval: () => Promise.resolve(null),
+        getIntent: () => Promise.resolve(null),
+        getIntentIndexScores: async () => [],
+        getNetworkMemberContext: async () => null,
+      };
+
+      const mockEmbedder: Embedder = {
+        generate: () => Promise.resolve(dummyEmbedding),
+        search: () => Promise.resolve([]),
+        searchWithHydeEmbeddings: () => Promise.resolve([]),
+        searchWithProfileEmbedding: () => Promise.resolve([]),
+      } as unknown as Embedder;
+
+      const mockHydeGenerator = {
+        invoke: () => Promise.resolve({ hydeEmbeddings: { mirror: dummyEmbedding } }),
+      };
+
+      const evaluator = createMockEvaluator();
+      const queueNotification = async (oppId: string, userId: string) => {
+        notifiedUserIds.push(userId);
+      };
+
+      const factory = new OpportunityGraphFactory(
+        mockDb,
+        mockEmbedder,
+        mockHydeGenerator,
+        evaluator,
+        queueNotification,
+        mockNegotiationGraph,
+        undefined, // agentDispatcher
+        async () => undefined, // queueNegotiateExisting
+      );
+      const compiledGraph = factory.createGraph();
+
+      await compiledGraph.invoke({
+        userId: 'patient-user' as Id<'users'>,
+        operationMode: 'negotiate_existing' as const,
+        opportunityId: 'opp-existing',
+        options: {},
+      });
+
+      // Negotiation should have been invoked
+      expect(negotiationInvocations.length).toBeGreaterThan(0);
+
+      // Notifications should be sent to non-introducer actors only
+      expect(notifiedUserIds).toContain('patient-user');
+      expect(notifiedUserIds).toContain('agent-user');
+      expect(notifiedUserIds).not.toContain('introducer-user');
+    });
+  });
 });
 
 // ─── buildDiscovererContext tests ───────────────────────────────────────────
