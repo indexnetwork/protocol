@@ -168,6 +168,7 @@ export async function createChatTools(
     agentDatabase: deps.agentDatabase,
     grantDefaultSystemPermissions: deps.grantDefaultSystemPermissions,
     agentDispatcher: deps.agentDispatcher,
+    deliveryLedger: deps.deliveryLedger,
     graphs: {
       profile: profileGraph,
       intent: intentGraph,
