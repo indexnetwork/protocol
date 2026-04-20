@@ -109,7 +109,7 @@ export function sanitizeMcpResult(text: string): { text: string; isError: boolea
       !Array.isArray(parsed.data)
     ) {
       for (const key of Object.keys(parsed.data)) {
-        if (key.startsWith('_')) {
+        if (key.startsWith('_') || key === 'debugSteps') {
           delete parsed.data[key];
         }
       }

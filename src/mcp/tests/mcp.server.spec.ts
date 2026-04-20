@@ -126,3 +126,50 @@ describe("sanitizeMcpResult", () => {
     expect(isError).toBe(false);
   });
 });
+
+describe("sanitizeMcpResult — debugSteps", () => {
+  test("strips debugSteps from data", () => {
+    const input = JSON.stringify({
+      success: true,
+      data: {
+        count: 3,
+        debugSteps: [
+          { step: "prep", detail: "Fetched 2 intent(s)" },
+          { step: "candidate", detail: "Alice: ✓ passed", data: { bio: "private bio", ragScore: 0.9 } },
+        ],
+      },
+    });
+    const { text, isError } = sanitizeMcpResult(input);
+    const parsed = JSON.parse(text);
+    expect(parsed.data.debugSteps).toBeUndefined();
+    expect(parsed.data.count).toBe(3);
+    expect(isError).toBe(false);
+  });
+
+  test("still strips _-prefixed keys alongside debugSteps", () => {
+    const input = JSON.stringify({
+      success: true,
+      data: {
+        message: "ok",
+        _graphTimings: [{ name: "intent", durationMs: 120 }],
+        debugSteps: [{ step: "prep" }],
+      },
+    });
+    const { text } = sanitizeMcpResult(input);
+    const parsed = JSON.parse(text);
+    expect(parsed.data._graphTimings).toBeUndefined();
+    expect(parsed.data.debugSteps).toBeUndefined();
+    expect(parsed.data.message).toBe("ok");
+  });
+
+  test("leaves data unchanged when no debugSteps present", () => {
+    const input = JSON.stringify({
+      success: true,
+      data: { count: 5, message: "found" },
+    });
+    const { text } = sanitizeMcpResult(input);
+    const parsed = JSON.parse(text);
+    expect(parsed.data.count).toBe(5);
+    expect(parsed.data.message).toBe("found");
+  });
+});
