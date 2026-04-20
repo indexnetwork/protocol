@@ -90,6 +90,38 @@ function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// RESULT POST-PROCESSING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Strips internal `_`-prefixed keys from `data` and promotes `isError`
+ * from the inner `success: false` signal to the MCP envelope level.
+ * Fail-open: if JSON parsing throws, returns the original text with isError: false.
+ */
+export function sanitizeMcpResult(text: string): { text: string; isError: boolean } {
+  try {
+    const parsed = JSON.parse(text);
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      parsed.data &&
+      typeof parsed.data === 'object' &&
+      !Array.isArray(parsed.data)
+    ) {
+      for (const key of Object.keys(parsed.data)) {
+        if (key.startsWith('_')) {
+          delete parsed.data[key];
+        }
+      }
+    }
+    const isError = parsed?.success === false;
+    return { text: JSON.stringify(parsed), isError };
+  } catch {
+    return { text, isError: false };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MCP SERVER FACTORY
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -245,8 +277,10 @@ export function createMcpServer(
           // Execute the tool handler
           const result = await requestTool.handler({ context, query: validatedArgs });
 
+          const { text: sanitizedText, isError: toolIsError } = sanitizeMcpResult(result);
           return {
-            content: [{ type: 'text' as const, text: result }],
+            content: [{ type: 'text' as const, text: sanitizedText }],
+            ...(toolIsError ? { isError: true } : {}),
           };
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
