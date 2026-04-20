@@ -362,8 +362,8 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       }
 
       // Ownership guard: caller must own the intent
-      const ownedIntent = await deps.systemDb.getIntentWithOwnership(intentId, context.userId);
-      if (!ownedIntent) {
+      const intent = await deps.systemDb.getIntent(intentId);
+      if (!intent || intent.userId !== context.userId) {
         return error("Intent not found or you can only update your own intents.");
       }
 
@@ -433,8 +433,8 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       }
 
       // Ownership guard: caller must own the intent
-      const ownedIntent = await deps.systemDb.getIntentWithOwnership(intentId, context.userId);
-      if (!ownedIntent) {
+      const intent = await deps.systemDb.getIntent(intentId);
+      if (!intent || intent.userId !== context.userId) {
         return error("Intent not found or you can only delete your own intents.");
       }
 

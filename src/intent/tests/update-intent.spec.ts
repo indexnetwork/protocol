@@ -41,7 +41,7 @@ describe("update_intent", () => {
     const tools = captureTools({
       userDb: {},
       systemDb: {
-        getIntentWithOwnership: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "user-123" }),
+        getIntent: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "user-123" }),
       },
       graphs: {
         profile: { invoke: async () => ({ profile: null }) },
@@ -69,7 +69,7 @@ describe("update_intent", () => {
     const tools = captureTools({
       userDb: {},
       systemDb: {
-        getIntentWithOwnership: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "alice" }),
+        getIntent: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "alice" }),
       },
       graphs: {
         profile: { invoke: async () => ({ profile: null, agentTimings: [] }) },
@@ -102,13 +102,38 @@ describe("update_intent", () => {
 });
 
 describe("update_intent — ownership", () => {
+  test("returns error when intent does not exist", async () => {
+    const tools = captureTools({
+      userDb: {},
+      systemDb: {
+        isNetworkMember: async () => true,
+        getNetworksByScope: async () => [],
+        getIntent: async () => null,
+      },
+      graphs: {
+        profile: { invoke: async () => ({ profile: null, agentTimings: [] }) },
+        intent: { invoke: async () => ({ executionResults: [] }) },
+      },
+    } as unknown as ToolDeps);
+
+    const tool = tools.find((t) => t.name === "update_intent")!;
+    const result = JSON.parse(
+      await tool.handler({
+        context: makeContext("caller-user"),
+        query: { intentId: "11111111-1111-4111-8111-111111111111", description: "Updated" },
+      })
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("own");
+  });
+
   test("returns error when intent belongs to another user", async () => {
     const tools = captureTools({
       userDb: {},
       systemDb: {
         isNetworkMember: async () => true,
         getNetworksByScope: async () => [],
-        getIntentWithOwnership: async () => null,
+        getIntent: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "other-user" }),
       },
       graphs: {
         profile: { invoke: async () => ({ profile: null, agentTimings: [] }) },
@@ -133,7 +158,7 @@ describe("update_intent — ownership", () => {
       systemDb: {
         isNetworkMember: async () => true,
         getNetworksByScope: async () => [],
-        getIntentWithOwnership: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "caller-user" }),
+        getIntent: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "caller-user" }),
       },
       graphs: {
         profile: { invoke: async () => ({ profile: null, agentTimings: [] }) },

@@ -23,13 +23,34 @@ const VALID_UUID = "11111111-1111-4111-8111-111111111111";
 const OTHER_UUID = "22222222-2222-4222-8222-222222222222";
 
 describe("delete_intent", () => {
+  test("returns error when intent does not exist", async () => {
+    const deps = {
+      userDb: {},
+      systemDb: {
+        isNetworkMember: async () => true,
+        getNetworksByScope: async () => [],
+        getIntent: async () => null,
+      },
+      graphs: {
+        intent: { invoke: async () => ({ executionResults: [{ success: true }] }) },
+      },
+    } as unknown as ToolDeps;
+
+    const tool = captureTool(deps);
+    const result = JSON.parse(
+      await tool.handler({ context: makeContext("caller-user"), query: { intentId: VALID_UUID } })
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("own");
+  });
+
   test("returns error when intent belongs to another user", async () => {
     const deps = {
       userDb: {},
       systemDb: {
         isNetworkMember: async () => true,
         getNetworksByScope: async () => [],
-        getIntentWithOwnership: async (_intentId: string, _userId: string) => null, // null = not owned
+        getIntent: async () => ({ id: VALID_UUID, userId: "other-user" }),
       },
       graphs: {
         intent: { invoke: async () => ({ executionResults: [{ success: true }] }) },
@@ -50,7 +71,7 @@ describe("delete_intent", () => {
       systemDb: {
         isNetworkMember: async () => true,
         getNetworksByScope: async () => [],
-        getIntentWithOwnership: async (_intentId: string, _userId: string) => ({ id: VALID_UUID, userId: "caller-user" }),
+        getIntent: async () => ({ id: VALID_UUID, userId: "caller-user" }),
       },
       graphs: {
         intent: { invoke: async () => ({ executionResults: [{ success: true }] }) },
