@@ -16,6 +16,7 @@ function makeContext(userId = "user-123"): ResolvedToolContext {
 
 interface CapturedTool {
   name: string;
+  querySchema: z.ZodType;
   handler: (input: { context: ResolvedToolContext; query: unknown }) => Promise<string>;
 }
 
@@ -27,7 +28,7 @@ function captureTools(deps: ToolDeps): CapturedTool[] {
     querySchema: z.ZodType;
     handler: (input: { context: ResolvedToolContext; query: unknown }) => Promise<string>;
   }) => {
-    toolDefs.push({ name: def.name, handler: def.handler });
+    toolDefs.push({ name: def.name, querySchema: def.querySchema, handler: def.handler });
     return def;
   };
   createIntentTools(defineTool as any, deps);
@@ -35,6 +36,18 @@ function captureTools(deps: ToolDeps): CapturedTool[] {
 }
 
 describe("search_intents", () => {
+  test("accepts query and rejects legacy q", () => {
+    const tools = captureTools({
+      userDb: { searchOwnIntents: async () => [] },
+      graphs: {} as any,
+      systemDb: {} as any,
+    } as unknown as ToolDeps);
+    const tool = tools.find((t) => t.name === "search_intents")!;
+
+    expect(tool.querySchema.safeParse({ query: "React" }).success).toBe(true);
+    expect(tool.querySchema.safeParse({ q: "React" }).success).toBe(false);
+  });
+
   test("forwards query + limit and returns rows", async () => {
     const now = new Date("2026-04-14T00:00:00Z");
     let captured: { q: string; limit: number } | null = null;
@@ -59,7 +72,7 @@ describe("search_intents", () => {
     const tool = tools.find((t) => t.name === "search_intents")!;
     const result = await tool.handler({
       context: makeContext("alice"),
-      query: { q: "React", limit: 5 },
+      query: { query: "React", limit: 5 },
     });
     const parsed = JSON.parse(result);
     expect(captured).toEqual({ q: "React", limit: 5 });
@@ -81,7 +94,7 @@ describe("search_intents", () => {
       systemDb: {} as any,
     } as unknown as ToolDeps);
     const tool = tools.find((t) => t.name === "search_intents")!;
-    await tool.handler({ context: makeContext(), query: { q: "anything" } });
+    await tool.handler({ context: makeContext(), query: { query: "anything" } });
     expect(capturedLimit).toBe(25);
   });
 });

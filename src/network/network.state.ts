@@ -65,6 +65,7 @@ export const NetworkGraphState = Annotation.Root({
       title: string;
       description: string | null;
       autoAssign: boolean;
+      isPersonal: boolean;
       joinedAt: Date;
     }>;
     owns: Array<{
@@ -75,7 +76,7 @@ export const NetworkGraphState = Annotation.Root({
       intentCount: number;
       joinPolicy: string;
     }>;
-    publicIndexes?: Array<{
+    publicNetworks?: Array<{
       networkId: string;
       title: string;
       description: string | null;
@@ -85,7 +86,7 @@ export const NetworkGraphState = Annotation.Root({
     stats: {
       memberOfCount: number;
       ownsCount: number;
-      publicIndexesCount?: number;
+      publicNetworksCount?: number;
       scopeNote?: string;
     };
   } | undefined>({

@@ -351,7 +351,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       "**Returns:** Confirmation of update. The intent's embeddings and index relevancy scores are recalculated automatically.",
     querySchema: z.object({
       intentId: z.string().describe("The UUID of the intent to update. Get this from read_intents results."),
-      newDescription: z.string().describe("The updated description of what the user is looking for. Same guidelines as create_intent — should be clear and specific."),
+      description: z.string().describe("The updated description of what the user is looking for. Same guidelines as create_intent — should be clear and specific."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);
@@ -387,7 +387,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         userId: context.userId,
         userProfile,
         operationMode: 'update' as const,
-        inputContent: query.newDescription,
+        inputContent: query.description,
         targetIntentIds: [intentId],
         ...(context.networkId && { networkId: context.networkId }),
       });
@@ -661,7 +661,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       "instead — that runs semantic matching across the user's networks.\n\n" +
       "**Returns:** `intents: [{ id, payload, summary, createdAt }]`, most recent first, up to `limit` (default 25).",
     querySchema: z.object({
-      q: z.string().min(1).describe("Text to match against payload and summary (case-insensitive)."),
+      query: z.string().min(1).describe("Text to match against payload and summary (case-insensitive)."),
       limit: z
         .number()
         .int()
@@ -671,8 +671,8 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         .describe("Maximum intents to return (default 25, max 100)."),
     }),
     handler: async ({ context, query }) => {
-      const rows = await userDb.searchOwnIntents(query.q, query.limit ?? 25);
-      logger.verbose("search_intents", { userId: context.userId, q: query.q, matched: rows.length });
+      const rows = await userDb.searchOwnIntents(query.query, query.limit ?? 25);
+      logger.verbose("search_intents", { userId: context.userId, query: query.query, matched: rows.length });
       return success({ intents: rows });
     },
   });

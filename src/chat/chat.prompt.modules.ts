@@ -238,7 +238,7 @@ const intentManagementModule: PromptModule = {
 \`\`\`
 1. read_intents() → get current intents with IDs
 2. Match user's request to the right intent
-3. update_intent(intentId=exact_id, newDescription=...) or delete_intent(intentId=exact_id)
+3. update_intent(intentId=exact_id, description=...) or delete_intent(intentId=exact_id)
 \`\`\`
 `,
 };

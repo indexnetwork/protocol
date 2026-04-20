@@ -11,14 +11,13 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   const readIndexes = defineTool({
     name: "read_networks",
     description:
-      "Lists all indexes (communities) the authenticated user belongs to, including ones they own. Indexes are shared spaces " +
-      "where members post intents and discover opportunities with each other.\n\n" +
-      "**When to use:** To find available index IDs for scoping other operations (read_intents, create_opportunities, read_network_memberships), " +
-      "or to show the user which communities they're part of.\n\n" +
-      "**Returns:** Two lists — `memberOf` (indexes the user joined) and `ownerOf` (indexes the user created). " +
-      "Each entry includes networkId (UUID), title, prompt (purpose description), memberCount, and joinPolicy ('anyone' or 'invite_only'). " +
-      "Personal indexes (isPersonal=true) are the user's private network and cannot be deleted or renamed.\n\n" +
-      "**Note:** In index-scoped chats, only the scoped index is returned.",
+      "Lists the authenticated user's networks (communities), including ones they own and public communities they can join.\n\n" +
+      "**When to use:** To find network IDs for scoping other operations (read_intents, create_opportunities, read_network_memberships), " +
+      "or to show the user which communities they belong to.\n\n" +
+      "**Returns:** Up to three lists — `memberOf` (networks the user joined), `owns` (networks the user created), and `publicNetworks` " +
+      "(publicly joinable communities the user is not yet a member of). Entries in `memberOf` include `isPersonal` set to `true` for the user's " +
+      "personal network.\n\n" +
+      "**Note:** In index-scoped chats, only the scoped network is returned.",
     querySchema: z.object({
       userId: z.string().optional().describe("Must be the current user's ID or omitted. Cannot list another user's indexes."),
     }),
@@ -422,7 +421,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
       if (result.mutationResult && !result.mutationResult.success) {
         return error(result.mutationResult.error || "Failed to delete index.");
       }
-      return success({ message: "Index deleted.", _graphTimings: [{ name: 'index', durationMs: _deleteNetworkGraphMs, agents: result.agentTimings ?? [] }] });
+      return success({ message: "Network deleted.", _graphTimings: [{ name: 'index', durationMs: _deleteNetworkGraphMs, agents: result.agentTimings ?? [] }] });
     },
   });
 

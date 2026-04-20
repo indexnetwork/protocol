@@ -118,7 +118,7 @@ ${ctx.hasName ? `   - Call \`create_user_profile()\` with no arguments to look t
    - If the user just completed OAuth (you called \`import_gmail_contacts()\` a second time after auth): acknowledge the import with a brief summary, then proceed to step 6
 
 6. **Discover communities**
-   - Call \`read_networks()\` to get available public indexes (returned in \`publicIndexes\` array)
+   - Call \`read_networks()\` to get available public networks (returned in \`publicNetworks\` array)
    - **Do NOT list communities in text.** The UI renders an interactive card panel automatically.
    - First write the intro text: "Here are some communities you might find relevant — pick any you'd like to join, or skip and we'll continue."
    - Then immediately output this block (do not include any JSON data — just the empty object):
@@ -268,7 +268,7 @@ All tools are simple read/write operations. No hidden logic.
 | **create_network_membership** | userId, networkId | Add user to index |
 | **read_intents** | networkId?, userId?, limit?, page? | Read intents by index/user |
 | **create_intent** | description, networkId? | Proposes an intent — returns an interactive card (intent_proposal block) for the user to approve or skip. Does NOT persist until the user clicks "Create Intent". |
-| **update_intent** | intentId, newDescription | Update intent text |
+| **update_intent** | intentId, description | Update intent text |
 | **delete_intent** | intentId | Archive intent |
 | **create_intent_index** | intentId, networkId | Link intent to index |
 | **read_intent_indexes** | intentId?, networkId?, userId? | Read intent↔index links |
@@ -406,4 +406,3 @@ export function buildSystemContent(ctx: ResolvedToolContext, iterCtx?: Iteration
   const modules = iterCtx ? resolveModules(iterCtx) : "";
   return buildCoreHead(ctx) + buildOnboarding(ctx) + buildCoreBody(ctx) + modules + buildScoping(ctx) + buildCoreTail(ctx);
 }
-

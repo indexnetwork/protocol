@@ -490,10 +490,15 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
   const updateUserProfile = defineTool({
     name: "update_user_profile",
     description:
-      "Updates the authenticated user's existing profile with specific changes. Unlike create_user_profile (which regenerates the whole profile), " +
-      "this tool applies targeted modifications — updating bio text, adding/removing skills, changing location, etc.\n\n" +
-      "**When to use:** When the user wants to make specific changes to their profile (e.g. 'add Python to my skills', 'update my bio', " +
-      "'change my location to Berlin'). For full profile regeneration from social URLs, use create_user_profile instead.\n\n" +
+      "Updates the authenticated user's existing profile using a verb-style instruction interface.\n\n" +
+      "**How to use it:**\n" +
+      "- `action`: a natural-language instruction describing what to change (e.g. \"add interests\", \"update bio\", \"remove skill\", \"set location\").\n" +
+      "- `details`: the content to apply (e.g. \"procedural generation, roguelikes, narrative games\").\n\n" +
+      "**Examples:**\n" +
+      "- `action=\"add interests\"`, `details=\"procedural generation, roguelikes\"`\n" +
+      "- `action=\"update bio\"`, `details=\"Product designer focused on desktop CRPG interfaces\"`\n" +
+      "- `action=\"set location\"`, `details=\"Berlin\"`\n\n" +
+      "**When to use:** When the user wants to make specific changes without regenerating the whole profile. For full profile regeneration from social URLs, use create_user_profile instead.\n\n" +
       "**Important:** If the user provides a URL to update from, call scrape_url first, then pass the scraped content in `details`.\n\n" +
       "**Returns:** Confirmation that the profile was updated. The profile's semantic embeddings are automatically recalculated, " +
       "which may surface new opportunity matches.",
