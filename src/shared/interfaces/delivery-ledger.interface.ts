@@ -11,6 +11,6 @@ export interface DeliveryLedger {
   confirmOpportunityDelivery(params: {
     opportunityId: string;
     userId: string;
-    agentId: string;
+    agentId: string | null;
   }): Promise<'confirmed' | 'already_delivered'>;
 }

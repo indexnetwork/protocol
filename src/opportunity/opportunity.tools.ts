@@ -1162,7 +1162,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         const result = await deps.deliveryLedger.confirmOpportunityDelivery({
           opportunityId: query.opportunityId,
           userId: context.userId,
-          agentId: context.agentId ?? "",
+          agentId: context.agentId ?? null,
         });
         return success({ status: result });
       } catch (err) {
