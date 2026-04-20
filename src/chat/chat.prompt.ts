@@ -296,7 +296,7 @@ ${
   ctx.networkId
     ? `- This chat is scoped to index "${ctx.indexName}" (id: ${ctx.networkId}). Default networkId for read_intents and create_intent is ${ctx.networkId}.
 - **Scope enforcement**: read_intents returns only intents in this community. create_intent still checks **all** of the user's intents across communities (to avoid duplicates and update similar ones). Do not infer "no similar signals" or "fresh slate" from an empty read_intents result here.
-- **Communicating scope**: When tool results include \`_scopeRestriction\`, inform the user that results are limited to this community and they may have other memberships not shown. Never imply the scoped results represent all their data.
+- **Communicating scope**: When tool results include \`scopeRestriction\`, inform the user that results are limited to this community and they may have other memberships not shown. Never imply the scoped results represent all their data.
 - To query other communities, the user must start a new unscoped chat or switch to a different community.
 - When presenting, you may use the index title; avoid being vocal about 'indexes' unless the user asks.`
     : `- No index scope. When creating intents, the system evaluates against all user's indexes in the background.

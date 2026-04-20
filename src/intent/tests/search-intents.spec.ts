@@ -50,10 +50,10 @@ describe("search_intents", () => {
 
   test("forwards query + limit and returns rows", async () => {
     const now = new Date("2026-04-14T00:00:00Z");
-    let captured: { q: string; limit: number } | null = null;
+    let captured: { query: string; limit: number } | null = null;
     const userDb = {
-      searchOwnIntents: async (q: string, limit: number) => {
-        captured = { q, limit };
+      searchOwnIntents: async (query: string, limit: number) => {
+        captured = { query, limit };
         return [
           {
             id: "11111111-1111-4111-8111-111111111111",
@@ -75,7 +75,7 @@ describe("search_intents", () => {
       query: { query: "React", limit: 5 },
     });
     const parsed = JSON.parse(result);
-    expect(captured).toEqual({ q: "React", limit: 5 });
+    expect(captured).toEqual({ query: "React", limit: 5 });
     expect(parsed.success).toBe(true);
     expect(parsed.data.intents[0].payload).toContain("React");
   });
@@ -83,7 +83,7 @@ describe("search_intents", () => {
   test("defaults limit to 25", async () => {
     let capturedLimit: number | null = null;
     const userDb = {
-      searchOwnIntents: async (_q: string, limit: number) => {
+      searchOwnIntents: async (_query: string, limit: number) => {
         capturedLimit = limit;
         return [];
       },

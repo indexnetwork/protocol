@@ -46,7 +46,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
         if (context.networkId) {
           return success({
             ...result.readResult,
-            _scopeRestriction: {
+            scopeRestriction: {
               isScoped: true,
               scopedToIndex: context.indexName ?? context.networkId,
               message: `Results are limited to "${context.indexName ?? 'this index'}" because this chat is scoped to that community. The user may belong to other communities not shown here.`,
@@ -159,7 +159,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
                 isMember: true,
                 userId: targetUserId,
                 networkId: context.networkId,
-                _scopeRestriction: {
+                scopeRestriction: {
                   isScoped: true,
                   scopedToIndex: context.indexName ?? context.networkId,
                   message: `This chat is scoped to "${context.indexName ?? 'this index'}". Only membership in this community is shown.`,
@@ -171,7 +171,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
               userId: targetUserId,
               networkId: context.networkId,
               message: "User is not a member of this community.",
-              _scopeRestriction: {
+              scopeRestriction: {
                 isScoped: true,
                 scopedToIndex: context.indexName ?? context.networkId,
                 message: `This chat is scoped to "${context.indexName ?? 'this index'}". Only membership in this community was checked.`,
@@ -255,7 +255,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
             permissions: m.permissions,
             joinedAt: m.joinedAt,
           })),
-          _scopeRestriction: {
+          scopeRestriction: {
             isScoped: true,
             scopedToIndex: context.indexName ?? context.networkId,
             message: `Results are limited to "${context.indexName ?? 'this index'}" because this chat is scoped to that community. The user may belong to other communities not shown here.`,

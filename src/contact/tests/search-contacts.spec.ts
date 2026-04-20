@@ -45,11 +45,11 @@ describe("search_contacts", () => {
     expect(tool.querySchema.safeParse({ q: "jane" }).success).toBe(false);
   });
 
-  test("forwards ownerId + q + limit and returns rows", async () => {
-    let captured: { ownerId: string; q: string; limit: number } | null = null;
+  test("forwards ownerId + query + limit and returns rows", async () => {
+    let captured: { ownerId: string; query: string; limit: number } | null = null;
     const contactService = {
-      searchContacts: async (ownerId: string, q: string, limit: number) => {
-        captured = { ownerId, q, limit };
+      searchContacts: async (ownerId: string, query: string, limit: number) => {
+        captured = { ownerId, query, limit };
         return [
           {
             contactId: "cid-1",
@@ -68,7 +68,7 @@ describe("search_contacts", () => {
       query: { query: "jane", limit: 10 },
     });
     const parsed = JSON.parse(result);
-    expect(captured).toEqual({ ownerId: "alice", q: "jane", limit: 10 });
+    expect(captured).toEqual({ ownerId: "alice", query: "jane", limit: 10 });
     expect(parsed.success).toBe(true);
     expect(parsed.data.count).toBe(1);
     expect(parsed.data.contacts[0].email).toBe("jane@example.com");
@@ -77,7 +77,7 @@ describe("search_contacts", () => {
   test("defaults limit to 25", async () => {
     let capturedLimit: number | null = null;
     const contactService = {
-      searchContacts: async (_ownerId: string, _q: string, limit: number) => {
+      searchContacts: async (_ownerId: string, _query: string, limit: number) => {
         capturedLimit = limit;
         return [];
       },
