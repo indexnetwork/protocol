@@ -21,6 +21,7 @@ import type { Embedder } from "../interfaces/embedder.interface.js";
 import type { AgentDatabase } from "../interfaces/agent.interface.js";
 import type { NegotiationTimeoutQueue } from "../interfaces/negotiation-events.interface.js";
 import type { AgentDispatcher } from "../interfaces/agent-dispatcher.interface.js";
+import type { DeliveryLedger } from "../interfaces/delivery-ledger.interface.js";
 
 /** Profile without embedding — used in resolved context to avoid bloating prompts and memory. */
 export type ProfileContext = Omit<ProfileDocument, "embedding"> | null;
@@ -139,7 +140,7 @@ export interface ToolContext {
   /** Enqueue a negotiate_existing job after introducer approval (optional). */
   queueNegotiateExisting?: (opportunityId: string, userId: string) => Promise<void>;
   /** Delivery ledger for committing opportunity delivery rows (optional — absent in chat context). */
-  deliveryLedger?: import('../interfaces/delivery-ledger.interface.js').DeliveryLedger;
+  deliveryLedger?: DeliveryLedger;
 }
 
 /**
@@ -340,7 +341,7 @@ export interface ToolDeps {
   /** Dispatcher for routing negotiation turns to personal agents (optional — falls back to system AI). */
   agentDispatcher?: AgentDispatcher;
   /** Delivery ledger for committing opportunity delivery rows (optional — absent in chat context). */
-  deliveryLedger?: import('../interfaces/delivery-ledger.interface.js').DeliveryLedger;
+  deliveryLedger?: DeliveryLedger;
   graphs: {
     profile: CompiledGraph;
     intent: CompiledGraph;
