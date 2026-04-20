@@ -440,6 +440,7 @@ export const OpportunityGraphState = Annotation.Root({
     message?: string;
     opportunityId?: string;
     notified?: string[];
+    conversationId?: string;
     error?: string;
   } | undefined>({
     reducer: (curr, next) => next,
