@@ -2753,6 +2753,17 @@ export class OpportunityGraphFactory {
             return { mutationResult: { success: false, error: 'You are not part of this opportunity.' } };
           }
 
+          let conversationId: string | undefined;
+          if (state.newStatus === 'accepted') {
+            const counterpart = opp.actors.find(
+              (a: OpportunityActor) => a.userId !== state.userId && a.role !== 'introducer'
+            );
+            if (counterpart) {
+              const dm = await this.database.getOrCreateDM(state.userId, counterpart.userId);
+              conversationId = dm.id;
+            }
+          }
+
           await this.database.updateOpportunityStatus(
             state.opportunityId,
             state.newStatus as 'accepted' | 'rejected' | 'expired'
@@ -2763,6 +2774,7 @@ export class OpportunityGraphFactory {
               success: true,
               opportunityId: state.opportunityId,
               message: `Opportunity status updated to ${state.newStatus}.`,
+              ...(conversationId && { conversationId }),
             },
           };
         } catch (err) {
