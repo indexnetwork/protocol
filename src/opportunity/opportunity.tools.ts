@@ -1152,6 +1152,11 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         .describe("The UUID of the opportunity to mark as delivered."),
     }),
     handler: async ({ context, query }) => {
+      if (!context.isMcp || !context.agentId) {
+        return error(
+          "confirm_opportunity_delivery is only available to authenticated agent MCP contexts.",
+        );
+      }
       if (!deps.deliveryLedger) {
         return error("Delivery ledger not available in this context.");
       }
@@ -1162,7 +1167,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         const result = await deps.deliveryLedger.confirmOpportunityDelivery({
           opportunityId: query.opportunityId,
           userId: context.userId,
-          agentId: context.agentId ?? null,
+          agentId: context.agentId,
         });
         return success({ status: result });
       } catch (err) {
