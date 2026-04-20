@@ -1672,6 +1672,11 @@ export class OpportunityGraphFactory {
         // so the negotiation graph's finalize node can update its status from the outcome.
         const candidateEntries = state.opportunities
           .map(opp => {
+            // Skip opportunities where an introducer exists but has not yet approved.
+            const introducerActor = (opp.actors as OpportunityActor[])
+              .find(a => a.role === 'introducer');
+            if (introducerActor && introducerActor.approved !== true) return null;
+
             const candidateActor = (opp.actors as Array<{ userId: string; role?: string; networkId?: string; intentId?: string }>)
               .find(a => a.userId !== discoveryUserId);
             if (!candidateActor) return null;
