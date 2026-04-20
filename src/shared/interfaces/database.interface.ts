@@ -38,6 +38,8 @@ export interface OpportunityActor {
   userId: Id<'users'>;
   intent?: Id<'intents'>;
   role: string;
+  /** Only set on role === 'introducer'. false until the introducer explicitly approves; true after approval. */
+  approved?: boolean;
 }
 
 /** Individual signal contributing to an opportunity score. */

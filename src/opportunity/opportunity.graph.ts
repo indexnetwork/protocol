@@ -2276,7 +2276,7 @@ export class OpportunityGraphFactory {
                 ? evaluatorActors
                 : [
                     ...evaluatorActors,
-                    { networkId: indexIdForActors, userId: state.userId, role: 'introducer' as const },
+                    { networkId: indexIdForActors, userId: state.userId, role: 'introducer' as const, approved: false },
                   ];
               data = {
                 detection: {
@@ -2325,7 +2325,7 @@ export class OpportunityGraphFactory {
                 ? evaluatorActors
                 : [
                     ...evaluatorActors,
-                    { networkId: indexIdForActors!, userId: state.userId, role: 'introducer' as const },
+                    { networkId: indexIdForActors!, userId: state.userId, role: 'introducer' as const, approved: false },
                   ];
 
               const candidateUserId = evaluated.actors.find((a) => a.userId !== state.onBehalfOfUserId)?.userId;
