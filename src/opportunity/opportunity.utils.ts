@@ -63,8 +63,14 @@ export function validateOpportunityActors(actors: Array<{ userId?: string; role:
 }
 
 /**
- * Role-based visibility (Latent Opportunity Lifecycle).
- * A user can see an opportunity iff they are an actor and the rule below allows it.
+ * Read-level ACL: whether a user is an actor on the opportunity and may fetch
+ * its details. Intentionally broader than `isActionableForViewer` — a user can
+ * read an opportunity they are not currently expected to act on (e.g. an agent
+ * viewing an accepted opportunity). The two predicates diverge for `agent with
+ * introducer at pending`: `canUserSeeOpportunity` returns false (hasIntroducer
+ * blocks it), while `isActionableForViewer` returns true (Rule 4 shows pending
+ * to all non-introducer actors). This is intentional — the agent is not granted
+ * read access via this path until the introducer path completes.
  *
  * Compact Visibility Rule (from lifecycle doc):
  * - Introducer or peer: always see.
