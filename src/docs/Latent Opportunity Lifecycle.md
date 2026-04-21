@@ -28,29 +28,32 @@ Who can see an opportunity is determined by **actor role** and **status**. There
 - **Tier 1** (`pending`): Sees after someone sent; can accept/reject
 - **Tier 2** (`accepted`, `rejected`, `expired`): Terminal; all actors can see
 
-### Role–Visibility Matrix
+### Role–Visibility Matrix (Home / Actionable)
 
-| Role        | No introducer     | With introducer   |
-|------------|--------------------|--------------------|
-| `introducer` | n/a                | Tier 0 (always)   |
-| `patient`    | Tier 0 (always)    | Tier 1 (pending+) |
-| `agent`      | Tier 1 (pending+)  | Tier 2 (accepted+) |
-| `peer`       | Tier 0 (always)    | Tier 0 (always)   |
-| `party`      | same as patient    | same as patient   |
+Whether an opportunity shows up on the viewer's **home feed** (the "act on this now" surface). The broader read-level ACL is covered by `canUserSeeOpportunity` and is unchanged here.
 
-- **Introducer**: Curator who created the match (e.g. "I think Alice and Bob should meet"). Sees the opportunity from latent and can send it to the patient.
-- **Patient**: The one who **needs** something (seeker, requester). Sees early and decides whether to reach out.
-- **Agent**: The one who **can offer** something (helper, provider). Sees last when there is an introducer (only after patient has committed); sees at pending when there is no introducer.
-- **Peer**: Symmetric collaboration. Both see from latent; either can send.
-- **Party**: Generic (e.g. manual creation). Treated like patient for visibility.
+The `introducer` actor carries an `approved: boolean` field on its `actors` JSONB entry. Default `false` at creation; flipped to `true` by `updateOpportunityActorApproval` when the introducer approves the match. Status remains `latent` across the flip — the change is actor-level, not status-level. After approval, a background negotiation runs; on accept the status moves to `pending`; on reject to `rejected`.
 
-### Compact Visibility Rule
+| Status | No introducer | Has introducer, `approved=false` | Has introducer, `approved=true` |
+|---|---|---|---|
+| `latent` | all actors | **introducer only** | all non-introducer actors |
+| `pending` | all non-introducer actors | all non-introducer actors | all non-introducer actors |
+| `accepted` / `rejected` / `expired` / `stalled` / `draft` / `negotiating` | not on home | not on home | not on home |
 
-A user can see an opportunity if and only if:
+Rules, expressed compactly:
 
-- They are an **introducer** or **peer**, or
-- They are **patient** or **party** and (status is not latent, or there is no introducer), or
-- They are **agent** and (status is accepted/rejected/expired, or (status is not latent and there is no introducer)).
+- **Introducer**: actionable iff `status === 'latent'` **and** `approved !== true`.
+- **Patient / party / agent / peer**: actionable iff
+  - `status === 'pending'`, **or**
+  - `status === 'latent'` **and** (no introducer **or** introducer is approved).
+
+> **Terminal statuses (`accepted`, `rejected`, `expired`)** never appear on home. `accepted` opportunities surface only in the conversations sidebar because the counterparty is now a contact.
+
+> **`stalled`** is not in `DEFAULT_HOME_STATUSES`; the home graph never loads it in the default path.
+
+> **`draft`** is the chat-orchestrator equivalent of `pending` and is internal to that flow; it never reaches the home feed.
+
+> **Future work — peer + introducer interaction:** the current rule treats `peer` like `patient` / `agent` under introducer gating (hidden while `approved=false`). If we add a scenario where peer opportunities can exist alongside an introducer (currently they don't in the model), revisit this row.
 
 ## Three Scenarios
 
@@ -113,14 +116,19 @@ sequenceDiagram
     Note over Sys: accepted; both see it
 ```
 
-## Status Transitions and Who Triggers Them
+## Status Transitions
 
-| Transition     | Who can trigger                          |
-|----------------|------------------------------------------|
-| latent → pending | Introducer, patient (no introducer), peer, party (no introducer) |
-| pending → accepted | Recipient accepts (e.g. Start Chat)  |
-| pending → rejected | Recipient declines (e.g. Skip)     |
-| latent/pending → expired | TTL or user dismisses              |
+| Transition                      | Trigger                                                                 |
+|---------------------------------|-------------------------------------------------------------------------|
+| create → `latent`               | Discovery graph (introducer-gated branches) or chat orchestrator.       |
+| create → `pending`              | Ambient discovery graph (no introducer).                                |
+| `latent` + introducer approves  | `updateOpportunityActorApproval` sets `actor.approved=true`; status unchanged; negotiation enqueued. |
+| `latent` / `pending` → `negotiating` | Negotiation graph starts a turn cycle.                              |
+| `negotiating` → `pending`       | Negotiation graph finalize, `lastTurn.action === 'accept'`.             |
+| `negotiating` → `rejected`      | Negotiation graph finalize, `lastTurn.action === 'reject'`.             |
+| `negotiating` → `stalled`       | Negotiation graph finalize, other/no terminal action.                   |
+| `pending` → `accepted`          | User action (e.g. Start Chat / `update_opportunity`).                   |
+| any → `expired`                 | Expiry job.                                                             |
 
 ## Notification Targeting (Send Node)
 
