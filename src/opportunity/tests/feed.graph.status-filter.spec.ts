@@ -41,8 +41,8 @@ function createMockDb(captured: { statuses?: OpportunityStatus[] }): HomeGraphDa
 }
 
 describe('home graph status filter', () => {
-  test('DEFAULT_HOME_STATUSES is exactly latent, stalled, pending', () => {
-    expect(DEFAULT_HOME_STATUSES).toEqual(['latent', 'stalled', 'pending']);
+  test('DEFAULT_HOME_STATUSES is exactly latent, pending', () => {
+    expect(DEFAULT_HOME_STATUSES).toEqual(['latent', 'pending']);
   });
 
   test('ALL_OPPORTUNITY_STATUSES includes accepted/rejected/expired', () => {

@@ -54,7 +54,7 @@ export type HomeGraphInvokeResult = {
 };
 
 /** Default home-feed statuses: the lifecycle stages a viewer can act on today. */
-export const DEFAULT_HOME_STATUSES: OpportunityStatus[] = ['latent', 'stalled', 'pending'];
+export const DEFAULT_HOME_STATUSES: OpportunityStatus[] = ['latent', 'pending'];
 
 // Exhaustive registry — keys must cover every OpportunityStatus union member.
 // Adding a new status to OpportunityStatus without adding a key here is a TS error,
