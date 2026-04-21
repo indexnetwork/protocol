@@ -9,9 +9,22 @@ import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "./opportu
 import { runDiscoverFromQuery, continueDiscovery } from "./opportunity.discover.js";
 import type { EvaluatorEntity } from "./opportunity.evaluator.js";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
-import type { Opportunity } from "../shared/interfaces/database.interface.js";
+import type { Opportunity, OpportunityStatus } from "../shared/interfaces/database.interface.js";
 
 const logger = protocolLogger("ChatTools:Opportunity");
+
+/**
+ * Statuses for which `update_opportunity` must refuse mutations.
+ * - `accepted` / `rejected` / `expired`: terminal outcomes.
+ * - `negotiating`: an async negotiation graph is actively writing this row;
+ *   a concurrent user/agent override would race with it.
+ */
+const UPDATE_OPPORTUNITY_BLOCKED_STATUSES = new Set<OpportunityStatus>([
+  "accepted",
+  "rejected",
+  "expired",
+  "negotiating",
+]);
 
 /** Maximum number of opportunity cards to show per chat response. */
 const CHAT_DISPLAY_LIMIT = 3;
@@ -133,6 +146,66 @@ export function buildMinimalOpportunityCard(
   };
 }
 
+/**
+ * Minimal shape consumed by buildOpportunityPresentation for prose rendering.
+ * Card data objects in the codebase carry additional frontend-only fields;
+ * only these are surfaced to MCP agents.
+ */
+type OpportunityCardLike = Record<string, unknown> & {
+  opportunityId: string;
+  name?: string | undefined;
+  mainText?: string | undefined;
+  status?: string | undefined;
+};
+
+/**
+ * Format opportunity cards into the "opportunities" portion of a tool response.
+ *
+ * Web chat (`isMcp=false`): emits ```opportunity``` code fences with an
+ * "include EXACTLY as-is" directive so the frontend card renderer can parse
+ * and render interactive cards.
+ *
+ * MCP (`isMcp=true`): emits prose (name, reason, status, opportunityId per
+ * card) with an explicit reminder to synthesize in natural language and not
+ * dump raw fields or IDs. MCP clients have no card renderer, so code fences
+ * would surface as raw JSON to end users.
+ */
+function buildOpportunityPresentation(
+  cards: OpportunityCardLike[],
+  opts: { isMcp: boolean; leadIn: string; label?: "opportunity" | "opportunities" },
+): string {
+  if (cards.length === 0) return opts.leadIn;
+
+  if (opts.isMcp) {
+    const prose = cards
+      .map((card, i) => {
+        const lines: string[] = [`${i + 1}. ${card.name ?? "Unknown"}`];
+        if (card.mainText) lines.push(`   ${card.mainText}`);
+        if (card.status) lines.push(`   status: ${card.status}`);
+        lines.push(`   opportunityId: ${card.opportunityId}`);
+        return lines.join("\n");
+      })
+      .join("\n\n");
+    return (
+      `${opts.leadIn}\n\n${prose}\n\n` +
+      `Summarize these for the user in natural prose — mention first names and a brief match reason per connection. ` +
+      `Do NOT print raw JSON, field labels, opportunityIds, or confidence scores. ` +
+      `Use opportunityId values only when calling update_opportunity (send/accept/reject).`
+    );
+  }
+
+  const label = opts.label ?? (cards.length === 1 ? "opportunity" : "opportunities");
+  const blocks = cards
+    .map(
+      (card) =>
+        CODE_FENCE + "opportunity\n" + sanitizeJsonForCodeFence(JSON.stringify(card)) + "\n" + CODE_FENCE,
+    )
+    .join("\n\n");
+  return (
+    `${opts.leadIn} IMPORTANT: Include the following ${CODE_FENCE}${label} code blocks EXACTLY as-is in your response (they render as interactive cards):\n\n${blocks}`
+  );
+}
+
 export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
   const { database, userDb, systemDb, graphs, embedder, cache } = deps;
 
@@ -153,7 +226,25 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       "Use when user asks 'who should I introduce to [person]?'\n\n" +
       "**Returns:** Opportunity code blocks (render as interactive cards) with opportunityId, match reasoning, confidence score, and status. " +
       "All results start as drafts. Supports pagination via `continueFrom` for large result sets.\n\n" +
-      "**Next steps:** Use update_opportunity(opportunityId, status='pending') to send a draft to the other party.",
+      "**Next steps:** Use update_opportunity(opportunityId, status='pending') to send a draft to the other party.\n\n" +
+      "**Discovery-first rule.** For open-ended connection-seeking requests (\"find me a mentor\", " +
+      "\"who needs a React dev\", \"looking for investors\"), call this tool with `searchQuery` FIRST. " +
+      "Do NOT call create_intent for these phrasings — create_intent is only for when the user explicitly " +
+      "asks to \"create\", \"save\", \"add\", or \"remember\" a signal.\n\n" +
+      "**Personal-index scoping.** When the user says \"in my network\", \"from my contacts\", \"people I know\", " +
+      "or similar scoping language, pass the user's personal index ID (from memberships where `isPersonal: true`) " +
+      "as `networkId`. The personal index contains the user's contacts — scoping discovery to it restricts " +
+      "results to people the user already knows. Without this scoping language, omit networkId to let discovery " +
+      "run across all indexes.\n\n" +
+      "**Introduction mode prerequisites.** When using `partyUserIds` + `entities`, YOU must pre-fetch each party's " +
+      "profile and intents before calling this tool. The entities array must include each party's userId, profile, " +
+      "intents from shared indexes, and the shared networkId. Call read_user_profiles, read_network_memberships, " +
+      "and read_intents for both parties first. The introducer (current user) must NOT appear in entities.\n\n" +
+      "**Signal-visibility follow-up.** If the response includes `suggestIntentCreationForVisibility: true` and " +
+      "`suggestedIntentDescription`, after presenting opportunity cards ask the user ONCE whether they'd also like " +
+      "to create a signal so others can find them. On yes, call create_intent with the suggested description. " +
+      "Never suggest this after introducer-mode (`introTargetUserId`) calls — the query describes the other person's " +
+      "needs, not the signed-in user's.",
     querySchema: z.object({
       continueFrom: z
         .string()
@@ -279,40 +370,31 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           });
         }
 
-        // Format opportunity blocks — same pattern as the discovery path below
-        const opportunityBlocks = (result.opportunities ?? []).map((opp) => {
-          const cardData = {
-            opportunityId: opp.opportunityId,
-            userId: opp.userId,
-            name: opp.name,
-            avatar: opp.avatar,
-            mainText: opp.homeCardPresentation?.personalizedSummary ?? opp.matchReason ?? "",
-            cta: opp.homeCardPresentation?.suggestedAction,
-            headline: opp.homeCardPresentation?.headline,
-            primaryActionLabel: opp.homeCardPresentation?.primaryActionLabel,
-            secondaryActionLabel: opp.homeCardPresentation?.secondaryActionLabel,
-            mutualIntentsLabel: opp.homeCardPresentation?.mutualIntentsLabel,
-            narratorChip: opp.narratorChip,
-            viewerRole: opp.viewerRole,
-            isGhost: opp.isGhost ?? false,
-            score: opp.score,
-            status: opp.status,
-          };
-          return (
-            CODE_FENCE + "opportunity\n" +
-            sanitizeJsonForCodeFence(JSON.stringify(cardData)) +
-            "\n" + CODE_FENCE
-          );
+        // Build card data; cap at CHAT_DISPLAY_LIMIT (remaining feeds into pagination)
+        const allCardData = (result.opportunities ?? []).map((opp) => ({
+          opportunityId: opp.opportunityId,
+          userId: opp.userId,
+          name: opp.name,
+          avatar: opp.avatar,
+          mainText: opp.homeCardPresentation?.personalizedSummary ?? opp.matchReason ?? "",
+          cta: opp.homeCardPresentation?.suggestedAction,
+          headline: opp.homeCardPresentation?.headline,
+          primaryActionLabel: opp.homeCardPresentation?.primaryActionLabel,
+          secondaryActionLabel: opp.homeCardPresentation?.secondaryActionLabel,
+          mutualIntentsLabel: opp.homeCardPresentation?.mutualIntentsLabel,
+          narratorChip: opp.narratorChip,
+          viewerRole: opp.viewerRole,
+          isGhost: opp.isGhost ?? false,
+          score: opp.score,
+          status: opp.status,
+        }));
+        const displayedCards = allCardData.slice(0, CHAT_DISPLAY_LIMIT);
+        const extraFromCap = allCardData.length - displayedCards.length;
+
+        let message = buildOpportunityPresentation(displayedCards, {
+          isMcp: context.isMcp ?? false,
+          leadIn: `Found ${displayedCards.length} more potential connection(s).`,
         });
-
-        // Cap displayed cards at CHAT_DISPLAY_LIMIT; remaining feed into pagination
-        const displayedBlocks = opportunityBlocks.slice(0, CHAT_DISPLAY_LIMIT);
-        const extraFromCap = opportunityBlocks.length - displayedBlocks.length;
-
-        const blocksText = displayedBlocks.join("\n\n");
-        let message =
-          "Found " + displayedBlocks.length + " more potential connection(s). IMPORTANT: Include the following opportunity code blocks EXACTLY as-is in your response (they render as interactive cards):\n\n" +
-          blocksText;
 
         const isIntroducerContinuation = !!query.introTargetUserId?.trim();
         const totalRemaining = (result.pagination?.remaining ?? 0) + extraFromCap;
@@ -326,9 +408,9 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
 
         return success({
           found: true,
-          count: displayedBlocks.length,
+          count: displayedCards.length,
           message,
-          summary: `Found ${displayedBlocks.length} more match(es)`,
+          summary: `Found ${displayedCards.length} more match(es)`,
           ...(result.pagination ? { pagination: result.pagination } : {}),
           debugSteps: allDebugSteps,
           _graphTimings: [{ name: 'opportunity', durationMs: _graphMs, agents: [] }],
@@ -499,20 +581,15 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
               }
             : {}),
         };
-        const block =
-          CODE_FENCE + "opportunity\n" +
-          sanitizeJsonForCodeFence(JSON.stringify(cardData)) +
-          "\n" + CODE_FENCE;
-
         return success({
           found: true,
           count: 1,
           summary: "Draft introduction created",
-          message:
-            "Draft introduction created. IMPORTANT: Include the following " +
-            CODE_FENCE +
-            "opportunity code block EXACTLY as-is in your response (it renders as an interactive card):\n\n" +
-            block,
+          message: buildOpportunityPresentation([cardData], {
+            isMcp: context.isMcp ?? false,
+            leadIn: "Draft introduction created.",
+            label: "opportunity",
+          }),
           opportunities: [
             {
               opportunityId: created.id,
@@ -590,6 +667,12 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       const _discoverTraceEmitter = requestContext.getStore()?.traceEmitter;
       const _discoverGraphStart = Date.now();
       _discoverTraceEmitter?.({ type: "graph_start", name: "opportunity" });
+      // Chat-driven invocations run under the orchestrator trigger: persist
+      // opens at 'negotiating', negotiate fans out with a 60s park window,
+      // each accepted draft streams via traceEmitter, and the persist step
+      // surfaces already-accepted pairs. Other callers (maintenance, queue
+      // workers) still get the 'ambient' default.
+      const runDiscoveryOrchestrator = !!context.sessionId;
       const result = await runDiscoverFromQuery({
         opportunityGraph: graphs.opportunity,
         database,
@@ -603,6 +686,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         onBehalfOfUserId: query.introTargetUserId?.trim() || undefined,
         cache,
         ...(context.sessionId ? { chatSessionId: context.sessionId } : {}),
+        ...(runDiscoveryOrchestrator && { trigger: 'orchestrator' as const }),
       });
       const _discoverGraphMs = Date.now() - _discoverGraphStart;
       _discoverTraceEmitter?.({ type: "graph_end", name: "opportunity", durationMs: _discoverGraphMs });
@@ -614,6 +698,17 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       const allDebugSteps = [
         ...toolDebugSteps,
         ...(result.debugSteps ?? []),
+      ];
+
+      // Extract negotiation timing from trace (if negotiation ran)
+      const negotiateStep = (result.debugSteps ?? []).find(
+        s => s.step === 'negotiate' && s.data?.durationMs != null
+      );
+      const _allGraphTimings = [
+        ..._discoverGraphTimings,
+        ...(negotiateStep?.data?.durationMs != null
+          ? [{ name: 'negotiation', durationMs: negotiateStep.data.durationMs as number, agents: [] }]
+          : []),
       ];
 
       const isIntroducerFlow = !!query.introTargetUserId?.trim();
@@ -629,7 +724,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           summary: "No matches found",
           ...(result.pagination ? { pagination: result.pagination } : {}),
           debugSteps: allDebugSteps,
-          _graphTimings: _discoverGraphTimings,
+          _graphTimings: _allGraphTimings,
         });
       }
 
@@ -641,7 +736,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           summary: "No matches found",
           ...(result.pagination ? { pagination: result.pagination } : {}),
           debugSteps: allDebugSteps,
-          _graphTimings: _discoverGraphTimings,
+          _graphTimings: _allGraphTimings,
         });
       }
 
@@ -659,58 +754,53 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           existingConnections: result.existingConnections,
           summary: "No new matches (existing connections only)",
           debugSteps: allDebugSteps,
-          _graphTimings: _discoverGraphTimings,
+          _graphTimings: _allGraphTimings,
         });
       }
 
-      // Format opportunities as code blocks for the LLM to include in its response
-      // The frontend will parse opportunity code blocks and render them as cards
-      const opportunityBlocks = (result.opportunities ?? []).map((opp) => {
-        const cardData = {
-          opportunityId: opp.opportunityId,
-          userId: opp.userId,
-          name: opp.name,
-          avatar: opp.avatar,
-          mainText:
-            opp.homeCardPresentation?.personalizedSummary ??
-            opp.matchReason ??
-            "",
-          cta: opp.homeCardPresentation?.suggestedAction,
-          headline: opp.homeCardPresentation?.headline,
-          primaryActionLabel: opp.homeCardPresentation?.primaryActionLabel,
-          secondaryActionLabel: opp.homeCardPresentation?.secondaryActionLabel,
-          mutualIntentsLabel: opp.homeCardPresentation?.mutualIntentsLabel,
-          narratorChip: opp.narratorChip,
-          viewerRole: opp.viewerRole,
-          isGhost: opp.isGhost ?? false,
-          score: opp.score,
-          status: opp.status,
-          ...(opp.secondParty && { secondParty: opp.secondParty }),
-        };
-        return (
-          CODE_FENCE + "opportunity\n" +
-          sanitizeJsonForCodeFence(JSON.stringify(cardData)) +
-          "\n" + CODE_FENCE
-        );
+      // Build card data; cap at CHAT_DISPLAY_LIMIT (remaining feeds into pagination)
+      const allCardData = (result.opportunities ?? []).map((opp) => ({
+        opportunityId: opp.opportunityId,
+        userId: opp.userId,
+        name: opp.name,
+        avatar: opp.avatar,
+        mainText:
+          opp.homeCardPresentation?.personalizedSummary ??
+          opp.matchReason ??
+          "",
+        cta: opp.homeCardPresentation?.suggestedAction,
+        headline: opp.homeCardPresentation?.headline,
+        primaryActionLabel: opp.homeCardPresentation?.primaryActionLabel,
+        secondaryActionLabel: opp.homeCardPresentation?.secondaryActionLabel,
+        mutualIntentsLabel: opp.homeCardPresentation?.mutualIntentsLabel,
+        narratorChip: opp.narratorChip,
+        viewerRole: opp.viewerRole,
+        isGhost: opp.isGhost ?? false,
+        score: opp.score,
+        status: opp.status,
+        ...(opp.secondParty && { secondParty: opp.secondParty }),
+      }));
+      const displayedCards = allCardData.slice(0, CHAT_DISPLAY_LIMIT);
+      const extraFromCap = allCardData.length - displayedCards.length;
+
+      let message = buildOpportunityPresentation(displayedCards, {
+        isMcp: context.isMcp ?? false,
+        leadIn: `Found ${displayedCards.length} potential connection(s).`,
       });
-
-      // Cap displayed cards at CHAT_DISPLAY_LIMIT; remaining feed into pagination
-      const displayedBlocks = opportunityBlocks.slice(0, CHAT_DISPLAY_LIMIT);
-      const extraFromCap = opportunityBlocks.length - displayedBlocks.length;
-
-      // Join all opportunity blocks into a single string for the LLM to include verbatim
-      const blocksText = displayedBlocks.join("\n\n");
-      let message =
-        "Found " +
-        displayedBlocks.length +
-        " potential connection(s). IMPORTANT: Include the following " + CODE_FENCE + "opportunity code blocks EXACTLY as-is in your response (they render as interactive cards):\n\n" +
-        blocksText;
       const existingForMention = result.existingConnectionsForMention ?? result.existingConnections ?? [];
       if (existingForMention.length > 0) {
         message +=
           "\n\nYou already have a connection with: " +
           existingForMention.map((c) => c.name + (c.status ? " (" + c.status + ")" : "")).join(", ") +
           ". View on your home page.";
+      }
+      // Orchestrator-only: dedupAlreadyAccepted surfaces pairs that already
+      // have an accepted opp between the users. Tell the LLM so it can guide
+      // the user to the existing chat instead of treating this like a brand-
+      // new connection.
+      if (result.alreadyAcceptedPairs && result.alreadyAcceptedPairs.length > 0) {
+        message +=
+          `\n\nYou already have ${result.alreadyAcceptedPairs.length} accepted opportunity(ies) with some of these candidates — open the existing chat with them rather than creating a new draft.`;
       }
 
       const totalRemaining = (result.pagination?.remaining ?? 0) + extraFromCap;
@@ -724,9 +814,9 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
 
       return success({
         found: true,
-        count: displayedBlocks.length,
+        count: displayedCards.length,
         message,
-        summary: `Found ${displayedBlocks.length} match(es)`,
+        summary: `Found ${displayedCards.length} match(es)`,
         ...(result.existingConnections?.length ? { existingConnections: result.existingConnections } : {}),
         ...(result.pagination ? { pagination: result.pagination } : {}),
         debugSteps: allDebugSteps,
@@ -739,7 +829,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
               suggestedIntentDescription: searchQuery,
             }
           : {}),
-        _graphTimings: _discoverGraphTimings,
+        _graphTimings: _allGraphTimings,
       });
     },
   });
@@ -830,7 +920,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         if (user) userMap.set(userId, user);
       });
 
-      const opportunityBlocks: string[] = [];
+      const cardDataList: Array<ReturnType<typeof buildMinimalOpportunityCard>> = [];
       const seenOpportunityIds = new Set<string>();
       const skippedCards: Array<{ opportunityId: string; error: string }> = [];
 
@@ -901,11 +991,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
             secondPartyActorForHeadline?.userId,
           );
 
-          opportunityBlocks.push(
-            CODE_FENCE + "opportunity\n" +
-              sanitizeJsonForCodeFence(JSON.stringify(cardData)) +
-              "\n" + CODE_FENCE,
-          );
+          cardDataList.push(cardData);
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
           logger.warn("Skipping opportunity that failed to build minimal card", {
@@ -930,7 +1016,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         });
       }
 
-      if (opportunityBlocks.length === 0) {
+      if (cardDataList.length === 0) {
         if (skippedCards.length > 0) {
           return success({
             found: false,
@@ -950,20 +1036,14 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         });
       }
 
-      // Join all opportunity blocks into a single string for the LLM to include verbatim
-      const blocksText = opportunityBlocks.join("\n\n");
-
       return success({
         found: true,
-        count: opportunityBlocks.length,
-        summary: `You have ${opportunityBlocks.length} opportunity(ies)`,
-        message:
-          "You have " +
-          opportunityBlocks.length +
-          " opportunity(ies). IMPORTANT: Include the following " +
-          CODE_FENCE +
-          "opportunity code blocks EXACTLY as-is in your response (they render as interactive cards):\n\n" +
-          blocksText,
+        count: cardDataList.length,
+        summary: `You have ${cardDataList.length} opportunity(ies)`,
+        message: buildOpportunityPresentation(cardDataList, {
+          isMcp: context.isMcp ?? false,
+          leadIn: `You have ${cardDataList.length} opportunity(ies).`,
+        }),
         ...(listDebugSteps.length ? { debugSteps: listDebugSteps } : {}),
       });
     },
@@ -976,7 +1056,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       "**Status transitions:**\n" +
       "- `pending`: Sends a draft opportunity to the other party. They'll be notified and can accept or reject. " +
       "This is the primary action after create_opportunities returns a draft.\n" +
-      "- `accepted`: Accept a received opportunity — signals interest in connecting. Both parties can now communicate.\n" +
+      "- `accepted`: Accept a received opportunity — opens a direct conversation between both parties. Returns a conversationId to surface to the user.\n" +
       "- `rejected`: Decline a received opportunity.\n" +
       "- `expired`: Mark as expired (typically done by the system after timeout).\n\n" +
       "**When to use:** After create_opportunities or list_opportunities returns opportunity cards. " +
@@ -999,14 +1079,30 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         return error("Valid opportunityId required.");
       }
 
+      // Always fetch the opportunity — needed for actor guard and state machine
+      const opportunity = await systemDb.getOpportunity(opportunityId);
+      if (!opportunity) {
+        return error("Opportunity not found.");
+      }
+
+      // Actor guard: caller must be a party to the opportunity
+      const isActor = opportunity.actors?.some((a) => a.userId === context.userId);
+      if (!isActor) {
+        return error("Opportunity not found.");
+      }
+
+      // Terminal-state and in-flight-negotiation guard.
+      // Not a full state-machine: the Zod enum already constrains the target status,
+      // and source statuses like `draft` / `latent` remain permitted.
+      if (UPDATE_OPPORTUNITY_BLOCKED_STATUSES.has(opportunity.status)) {
+        return error(`This opportunity is already ${opportunity.status} and cannot be updated.`);
+      }
+
       // Strict scope enforcement: when chat is index-scoped, verify opportunity is in that index
       if (context.networkId) {
-        const opportunity = await systemDb.getOpportunity(opportunityId);
-        if (!opportunity) {
-          return error("Opportunity not found.");
-        }
-        const opportunityIndexId = opportunity.context?.networkId
-          ?? opportunity.actors?.find((a) => a.networkId === context.networkId)?.networkId;
+        const opportunityIndexId =
+          opportunity.context?.networkId ??
+          opportunity.actors?.find((a) => a.networkId === context.networkId)?.networkId;
         if (!opportunityIndexId || opportunityIndexId !== context.networkId) {
           return error("Opportunity not found.");
         }
@@ -1031,19 +1127,54 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
             opportunityId: result.mutationResult.opportunityId,
             status: query.status,
             message: result.mutationResult.message,
-            ...(result.mutationResult.notified && {
-              notified: result.mutationResult.notified,
+            ...(result.mutationResult.notified && { notified: result.mutationResult.notified }),
+            ...(result.mutationResult.conversationId && {
+              conversationId: result.mutationResult.conversationId,
             }),
             _graphTimings: [{ name: 'opportunity', durationMs: _updateGraphMs, agents: result.agentTimings ?? [] }],
           });
         }
-        return error(
-          result.mutationResult.error || "Failed to update opportunity.",
-        );
+        return error(result.mutationResult.error || "Failed to update opportunity.");
       }
       return error("Failed to update opportunity.");
     },
   });
 
-  return [createOpportunities, listOpportunities, updateOpportunity] as const;
+  const confirmOpportunityDelivery = defineTool({
+    name: "confirm_opportunity_delivery",
+    description:
+      "Marks an opportunity as delivered to the user via the OpenClaw channel. " +
+      "Call this for each opportunity you decide to surface, BEFORE including it in your delivery message. " +
+      "Idempotent — safe to call even if the opportunity was already confirmed.",
+    querySchema: z.object({
+      opportunityId: z
+        .string()
+        .describe("The UUID of the opportunity to mark as delivered."),
+    }),
+    handler: async ({ context, query }) => {
+      if (!context.isMcp || !context.agentId) {
+        return error(
+          "confirm_opportunity_delivery is only available to authenticated agent MCP contexts.",
+        );
+      }
+      if (!deps.deliveryLedger) {
+        return error("Delivery ledger not available in this context.");
+      }
+      if (!UUID_REGEX.test(query.opportunityId)) {
+        return error("Invalid opportunity ID format.");
+      }
+      try {
+        const result = await deps.deliveryLedger.confirmOpportunityDelivery({
+          opportunityId: query.opportunityId,
+          userId: context.userId,
+          agentId: context.agentId,
+        });
+        return success({ status: result });
+      } catch (err) {
+        return error(err instanceof Error ? err.message : String(err));
+      }
+    },
+  });
+
+  return [createOpportunities, listOpportunities, updateOpportunity, confirmOpportunityDelivery] as const;
 }

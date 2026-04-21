@@ -262,7 +262,7 @@ const mockScraper = {
 } as unknown as Scraper;
 
 /** Stub protocol-level deps for ToolContext (not invoked in most unit tests). */
-const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | 'scraper' | 'indexId' | 'sessionId' | 'userDb' | 'systemDb'> = {
+const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | 'scraper' | 'networkId' | 'sessionId' | 'userDb' | 'systemDb'> = {
   cache: { get: async () => null, set: async () => {}, delete: async () => false, exists: async () => false, mget: async () => [], deleteByPattern: async () => 0 },
   hydeCache: { get: async () => null, set: async () => {}, delete: async () => false, exists: async () => false },
   integration: { createSession: async () => ({}) as any, executeToolAction: async () => ({ successful: true }), listConnections: async () => [], getAuthUrl: async () => ({ redirectUrl: "" }), disconnect: async () => ({ success: true }) },
@@ -388,8 +388,8 @@ describe("read_intents tool", () => {
       return [];
     }, {
       isNetworkMember: async () => true,
-      getNetworkIntentsForMember: async (_indexId, _requestingUserId) =>
-        _indexId === testIndexId ? indexIntentsForMember : [],
+      getNetworkIntentsForMember: async (_networkId, _requestingUserId) =>
+        _networkId === testIndexId ? indexIntentsForMember : [],
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
@@ -936,6 +936,7 @@ describe("read_networks (Phase 3 network-scoped)", () => {
     expect(parsed.data.memberOf[0].networkId).toBe(scopedIndexId);
     expect(parsed.data.stats.scopeNote).toContain("Showing current index");
   });
+
 });
 
 describe("update_intent and delete_intent (Phase 3 index-scoping)", () => {
@@ -950,8 +951,8 @@ describe("update_intent and delete_intent (Phase 3 index-scoping)", () => {
     }, { isNetworkMember: async () => true });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, networkId, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "update_intent") as { invoke: (args: { intentId: string; newDescription: string }) => Promise<string> };
-    const result = await tool.invoke({ intentId: intentNotInIndex, newDescription: "Updated" });
+    const tool = tools.find((t: { name: string }) => t.name === "update_intent") as { invoke: (args: { intentId: string; description: string }) => Promise<string> };
+    const result = await tool.invoke({ intentId: intentNotInIndex, description: "Updated" });
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
     expect(parsed.error).toBeDefined();
@@ -983,8 +984,8 @@ describe("update_intent and delete_intent (Phase 3 index-scoping)", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, networkId, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "update_intent") as { invoke: (args: { intentId: string; newDescription: string }) => Promise<string> };
-    const result = await tool.invoke({ intentId: intentInIndex.id, newDescription: "Updated" });
+    const tool = tools.find((t: { name: string }) => t.name === "update_intent") as { invoke: (args: { intentId: string; description: string }) => Promise<string> };
+    const result = await tool.invoke({ intentId: intentInIndex.id, description: "Updated" });
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(parsed.data).toBeDefined();

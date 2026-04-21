@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { DefineTool, ResolvedToolContext, ToolDeps, RawToolDefinition, ToolRegistry } from './tool.helpers.js';
+import { error, redactSensitiveFields } from './tool.helpers.js';
 import { createProfileTools } from '../../profile/profile.tools.js';
 import { createIntentTools } from '../../intent/intent.tools.js';
 import { createNetworkTools } from '../../network/network.tools.js';
@@ -8,10 +9,10 @@ import { createOpportunityTools } from '../../opportunity/opportunity.tools.js';
 import { createUtilityTools } from './utility.tools.js';
 import { createIntegrationTools } from '../../integration/integration.tools.js';
 import { createContactTools } from '../../contact/contact.tools.js';
-import { createWebhookTools } from '../../webhook/webhook.tools.js';
+import { createAgentTools } from '../../agent/agent.tools.js';
 import { createNegotiationTools } from '../../negotiation/negotiation.tools.js';
+import { createChatTools } from '../../chat/chat.tools.js';
 import { protocolLogger } from '../observability/protocol.logger.js';
-import { error } from './tool.helpers.js';
 
 const logger = protocolLogger('ToolRegistry');
 
@@ -41,7 +42,7 @@ export function createToolRegistry(deps: ToolDeps): ToolRegistry {
       handler: async (input: { context: ResolvedToolContext; query: unknown }) => {
         logger.verbose(`Tool: ${opts.name}`, {
           context: { userId: input.context.userId, networkId: input.context.networkId },
-          query: input.query,
+          query: redactSensitiveFields(input.query),
         });
         try {
           return await opts.handler({ context: input.context, query: input.query as z.infer<T> });
@@ -71,8 +72,11 @@ export function createToolRegistry(deps: ToolDeps): ToolRegistry {
   createUtilityTools(dt, deps);
   createIntegrationTools(dt, deps);
   createContactTools(dt, deps);
-  createWebhookTools(dt, deps);
+  createAgentTools(dt, deps);
   createNegotiationTools(dt, deps);
+  if (deps.chatSession) {
+    createChatTools(dt, deps);
+  }
 
   logger.verbose(`Tool registry created with ${registry.size} tools`);
   return registry;

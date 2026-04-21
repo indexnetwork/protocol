@@ -31,7 +31,7 @@ const makeMockModel = () => {
   return inst;
 };
 
-mock.module("../model.config", () => ({
+mock.module("../../shared/agent/model.config", () => ({
   createModel: (agent: string) => {
     const inst = makeMockModel();
     if (agent === "chat") {
@@ -78,7 +78,7 @@ function createMockTools() {
   return capturedTools;
 }
 
-mock.module("../../tools", () => ({
+mock.module("../../shared/agent/tool.factory", () => ({
   createChatTools: async () => createMockTools(),
 }));
 
@@ -92,6 +92,7 @@ import { ChatAgent, type AgentStreamEvent } from "../chat.agent.js";
 
 function makeTextStream(text: string): AsyncIterable<AIMessageChunk> {
   return (async function* () {
+    await new Promise<void>((resolve) => setTimeout(resolve, 1)); // ensure measurable elapsed time for llm timing
     yield new AIMessageChunk({ content: text });
   })();
 }
@@ -248,7 +249,7 @@ I've created an intent for you!`;
       writer,
     );
 
-    // create_opportunities auto-invoked with searchQuery from block name
+    // create_opportunities auto-invoked with searchQuery from user's message (not hallucinated block)
     const createOpsTool = capturedTools.find(
       (t) => t.name === "create_opportunities",
     )!;
@@ -257,7 +258,7 @@ I've created an intent for you!`;
       string,
       string
     >;
-    expect(callArgs.searchQuery).toBe("Blockchain developer meetup");
+    expect(callArgs.searchQuery).toBe("Find me connections in blockchain");
 
     // response_reset emitted
     const resetEvents = events.filter((e) => e.type === "response_reset");
@@ -393,6 +394,53 @@ I've created an intent for you!`;
         (e as { reason: string }).reason.includes("Hallucinated"),
     );
     expect(hallucinationResets.length).toBe(0);
+  }, 15000);
+});
+
+describe("ChatAgent streamRun — debugMeta.llm accumulator", () => {
+  it("increments llm.calls on each llm_start", async () => {
+    // Create agent first — this sets mockModelInstance via the mock.module factory
+    const agent = await ChatAgent.create({
+      database: {
+        getUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com", location: null, socials: {} }),
+        getProfile: async () => null,
+        getNetworkMemberships: async () => [],
+      } as any,
+      embedder: {} as any,
+      scraper: {} as any,
+      userId: "test-user",
+      sessionId: "test-session",
+      cache: {} as any,
+      hydeCache: {} as any,
+      integration: {} as any,
+      intentQueue: {} as any,
+      contactService: {} as any,
+      chatSession: {} as any,
+      enricher: {} as any,
+      negotiationDatabase: {} as any,
+      integrationImporter: {} as any,
+      createUserDatabase: () => ({}) as any,
+      createSystemDatabase: () => ({}) as any,
+    });
+
+    // mockModelInstance is now set — override stream to return a plain response
+    if (!mockModelInstance) {
+      throw new Error("mockModelInstance not set after ChatAgent.create()");
+    }
+    mockModelInstance.stream = mock(() =>
+      makeTextStream("Here is a plain response with no tool calls."),
+    );
+
+    const { writer } = createEventCollector();
+    const result = await agent.streamRun(
+      [new HumanMessage("Hello, what can you do?")],
+      writer,
+    );
+
+    expect(result.debugMeta.llm.calls).toBe(1);
+    expect(result.debugMeta.llm.totalDurationMs).toBeGreaterThan(0);
+    expect(Array.isArray(result.debugMeta.llm.resets)).toBe(true);
+    expect(Array.isArray(result.debugMeta.llm.hallucinations)).toBe(true);
   }, 15000);
 });
 

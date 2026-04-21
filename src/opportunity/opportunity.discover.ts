@@ -62,6 +62,14 @@ export interface DiscoverInput {
   chatSessionId?: string;
   /** Redis cache for discovery pagination. When provided, remaining candidates are cached for continuation. */
   cache?: Cache;
+  /**
+   * Which flow is invoking discovery. Drives the graph's trigger-aware branches
+   * in persist (initial status) and negotiate (park window + streaming). When
+   * omitted, the graph defaults to 'ambient'. Pass 'orchestrator' from the
+   * chat `create_opportunities` tool so users see drafts stream in and the
+   * accepted-pair lookup surfaces existing connections.
+   */
+  trigger?: 'ambient' | 'orchestrator';
 }
 
 /** Context used by the minimal (no-LLM) path; only introducerName is needed for narrator chip. */
@@ -141,6 +149,14 @@ export interface DiscoverResult {
   existingConnections?: ExistingConnection[];
   /** All existing connections for mention text (e.g. "You already have a connection with: X (pending), Y (draft)."). */
   existingConnectionsForMention?: ExistingConnection[];
+  /**
+   * Orchestrator-only: accepted opportunities the persist step found between the
+   * discoverer and a candidate counterparty (status='accepted'). Populated from
+   * OpportunityGraphState.dedupAlreadyAccepted. Used by the create_opportunities
+   * tool to tell the LLM "this pair is already connected — open the existing
+   * chat rather than creating a new draft". Empty for the ambient trigger.
+   */
+  alreadyAcceptedPairs?: Array<{ opportunityId: string; counterpartyUserId: string }>;
   /** When true, the chat agent should call create_intent(suggestedIntentDescription) and retry discovery. */
   createIntentSuggested?: boolean;
   /** Description to pass to create_intent when createIntentSuggested is true. */
@@ -508,6 +524,12 @@ interface CachedDiscoverySession {
   query: string;
   indexScope: string[];
   options: OpportunityGraphOptions;
+  /**
+   * Carried across pagination so page 2+ stays on the same flow as page 1.
+   * Without this, orchestrator runs would fall back to the 'ambient' default
+   * mid-search and lose the shorter park window + accepted-pair dedup.
+   */
+  trigger?: 'ambient' | 'orchestrator';
 }
 
 /**
@@ -529,6 +551,7 @@ export async function runDiscoverFromQuery(
     targetUserId,
     onBehalfOfUserId,
     chatSessionId,
+    trigger,
   } = input;
 
   if (indexScope.length === 0) {
@@ -545,9 +568,15 @@ export async function runDiscoverFromQuery(
   // When query is empty, the opportunity graph uses the user's intents in scope (indexedIntents[0].payload)
   // Lens inference is handled automatically by the HyDE graph's LensInferrer
   const queryOrEmpty = query?.trim() ?? "";
+  // Orchestrator discovery defers the initial status to the graph's
+  // trigger-aware `resolveInitialStatus`, which opens at 'negotiating' so
+  // the accepted-draft streaming flow can run. Ambient chat discovery still
+  // wants the legacy 'draft' status so the chat-only lifecycle holds; other
+  // ambient callers keep 'latent'.
+  const isOrchestrator = trigger === 'orchestrator';
   const options: OpportunityGraphOptions = {
     limit,
-    initialStatus: chatSessionId ? "draft" : "latent",
+    ...(!isOrchestrator && { initialStatus: chatSessionId ? "draft" : "latent" }),
     ...(chatSessionId ? { conversationId: chatSessionId } : {}),
   };
 
@@ -571,6 +600,7 @@ export async function runDiscoverFromQuery(
         targetUserId,
         onBehalfOfUserId,
         options,
+        ...(trigger && { trigger }),
       });
 
       // Extract trace from graph and append to debugSteps
@@ -608,6 +638,7 @@ export async function runDiscoverFromQuery(
             query: queryOrEmpty,
             indexScope,
             options,
+            ...(trigger && { trigger }),
           } satisfies CachedDiscoverySession, { ttl: 1800 }); // 30 minutes
           pagination = {
             discoveryId,
@@ -649,6 +680,16 @@ export async function runDiscoverFromQuery(
       let existingOpportunityIds: Set<string> | undefined;
       const rawExistingBetweenActors = Array.isArray(result.existingBetweenActors)
         ? result.existingBetweenActors
+        : [];
+      // Orchestrator trigger populates this; ambient returns []. Kept as a
+      // loosely-typed pass-through because DiscoverResult is consumed by
+      // callers (chat tool, tests) that already model the narrower shape.
+      const alreadyAcceptedPairs = Array.isArray(
+        (result as { dedupAlreadyAccepted?: Array<{ opportunityId: string; counterpartyUserId: string }> })
+          .dedupAlreadyAccepted,
+      )
+        ? (result as { dedupAlreadyAccepted: Array<{ opportunityId: string; counterpartyUserId: string }> })
+            .dedupAlreadyAccepted
         : [];
       // Enrich existing-between-actors with names so the tool can say "You already have a connection with X (pending)."
       const existingConnections: ExistingConnection[] = await Promise.all(
@@ -717,6 +758,7 @@ export async function runDiscoverFromQuery(
               ". View on your home page.",
             existingConnections: existingConnectionsForCards,
             existingConnectionsForMention: existingConnections,
+            ...(alreadyAcceptedPairs.length > 0 && { alreadyAcceptedPairs }),
             debugSteps,
             pagination,
           };
@@ -726,6 +768,7 @@ export async function runDiscoverFromQuery(
           count: 0,
           message:
             "No matching opportunities found. Try a different query or create intents to improve matching.",
+          ...(alreadyAcceptedPairs.length > 0 && { alreadyAcceptedPairs }),
           debugSteps,
           pagination,
         };
@@ -750,6 +793,7 @@ export async function runDiscoverFromQuery(
         opportunities: enriched,
         ...(existingConnectionsForCards.length > 0 ? { existingConnections: existingConnectionsForCards } : {}),
         ...(existingConnections.length > 0 ? { existingConnectionsForMention: existingConnections } : {}),
+        ...(alreadyAcceptedPairs.length > 0 ? { alreadyAcceptedPairs } : {}),
         debugSteps,
         pagination,
       };
@@ -825,6 +869,10 @@ export async function continueDiscovery(input: {
     candidates: cached.candidates,
     operationMode: 'continue_discovery' as const,
     onBehalfOfUserId: cached.onBehalfOfUserId,
+    // Carry the original trigger so page 2+ stays on the same flow as page
+    // 1 (orchestrator negotiations with 60s park window + accepted-pair
+    // dedup, or ambient with 5-min park window).
+    ...(cached.trigger && { trigger: cached.trigger }),
     options: {
       ...cached.options,
       limit,

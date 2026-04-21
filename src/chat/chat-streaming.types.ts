@@ -34,7 +34,12 @@ export type ChatStreamEventType =
   | "graph_end"
   | "agent_start"
   | "agent_end"
-  | "hallucination_detected";
+  | "hallucination_detected"
+  // Orchestrator-inline negotiation trace events
+  | "negotiation_session_start"
+  | "negotiation_session_end"
+  | "negotiation_turn"
+  | "negotiation_outcome";
 
 /**
  * Base interface for all chat stream events.
@@ -365,6 +370,28 @@ export interface DebugMetaToolCall {
 }
 
 /**
+ * LLM call statistics accumulated during a single agent turn.
+ */
+export interface DebugMetaLlm {
+  /** Total number of LLM calls made in this turn. */
+  calls: number;
+  /** Cumulative wall-clock time spent waiting for the LLM across all calls. */
+  totalDurationMs: number;
+  /** Entries recorded each time a response_reset event was emitted. */
+  resets: Array<{ reason: string; at: number }>;
+  /** Entries recorded each time a hallucination_detected event was emitted. */
+  hallucinations: Array<{ blockType: string; tool: string; at: number }>;
+}
+
+/**
+ * Negotiation sessions initiated by the orchestrator during this turn.
+ */
+export interface DebugMetaOrchestratorNegotiations {
+  /** Opportunity IDs for which a negotiation_session_start was emitted. */
+  opportunityIds: string[];
+}
+
+/**
  * Debug meta event - per-turn graph and tool usage for copy debug.
  */
 export interface DebugMetaEvent extends ChatStreamEventBase {
@@ -372,6 +399,8 @@ export interface DebugMetaEvent extends ChatStreamEventBase {
   graph: string;
   iterations: number;
   tools: DebugMetaToolCall[];
+  llm: DebugMetaLlm;
+  orchestratorNegotiations?: DebugMetaOrchestratorNegotiations;
 }
 
 /** Graph start event — emitted when a LangGraph sub-graph begins inside a tool. */
@@ -400,6 +429,53 @@ export interface AgentEndEvent extends ChatStreamEventBase {
   durationMs: number;
   /** Structured outcome summary, e.g. "5 of 12 passed" or "3 intents extracted". */
   summary: string;
+}
+
+/** Orchestrator per-candidate negotiation wrapper — emitted from `negotiateCandidates`. */
+export interface NegotiationSessionStartEvent extends ChatStreamEventBase {
+  type: "negotiation_session_start";
+  opportunityId: string;
+  negotiationConversationId: string;
+  sourceUserId: string;
+  candidateUserId: string;
+  candidateName?: string;
+  trigger: "orchestrator" | "ambient";
+  startedAt: number;
+}
+
+export interface NegotiationSessionEndEvent extends ChatStreamEventBase {
+  type: "negotiation_session_end";
+  opportunityId: string;
+  negotiationConversationId: string;
+  durationMs: number;
+}
+
+/** One turn inside a bilateral negotiation. Emitted by the negotiation graph's turn node. */
+export interface NegotiationTurnEvent extends ChatStreamEventBase {
+  type: "negotiation_turn";
+  opportunityId: string;
+  negotiationConversationId: string;
+  turnIndex: number;
+  actor: "source" | "candidate";
+  action: "propose" | "accept" | "reject" | "counter" | "question";
+  reasoning?: string;
+  message?: string;
+  suggestedRoles?: { ownUser?: string; otherUser?: string };
+  durationMs: number;
+}
+
+export interface NegotiationOutcomeEvent extends ChatStreamEventBase {
+  type: "negotiation_outcome";
+  opportunityId: string;
+  outcome:
+    | "accepted"
+    | "rejected_stalled"
+    | "waiting_for_agent"
+    | "timed_out"
+    | "turn_cap";
+  turnCount: number;
+  reasoning?: string;
+  agreedRoles?: { ownUser?: string; otherUser?: string };
 }
 
 /**
@@ -434,7 +510,11 @@ export type ChatStreamEvent =
   | GraphStartEvent
   | GraphEndEvent
   | AgentStartEvent
-  | AgentEndEvent;
+  | AgentEndEvent
+  | NegotiationSessionStartEvent
+  | NegotiationSessionEndEvent
+  | NegotiationTurnEvent
+  | NegotiationOutcomeEvent;
 
 /**
  * Formats a chat stream event as an SSE message. If JSON.stringify throws (e.g. circular ref,
@@ -776,11 +856,15 @@ export function createDebugMetaEvent(
   graph: string,
   iterations: number,
   tools: DebugMetaToolCall[],
+  llm: DebugMetaLlm,
+  orchestratorNegotiations?: DebugMetaOrchestratorNegotiations,
 ): DebugMetaEvent {
   return createStreamEvent<DebugMetaEvent>("debug_meta", sessionId, {
     graph,
     iterations,
     tools,
+    llm,
+    ...(orchestratorNegotiations !== undefined && { orchestratorNegotiations }),
   });
 }
 
@@ -819,4 +903,44 @@ export function createAgentEndEvent(
   summary: string,
 ): AgentEndEvent {
   return createStreamEvent<AgentEndEvent>("agent_end", sessionId, { agentName, durationMs, summary });
+}
+
+export function createNegotiationSessionStartEvent(
+  sessionId: string,
+  payload: Omit<NegotiationSessionStartEvent, "type" | "sessionId" | "timestamp">,
+): NegotiationSessionStartEvent {
+  return createStreamEvent<NegotiationSessionStartEvent>(
+    "negotiation_session_start",
+    sessionId,
+    payload,
+  );
+}
+
+export function createNegotiationSessionEndEvent(
+  sessionId: string,
+  payload: Omit<NegotiationSessionEndEvent, "type" | "sessionId" | "timestamp">,
+): NegotiationSessionEndEvent {
+  return createStreamEvent<NegotiationSessionEndEvent>(
+    "negotiation_session_end",
+    sessionId,
+    payload,
+  );
+}
+
+export function createNegotiationTurnEvent(
+  sessionId: string,
+  payload: Omit<NegotiationTurnEvent, "type" | "sessionId" | "timestamp">,
+): NegotiationTurnEvent {
+  return createStreamEvent<NegotiationTurnEvent>("negotiation_turn", sessionId, payload);
+}
+
+export function createNegotiationOutcomeEvent(
+  sessionId: string,
+  payload: Omit<NegotiationOutcomeEvent, "type" | "sessionId" | "timestamp">,
+): NegotiationOutcomeEvent {
+  return createStreamEvent<NegotiationOutcomeEvent>(
+    "negotiation_outcome",
+    sessionId,
+    payload,
+  );
 }

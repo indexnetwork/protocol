@@ -18,6 +18,7 @@ import { createModel } from "../shared/agent/model.config.js";
 import { viewerCentricCardSummary } from "./opportunity.presentation.js";
 import type { Opportunity } from "../shared/interfaces/database.interface.js";
 import type { ChatGraphCompositeDatabase } from "../shared/interfaces/database.interface.js";
+import type { NegotiationContext } from "./negotiation-context.loader.js";
 import { stripUuids, stripIntroducerMentions } from "./opportunity.presentation.js";
 
 /**
@@ -62,6 +63,13 @@ export type OpportunityPresentationResult = z.infer<typeof PresentationSchema>;
 export interface HomeCardPresenterInput extends PresenterInput {
   /** Number of overlapping intents (for generating mutualIntentsLabel). */
   mutualIntentCount?: number;
+  /**
+   * Snapshot of the opportunity's negotiation, if one exists. When status is
+   * `negotiating`, the presenter returns a templated chip without invoking
+   * the LLM. For `pending`/`stalled`/`accepted`/`rejected`, the full
+   * transcript and outcome ground the LLM's explanation.
+   */
+  negotiationContext?: NegotiationContext;
 }
 
 /** LLM-generated fields for home-card presentation (buttons are hardcoded by callers, not LLM-generated). */
@@ -216,6 +224,15 @@ Remember: The introducer's name goes ONLY in narratorRemark, NEVER in personaliz
 - Do NOT use introducer-style wording. Do NOT say "you suggested", "this is an introduction you suggested", or "you suggested this connection". The system found this match; no human introducer was involved.
 - Instead, narratorRemark should describe why the match is relevant (e.g. "Based on your overlapping intents", "Your skills align with what they need").
 
+**Negotiation-grounded explanations (ONLY when NEGOTIATION CONTEXT is provided):**
+When NEGOTIATION CONTEXT is provided, this opportunity passed through an agent-to-agent negotiation. Use the transcript to ground your explanation in the concrete reasoning the agents exchanged.
+- Personalize the summary with *why* the negotiation produced this match — reference the roles the agents agreed on, the specific concerns raised, and how they were resolved.
+- For status "stalled" with reason "turn_cap": the agents hit the turn limit without reaching agreement. Frame the card as a hedged possibility rather than a confident match; narratorRemark should signal "agents couldn't fully converge" without sounding negative.
+- For status "stalled" with reason "timeout": one side went silent. Suggest the user re-engage if interested.
+- For status "accepted": the agents agreed; the card should confidently explain *why* they agreed.
+- For status "rejected": the agents declined. The card should explain the reason briefly so the user understands — not dwell on it.
+- Do NOT invent turn content. Only reference what is in the NEGOTIATION CONTEXT block.
+
 - Exception for connector/introducer: if viewer role is "introducer" (any status), this is a curation/connector card. Use:
   - suggestedAction: one short line about sharing the intro or confirming the match.
   - mutualIntentsLabel: a short connector label (e.g. "Connector match", "You can bridge this").
@@ -329,11 +346,19 @@ Produce headline, personalizedSummary (2-3 sentences in "you" language), and sug
   /**
    * Generate LLM-powered home-card content (headline, body, narrator remark, mutual-intent label).
    * Callers append button labels from opportunity.constants.
+   *
+   * When `negotiationContext.status === 'negotiating'`, returns a templated
+   * chip synchronously without invoking the LLM — the card just reflects
+   * "negotiation in progress" at that point.
    */
   @Timed()
   public async presentHomeCard(
     input: HomeCardPresenterInput,
   ): Promise<HomeCardLLMResult> {
+    if (input.negotiationContext?.status === 'negotiating') {
+      return buildNegotiatingChip(input);
+    }
+
     const mutualHint =
       input.mutualIntentCount != null && input.mutualIntentCount > 0
         ? `There are ${input.mutualIntentCount} overlapping intent(s) between viewer and other party.`
@@ -341,7 +366,15 @@ Produce headline, personalizedSummary (2-3 sentences in "you" language), and sug
     const introContext = input.isIntroduction
       ? `\nINTRODUCTION CONTEXT: This opportunity was created by an explicit introduction from ${input.introducerName ?? "someone in the community"}. It was NOT discovered automatically — a real person made this connection.\n`
       : "";
+    const negotiationBlock = buildNegotiationPromptBlock(input.negotiationContext);
+    // When negotiation context exists, lead with it — these cards exist
+    // *because* the negotiation happened. Trailing the block lets weaker
+    // models lean on surface signals and ignore the transcript entirely.
+    const negotiationDirective = negotiationBlock
+      ? `\nIMPORTANT: This opportunity surfaced because the agents negotiated and converged. Your personalizedSummary MUST reference at least one specific signal from the NEGOTIATION CONTEXT block below — what concern was raised, what was confirmed, what the agents agreed on. Do not produce a generic skill-complementarity summary; that's what every card looked like before this negotiation happened. Use the transcript to explain *why this specific match* surfaced now.\n`
+      : "";
     const humanContent = `
+${negotiationBlock}${negotiationDirective}
 VIEWER (the person seeing this opportunity):
 ${input.viewerContext}
 
@@ -453,6 +486,72 @@ Produce headline, personalizedSummary, suggestedAction, narratorRemark, and mutu
     }
     return results;
   }
+}
+
+// ──────────────────────────────────────────────────────────────
+// NEGOTIATION CONTEXT HELPERS
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * Builds a "NEGOTIATION CONTEXT:" block for the home-card prompt. Returns an
+ * empty string when the opportunity has no meaningful negotiation context
+ * (draft/latent) or when the opportunity is still negotiating (handled via
+ * the templated chip, not the LLM).
+ */
+function buildNegotiationPromptBlock(context: NegotiationContext | undefined): string {
+  if (!context || context.status === 'negotiating') return "";
+
+  const turnCapLabel = context.turnCap > 0 ? `${context.turnCap}` : "unlimited";
+  const reason = context.outcome?.reason;
+  const reasonLabel = reason === 'turn_cap'
+    ? "agents hit the turn cap without converging"
+    : reason === 'timeout'
+      ? "counterpart went silent before responding"
+      : undefined;
+
+  const turnLines = (context.turns ?? []).map((turn, index) => {
+    const action = turn.action;
+    const reasoning = turn.assessment?.reasoning ?? "(no reasoning)";
+    const message = turn.message ? ` — said: "${turn.message}"` : "";
+    return `Turn ${index + 1} (${action}): ${reasoning}${message}`;
+  });
+
+  const outcomeSummary = context.outcome
+    ? `Final outcome: ${context.outcome.hasOpportunity ? "agreed" : "declined"} — ${context.outcome.reasoning}`
+    : "Final outcome: not recorded.";
+
+  return `
+NEGOTIATION CONTEXT:
+- Negotiation status: ${context.status}${reasonLabel ? ` (${reasonLabel})` : ""}
+- Turns exchanged: ${context.turnCount} of ${turnCapLabel}
+- Transcript:
+${turnLines.length > 0 ? turnLines.map((l) => `  ${l}`).join("\n") : "  (no turns recorded)"}
+- ${outcomeSummary}
+`;
+}
+
+/**
+ * Builds a templated home-card result for an opportunity whose negotiation
+ * is still in progress. Bypasses the LLM so users see a stable "currently
+ * negotiating" chip while turns are still being exchanged.
+ */
+function buildNegotiatingChip(input: HomeCardPresenterInput): HomeCardLLMResult {
+  const ctx = input.negotiationContext;
+  const turnCount = ctx?.turnCount ?? 0;
+  const turnCap = ctx?.turnCap && ctx.turnCap > 0 ? ctx.turnCap : undefined;
+  const narratorRemark = turnCap
+    ? `Currently negotiating · turn ${turnCount} of ${turnCap}`
+    : `Currently negotiating · turn ${turnCount}`;
+
+  return {
+    headline: "Negotiation in progress",
+    personalizedSummary: "Your agent is still talking with theirs to see if this connection makes sense. We'll surface the full match as soon as they converge.",
+    suggestedAction: "Check back shortly — no action needed yet.",
+    narratorRemark,
+    mutualIntentsLabel: input.mutualIntentCount && input.mutualIntentCount > 0
+      ? `${input.mutualIntentCount} mutual intent${input.mutualIntentCount !== 1 ? "s" : ""}`
+      : "Shared interests",
+  };
 }
 
 // ──────────────────────────────────────────────────────────────

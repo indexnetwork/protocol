@@ -1,0 +1,259 @@
+import { describe, it, expect } from "bun:test";
+import { NegotiationGraphFactory } from "../negotiation.graph.js";
+import { NegotiationGraphState } from "../negotiation.state.js";
+
+function mkStubs() {
+  const messages: Array<{ id: string; senderId: string; parts: unknown[]; createdAt: Date }> = [];
+  const database = {
+    createConversation: async () => ({ id: "conv-1" }),
+    createTask: async () => ({ id: "task-1" }),
+    updateOpportunityStatus: async () => {},
+    createMessage: async (p: { conversationId: string; senderId: string; parts: unknown[] }) => {
+      const msg = { id: `msg-${messages.length}`, senderId: p.senderId, parts: p.parts, createdAt: new Date() };
+      messages.push(msg);
+      return msg;
+    },
+    updateTaskState: async () => {},
+    createArtifact: async () => {},
+    setTaskTurnContext: async () => {},
+  } as unknown as ConstructorParameters<typeof NegotiationGraphFactory>[0];
+
+  const dispatcher = {
+    hasPersonalAgent: async () => false,
+    dispatch: async () => ({ handled: false, reason: "no-agent" }),
+  } as unknown as ConstructorParameters<typeof NegotiationGraphFactory>[1];
+
+  return { database, dispatcher, messages };
+}
+
+describe("negotiation graph — negotiation_turn emission", () => {
+  it("emits negotiation_turn with correct payload after each turn", async () => {
+    // Stub IndexNegotiator.invoke so the test is fully hermetic — no LLM calls.
+    const { IndexNegotiator } = await import("../negotiation.agent.js");
+    const origInvoke = IndexNegotiator.prototype.invoke;
+    IndexNegotiator.prototype.invoke = async function () {
+      return {
+        action: "propose" as const,
+        assessment: {
+          reasoning: "stub reasoning",
+          suggestedRoles: { ownUser: "agent" as const, otherUser: "patient" as const },
+        },
+        message: "hi",
+      };
+    };
+
+    try {
+      const { database, dispatcher } = mkStubs();
+      const factory = new NegotiationGraphFactory(database, dispatcher);
+      const graph = factory.createGraph();
+
+      const events: Array<Record<string, unknown>> = [];
+      const traceEmitter = (e: Record<string, unknown>) => events.push(e);
+
+      const { requestContext } = await import("../../shared/observability/request-context.js");
+      await requestContext.run({ traceEmitter: traceEmitter as never }, async () => {
+        await graph.invoke({
+          sourceUser: { id: "u-src", intents: [], profile: { name: "Alice" } },
+          candidateUser: { id: "u-cand", intents: [], profile: { name: "Bob" } },
+          indexContext: { networkId: "net-1", prompt: "" },
+          seedAssessment: { reasoning: "x", valencyRole: "peer" },
+          opportunityId: "opp-1",
+          maxTurns: 2,
+        } as Partial<typeof NegotiationGraphState.State>);
+      });
+
+      const turnEvents = events.filter((e) => e.type === "negotiation_turn");
+      expect(turnEvents.length).toBeGreaterThanOrEqual(1);
+      const first = turnEvents[0];
+      expect(first.opportunityId).toBe("opp-1");
+      expect(first.negotiationConversationId).toBe("conv-1");
+      expect(first.turnIndex).toBe(0);
+      expect(first.actor).toBe("source");
+      expect(typeof first.action).toBe("string");
+      expect(typeof first.durationMs).toBe("number");
+      expect(first.reasoning).toBe("stub reasoning");
+      expect(first.message).toBe("hi");
+      expect(first.suggestedRoles).toEqual({ ownUser: "agent", otherUser: "patient" });
+    } finally {
+      IndexNegotiator.prototype.invoke = origInvoke;
+    }
+  }, 30000);
+});
+
+describe("negotiation graph — negotiation_outcome emission", () => {
+  it("emits outcome='accepted' when finalize runs after an accept turn", async () => {
+    // Scripted: first turn propose, second turn accept
+    const scripted = [
+      { action: "propose", assessment: { reasoning: "r1", suggestedRoles: { ownUser: "agent", otherUser: "patient" } }, message: "hi" },
+      { action: "accept",  assessment: { reasoning: "r2", suggestedRoles: { ownUser: "agent", otherUser: "patient" } } },
+    ];
+    let call = 0;
+    const { database, dispatcher } = mkStubs();
+    const { IndexNegotiator } = await import("../negotiation.agent.js");
+    const orig = IndexNegotiator.prototype.invoke;
+    IndexNegotiator.prototype.invoke = async function () { return scripted[Math.min(call++, scripted.length - 1)] as never; };
+
+    try {
+      const graph = new NegotiationGraphFactory(database, dispatcher).createGraph();
+      const events: Array<Record<string, unknown>> = [];
+      const { requestContext } = await import("../../shared/observability/request-context.js");
+      await requestContext.run({ traceEmitter: (e: Record<string, unknown>) => events.push(e) }, async () => {
+        await graph.invoke({
+          sourceUser: { id: "u-src" },
+          candidateUser: { id: "u-cand" },
+          indexContext: { networkId: "net-1", prompt: "" },
+          seedAssessment: { reasoning: "x", valencyRole: "peer" },
+          opportunityId: "opp-accept",
+          maxTurns: 4,
+        } as Partial<typeof NegotiationGraphState.State>);
+      });
+
+      const outcomes = events.filter((e) => e.type === "negotiation_outcome");
+      expect(outcomes).toHaveLength(1);
+      const outcome = outcomes[0];
+      expect(outcome).toBeTruthy();
+      expect(outcome!.opportunityId).toBe("opp-accept");
+      expect(outcome!.outcome).toBe("accepted");
+      expect(outcome!.turnCount).toBe(2);
+      const agreedRoles = outcome!.agreedRoles as { ownUser?: string; otherUser?: string } | undefined;
+      expect(agreedRoles).toBeDefined();
+      expect(agreedRoles?.ownUser).toBeTruthy();
+      expect(agreedRoles?.otherUser).toBeTruthy();
+    } finally {
+      IndexNegotiator.prototype.invoke = orig;
+    }
+  }, 30000);
+
+  it("emits outcome='turn_cap' when maxTurns is reached without accept/reject", async () => {
+    const { database, dispatcher } = mkStubs();
+    const { IndexNegotiator } = await import("../negotiation.agent.js");
+    const orig = IndexNegotiator.prototype.invoke;
+    // First turn must be "propose" (graph forces it), subsequent turns counter — so we hit turn_cap at maxTurns.
+    let call = 0;
+    IndexNegotiator.prototype.invoke = async function () {
+      call++;
+      if (call === 1) return { action: "propose", assessment: { reasoning: "r", suggestedRoles: { ownUser: "peer", otherUser: "peer" } } } as never;
+      return { action: "counter", assessment: { reasoning: "r", suggestedRoles: { ownUser: "peer", otherUser: "peer" } } } as never;
+    };
+    try {
+      const graph = new NegotiationGraphFactory(database, dispatcher).createGraph();
+      const events: Array<Record<string, unknown>> = [];
+      const { requestContext } = await import("../../shared/observability/request-context.js");
+      await requestContext.run({ traceEmitter: (e: Record<string, unknown>) => events.push(e) }, async () => {
+        await graph.invoke({
+          sourceUser: { id: "u-src" }, candidateUser: { id: "u-cand" },
+          indexContext: { networkId: "net-1", prompt: "" },
+          seedAssessment: { reasoning: "x", valencyRole: "peer" },
+          opportunityId: "opp-cap", maxTurns: 2,
+        } as Partial<typeof NegotiationGraphState.State>);
+      });
+      const outcomes = events.filter((e) => e.type === "negotiation_outcome");
+      expect(outcomes).toHaveLength(1);
+      const outcome = outcomes[0];
+      expect(outcome?.outcome).toBe("turn_cap");
+      expect(outcome?.turnCount).toBe(2);
+    } finally {
+      IndexNegotiator.prototype.invoke = orig;
+    }
+  }, 30000);
+
+  it("emits outcome='waiting_for_agent' when dispatcher parks the turn", async () => {
+    const { database } = mkStubs();
+    const dispatcher = {
+      hasPersonalAgent: async () => true,
+      dispatch: async () => ({ handled: false, reason: "waiting" as const }),
+    } as unknown as ConstructorParameters<typeof NegotiationGraphFactory>[1];
+    const graph = new NegotiationGraphFactory(database, dispatcher).createGraph();
+    const events: Array<Record<string, unknown>> = [];
+    const { requestContext } = await import("../../shared/observability/request-context.js");
+    await requestContext.run({ traceEmitter: (e: Record<string, unknown>) => events.push(e) }, async () => {
+      await graph.invoke({
+        sourceUser: { id: "u-src" }, candidateUser: { id: "u-cand" },
+        indexContext: { networkId: "net-1", prompt: "" },
+        seedAssessment: { reasoning: "x", valencyRole: "peer" },
+        opportunityId: "opp-park", maxTurns: 4,
+      } as Partial<typeof NegotiationGraphState.State>);
+    });
+    const outcomes = events.filter((e) => e.type === "negotiation_outcome");
+    expect(outcomes).toHaveLength(1);
+    const outcome = outcomes[0];
+    expect(outcome?.outcome).toBe("waiting_for_agent");
+  }, 30000);
+});
+
+describe("negotiateCandidates — session wrapper events", () => {
+  it("emits negotiation_session_start and _end per candidate with trigger + ids", async () => {
+    const fakeGraph = {
+      invoke: async (input: { opportunityId?: string }) => ({
+        conversationId: `conv-for-${input.opportunityId}`,
+        messages: [],
+        outcome: { hasOpportunity: false, agreedRoles: [], reasoning: "", turnCount: 0 },
+      }),
+    };
+    const events: Array<Record<string, unknown>> = [];
+    const { negotiateCandidates } = await import("../negotiation.graph.js");
+    const { requestContext } = await import("../../shared/observability/request-context.js");
+    await requestContext.run(
+      { traceEmitter: (e: Record<string, unknown>) => events.push(e) },
+      async () => {
+        await negotiateCandidates(
+          fakeGraph as never,
+          { id: "u-src", name: "Alice" } as never,
+          [
+            {
+              userId: "u-1",
+              reasoning: "r",
+              valencyRole: "peer",
+              candidateUser: { id: "u-1", intents: [], profile: { name: "Bob" } } as never,
+              opportunityId: "opp-10",
+            },
+          ],
+          { networkId: "net-1", prompt: "" },
+          {
+            traceEmitter: (e: Record<string, unknown>) => events.push(e),
+            trigger: "orchestrator",
+          },
+        );
+      },
+    );
+
+    const starts = events.filter((e) => e.type === "negotiation_session_start");
+    const ends = events.filter((e) => e.type === "negotiation_session_end");
+    expect(starts).toHaveLength(1);
+    expect(ends).toHaveLength(1);
+    expect(starts[0].opportunityId).toBe("opp-10");
+    expect(starts[0].trigger).toBe("orchestrator");
+    expect(starts[0].sourceUserId).toBe("u-src");
+    expect(starts[0].candidateUserId).toBe("u-1");
+    expect(starts[0].candidateName).toBe("Bob");
+    expect(ends[0].opportunityId).toBe("opp-10");
+    expect(typeof ends[0].durationMs).toBe("number");
+  }, 30000);
+
+  it("does not emit session events when opportunityId is missing", async () => {
+    const fakeGraph = {
+      invoke: async () => ({
+        conversationId: "conv-x",
+        messages: [],
+        outcome: { hasOpportunity: false, agreedRoles: [], reasoning: "", turnCount: 0 },
+      }),
+    };
+    const events: Array<Record<string, unknown>> = [];
+    const { negotiateCandidates } = await import("../negotiation.graph.js");
+    const { requestContext } = await import("../../shared/observability/request-context.js");
+    await requestContext.run(
+      { traceEmitter: (e: Record<string, unknown>) => events.push(e) },
+      async () => {
+        await negotiateCandidates(
+          fakeGraph as never,
+          { id: "u-src" } as never,
+          [{ userId: "u-2", reasoning: "r", valencyRole: "peer", candidateUser: { id: "u-2" } as never }],
+          { networkId: "net-1", prompt: "" },
+          { traceEmitter: (e: Record<string, unknown>) => events.push(e), trigger: "ambient" },
+        );
+      },
+    );
+    expect(events.filter((e) => e.type === "negotiation_session_start")).toHaveLength(0);
+    expect(events.filter((e) => e.type === "negotiation_session_end")).toHaveLength(0);
+  }, 30000);
+});

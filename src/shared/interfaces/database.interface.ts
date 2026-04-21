@@ -38,6 +38,8 @@ export interface OpportunityActor {
   userId: Id<'users'>;
   intent?: Id<'intents'>;
   role: string;
+  /** Only set on role === 'introducer'. false until the introducer explicitly approves; true after approval. */
+  approved?: boolean;
 }
 
 /** Individual signal contributing to an opportunity score. */
@@ -382,7 +384,7 @@ export interface CreateHydeDocumentData {
 // OPPORTUNITY TYPES (Opportunity Redesign)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type OpportunityStatus = 'latent' | 'draft' | 'pending' | 'accepted' | 'rejected' | 'expired';
+export type OpportunityStatus = 'latent' | 'draft' | 'negotiating' | 'pending' | 'stalled' | 'accepted' | 'rejected' | 'expired';
 
 export interface Opportunity {
   id: string;
@@ -409,6 +411,8 @@ export interface CreateOpportunityData {
 
 export interface OpportunityQueryOptions {
   status?: OpportunityStatus;
+  /** When set, filter to opportunities whose status is in this list. Orthogonal to `status` (single) — callers pick one. */
+  statuses?: OpportunityStatus[];
   networkId?: string;
   role?: string;
   limit?: number;
@@ -1105,6 +1109,17 @@ export interface Database {
   ): Promise<Opportunity | null>;
 
   /**
+   * Update the `approved` field on an opportunity's introducer actor.
+   * Fetches the opportunity, patches the matching actor in JS, and writes
+   * the updated actors JSONB back. Returns the updated opportunity or null.
+   */
+  updateOpportunityActorApproval(
+    id: string,
+    introducerUserId: string,
+    approved: boolean,
+  ): Promise<Opportunity | null>;
+
+  /**
    * Create one opportunity and expire others in a single transaction.
    * Atomic: insert then update status to 'expired' for each id in expireIds.
    * Used when enriching replaces overlapping opportunities so subscribers see consistent state.
@@ -1225,6 +1240,15 @@ export interface Database {
   /** Upsert a contact membership in the owner's personal index (index_members with permissions=['contact']). */
   upsertContactMembership(ownerId: string, contactUserId: string, options?: { restore?: boolean }): Promise<void>;
 
+  /**
+   * Finds an existing DM conversation between two users, or creates one.
+   * Uses a unique `dmPair` column (sorted user IDs joined by ':') to
+   * prevent duplicate DMs under concurrency. Used by the Start Chat flow
+   * (Plan B Task 8) to atomically surface the h2h conversation when
+   * accepting an opportunity.
+   */
+  getOrCreateDM(userA: string, userB: string): Promise<{ id: string }>;
+
   /** Hard-delete a contact membership from the owner's personal index. */
   hardDeleteContactMembership(ownerId: string, contactUserId: string): Promise<void>;
 
@@ -1295,6 +1319,15 @@ export interface UserDatabase {
 
   /** Get ALL active intents for the authenticated user (not index-filtered). */
   getActiveIntents(): Promise<ActiveIntent[]>;
+
+  /**
+   * Case-insensitive substring search over the authenticated user's own
+   * active intents. Matches against `payload` and `summary`. Most recent first.
+   */
+  searchOwnIntents(
+    q: string,
+    limit: number,
+  ): Promise<Array<{ id: string; payload: string; summary: string | null; createdAt: Date }>>;
 
   /** Get a single intent by ID (ownership enforced). */
   getIntent(intentId: string): Promise<IntentRecord | null>;
@@ -1637,8 +1670,11 @@ export type ChatGraphCompositeDatabase = Pick<
   | 'opportunityExistsBetweenActors'
   | 'getOpportunityBetweenActors'
   | 'findOverlappingOpportunities'
+  | 'getAcceptedOpportunitiesBetweenActors'
   | 'getOpportunitiesForUser'
   | 'updateOpportunityStatus'
+  | 'updateOpportunityActorApproval'
+  | 'getOrCreateDM'
   // HyDE graph (used by OpportunityGraph)
   | 'getHydeDocument'
   | 'getHydeDocumentsForSource'
@@ -1693,6 +1729,7 @@ export type OpportunityGraphDatabase = Pick<
   | 'opportunityExistsBetweenActors'
   | 'getOpportunityBetweenActors'
   | 'findOverlappingOpportunities'
+  | 'getAcceptedOpportunitiesBetweenActors'
   | 'getUserIndexIds'
   | 'getNetworkMemberships'
   | 'getActiveIntents'
@@ -1705,9 +1742,11 @@ export type OpportunityGraphDatabase = Pick<
   | 'getOpportunity'
   | 'getOpportunitiesForUser'
   | 'updateOpportunityStatus'
+  | 'updateOpportunityActorApproval'
   | 'isNetworkMember'
   | 'isIndexOwner'
   | 'getUser'
+  | 'getOrCreateDM'
   // Load candidate intent payload/summary for evaluator
   | 'getIntent'
 >;
@@ -1757,6 +1796,16 @@ export interface NegotiationDatabase {
   updateTaskState(taskId: string, state: string, statusMessage?: unknown): Promise<{ id: string; conversationId: string; state: string }>;
 
   /**
+   * Persists the full negotiation turn context (source/candidate user contexts,
+   * seed assessment, index context, discovery query) onto the task metadata so
+   * that polling agents can reconstruct the same context the system agent sees
+   * in-process. Merges into `metadata.turnContext`, leaving other keys intact.
+   * @param taskId - Task whose metadata to enrich
+   * @param turnContext - Absolute (source/candidate) view of the negotiation context
+   */
+  setTaskTurnContext(taskId: string, turnContext: Record<string, unknown>): Promise<void>;
+
+  /**
    * Persists a negotiation outcome artifact attached to a task.
    * @param data - Artifact payload including task reference, name, structured parts, and metadata
    * @returns The created artifact with its id
@@ -1797,6 +1846,25 @@ export interface NegotiationDatabase {
   } | null>;
 
   /**
+   * Looks up the negotiation task attached to an opportunity.
+   *
+   * Returns the most-recently-created task whose metadata carries
+   * `type: 'negotiation'` and `opportunityId: <id>`. Returns null if no
+   * negotiation has been started for that opportunity yet.
+   *
+   * @param opportunityId - Opportunity whose negotiation task to fetch
+   * @returns The task record or null if no negotiation exists for the opportunity
+   */
+  getNegotiationTaskForOpportunity(opportunityId: string): Promise<{
+    id: string;
+    conversationId: string;
+    state: string;
+    metadata: Record<string, unknown> | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null>;
+
+  /**
    * Gets all messages for a conversation, ordered by creation time.
    * @param conversationId - The conversation to fetch messages for
    * @returns Array of message records
@@ -1820,6 +1888,18 @@ export interface NegotiationDatabase {
     parts: unknown[];
     metadata: Record<string, unknown> | null;
   }>>;
+
+  /**
+   * Update the status of an opportunity. Called from the negotiation graph to
+   * advance the opportunity lifecycle (negotiating → pending/rejected/stalled).
+   * @param id - Opportunity ID
+   * @param status - New status
+   * @returns The updated opportunity or null if not found
+   */
+  updateOpportunityStatus(
+    id: string,
+    status: OpportunityStatus,
+  ): Promise<{ id: string; status: OpportunityStatus } | null>;
 }
 
 /**
@@ -1848,6 +1928,11 @@ export type OpportunityControllerDatabase = Pick<
   | 'getProfile'
   | 'getActiveIntents'
   | 'upsertContactMembership'
+  // Start Chat endpoint (Plan B Task 8): atomic pair → conversation resolution
+  // for the "Open h2h chat from this opportunity" flow. Kept on this interface
+  // (rather than ConversationControllerDatabase) because the transition is
+  // owned by OpportunityService — services cannot import other services.
+  | 'getOrCreateDM'
 >;
 
 /**
@@ -1959,4 +2044,9 @@ export type HomeGraphDatabase = Pick<
   | 'getActiveIntents'
   | 'getNetwork'
   | 'getUser'
+> & Pick<
+  NegotiationDatabase,
+  | 'getNegotiationTaskForOpportunity'
+  | 'getMessagesForConversation'
+  | 'getArtifactsForTask'
 >;

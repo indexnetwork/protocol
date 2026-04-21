@@ -2,12 +2,23 @@ import { z } from 'zod';
 
 import type { DefineTool, ToolDeps } from '../shared/agent/tool.helpers.js';
 import { success, error } from '../shared/agent/tool.helpers.js';
-import { NegotiationProposer } from './negotiation.proposer.js';
-import { NegotiationResponder } from './negotiation.responder.js';
+import { IndexNegotiator } from './negotiation.agent.js';
 import type { NegotiationTurn, UserNegotiationContext, SeedAssessment, NegotiationOutcome } from './negotiation.state.js';
+import type { NegotiationTurnPayload } from '../shared/interfaces/agent-dispatcher.interface.js';
 import { protocolLogger } from '../shared/observability/protocol.logger.js';
 
 const logger = protocolLogger('NegotiationTools');
+
+/**
+ * Default park-window budget for ambient (background) negotiations. When a personal
+ * agent is fresh, the dispatcher parks the turn and this is how long we wait before
+ * the system agent takes over as a fallback.
+ *
+ * Short enough that ambient opportunities materialize in minutes (not hours),
+ * long enough to cover two full polling cycles (30s * 2 = 60s) plus an agent
+ * subagent turn. 5 minutes gives generous headroom.
+ */
+export const AMBIENT_PARK_WINDOW_MS = 5 * 60 * 1000;
 
 /**
  * Creates negotiation MCP tools for external agent access.
@@ -24,12 +35,12 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
       'mutual opportunity for collaboration.\n\n' +
       '**Statuses:**\n' +
       '- `active` — Negotiation is in progress, agents are exchanging turns.\n' +
-      '- `waiting_for_external` — The graph has yielded and is waiting for an external response (e.g. from the user via respond_to_negotiation) or a timeout.\n' +
+      '- `waiting_for_agent` — The graph has yielded and is waiting for an agent response (e.g. from the user via respond_to_negotiation) or a timeout.\n' +
       '- `completed` — Negotiation has concluded (accepted, rejected, or reached turn cap).\n\n' +
       '**When to use:** To see ongoing and past negotiations, check which negotiations need attention, ' +
       'or find a negotiation ID for get_negotiation or respond_to_negotiation.',
     querySchema: z.object({
-      status: z.enum(['active', 'waiting_for_external', 'completed', 'all']).optional()
+      status: z.enum(['active', 'waiting_for_agent', 'completed', 'all']).optional()
         .describe('Filter by negotiation status. Omit or use "all" to return all negotiations.'),
     }),
     handler: async ({ context, query }) => {
@@ -38,14 +49,14 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         const stateFilter = query.status && query.status !== 'all' ? query.status : undefined;
         // For 'active', query 'working' state tasks
         const dbState = stateFilter === 'active' ? 'working'
-          : stateFilter === 'waiting_for_external' ? 'waiting_for_external'
+          : stateFilter === 'waiting_for_agent' ? 'waiting_for_agent'
           : stateFilter === 'completed' ? 'completed'
           : undefined;
 
         const tasks = await negotiationDatabase.getTasksForUser(context.userId, dbState ? { state: dbState } : undefined);
 
         const negotiations = await Promise.all(tasks.map(async (task) => {
-          const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string } | null;
+          const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string; maxTurns?: number } | null;
           if (meta?.type !== 'negotiation') return null;
 
           const isSource = meta.sourceUserId === context.userId;
@@ -65,7 +76,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
 
           // Map task state to tool status
           const status = task.state === 'working' ? 'active'
-            : task.state === 'waiting_for_external' ? 'waiting_for_external'
+            : task.state === 'waiting_for_agent' ? 'waiting_for_agent'
             : task.state === 'completed' ? 'completed'
             : task.state;
 
@@ -102,10 +113,16 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
     description:
       'Get the full details of a specific negotiation, including all turns, messages, counterparty info, and current state. ' +
       'Negotiations are bilateral exchanges where two AI agents negotiate on behalf of users. Each turn contains an action ' +
-      '(propose, accept, reject, counter) and an assessment with a fit score, reasoning, and suggested roles.\n\n' +
+      '(propose, accept, reject, counter, question), an assessment with reasoning and suggested roles, and an optional message.\n\n' +
       '**Access control:** You must be a party to the negotiation (source or candidate) to view it.\n\n' +
+      '**Statuses:** `active` — in progress. `waiting_for_agent` — waiting for an agent response or timeout. `completed` — concluded.\n\n' +
       '**When to use:** To review the full negotiation history before responding, to understand why a negotiation was ' +
-      'accepted or rejected, or to see the current state of an active negotiation.',
+      'accepted or rejected, or to see the current state of an active negotiation.\n\n' +
+      '**Negotiation-turn-mode usage.** If you are running as a silent background subagent (dispatched by the ' +
+      "openclaw runtime's poller in response to a claimed negotiation turn), call this tool FIRST with the " +
+      'negotiationId from your task prompt. This returns the current state, both parties\' context, and the ' +
+      'history of turns so far. Ground your response in the caller\'s profile (read_user_profiles) and intents ' +
+      '(read_intents) before deciding on a turn action. Do not produce user-facing output in this mode.',
     querySchema: z.object({
       negotiationId: z.string().describe('The negotiation task ID (from list_negotiations results).'),
     }),
@@ -116,7 +133,20 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           return error('Negotiation not found.');
         }
 
-        const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string } | null;
+        const meta = task.metadata as {
+          sourceUserId?: string;
+          candidateUserId?: string;
+          type?: string;
+          maxTurns?: number;
+          opportunityId?: string;
+          turnContext?: {
+            sourceUser: UserNegotiationContext;
+            candidateUser: UserNegotiationContext;
+            indexContext: { networkId: string; prompt?: string };
+            seedAssessment: SeedAssessment;
+            discoveryQuery?: string;
+          };
+        } | null;
         if (meta?.type !== 'negotiation') {
           return error('Negotiation not found.');
         }
@@ -130,6 +160,30 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
 
         const counterpartyId = isSource ? meta.candidateUserId : meta.sourceUserId;
 
+        // Project absolute turn context (source/candidate) into own/other
+        // perspective for the caller. Mirrors what the in-process system
+        // agent receives as NegotiationAgentInput — identical context means
+        // identical deliberation on both paths.
+        let negotiationContext: {
+          ownUser: UserNegotiationContext;
+          otherUser: UserNegotiationContext;
+          indexContext: { networkId: string; prompt?: string };
+          seedAssessment: SeedAssessment;
+          isDiscoverer: boolean;
+          discoveryQuery?: string;
+        } | null = null;
+        if (meta.turnContext) {
+          const tc = meta.turnContext;
+          negotiationContext = {
+            ownUser: isSource ? tc.sourceUser : tc.candidateUser,
+            otherUser: isSource ? tc.candidateUser : tc.sourceUser,
+            indexContext: tc.indexContext,
+            seedAssessment: tc.seedAssessment,
+            isDiscoverer: isSource,
+            ...(tc.discoveryQuery && { discoveryQuery: tc.discoveryQuery }),
+          };
+        }
+
         // Load messages and artifacts
         const [messages, artifacts] = await Promise.all([
           negotiationDatabase.getMessagesForConversation(task.conversationId),
@@ -141,7 +195,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           const dataPart = (m.parts as Array<{ kind?: string; data?: unknown }>)?.find(p => p.kind === 'data');
           const turnData = dataPart?.data as {
             action?: string;
-            assessment?: { fitScore?: number; reasoning?: string; suggestedRoles?: unknown };
+            assessment?: { reasoning?: string; suggestedRoles?: unknown };
+            message?: string;
           } | undefined;
 
           const turnNumber = idx + 1;
@@ -152,9 +207,9 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
             speaker,
             senderId: m.senderId,
             action: turnData?.action ?? 'unknown',
-            fitScore: turnData?.assessment?.fitScore ?? null,
             reasoning: turnData?.assessment?.reasoning ?? null,
             suggestedRoles: turnData?.assessment?.suggestedRoles ?? null,
+            message: turnData?.message ?? null,
             createdAt: m.createdAt,
           };
         });
@@ -171,7 +226,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         const isUsersTurn = (isSource && currentSpeaker === 'source') || (!isSource && currentSpeaker === 'candidate');
 
         const status = task.state === 'working' ? 'active'
-          : task.state === 'waiting_for_external' ? 'waiting_for_external'
+          : task.state === 'waiting_for_agent' ? 'waiting_for_agent'
           : task.state === 'completed' ? 'completed'
           : task.state;
 
@@ -185,6 +240,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           isUsersTurn,
           turns,
           outcome,
+          context: negotiationContext,
           createdAt: task.createdAt,
           updatedAt: task.updatedAt,
         });
@@ -197,21 +253,27 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
   const respond_to_negotiation = defineTool({
     name: 'respond_to_negotiation',
     description:
-      'Respond to a negotiation that is waiting for external input. This tool allows users to influence the negotiation ' +
-      'by accepting, rejecting, or countering the current proposal.\n\n' +
+      'Respond to a negotiation that is waiting for agent input. This tool allows users to influence the negotiation ' +
+      'by accepting, rejecting, countering, or asking a clarifying question.\n\n' +
       '**Turn-based model:** Negotiations alternate between source and candidate agents. When the graph yields with ' +
-      '`waiting_for_external` status, the user whose turn it is can respond.\n\n' +
+      '`waiting_for_agent` status, the user whose turn it is can respond.\n\n' +
       '**Valid actions:**\n' +
       '- `accept` — Accept the current proposal. The negotiation will be finalized as an opportunity.\n' +
       '- `reject` — Reject the current proposal. The negotiation will end without creating an opportunity.\n' +
-      '- `counter` — Counter the proposal with a message (message is required for counter). The negotiation will continue.\n\n' +
-      '**What happens after:** Accept/reject finalizes the negotiation immediately. Counter continues the negotiation — ' +
-      'if the counterparty has an external agent, the negotiation yields again; otherwise the AI agent responds inline.',
+      '- `counter` — Counter the proposal with a message (message is required). The negotiation will continue.\n' +
+      '- `question` — Ask the counterparty a clarifying question (message is required). The negotiation will continue.\n\n' +
+      '**What happens after:** Accept/reject finalizes the negotiation immediately. Counter/question continues the negotiation — ' +
+      'if the counterparty has an agent, the negotiation yields again; otherwise the AI agent responds inline.\n\n' +
+      '**Silent-subagent response contract.** In negotiation-turn mode, submit exactly ONE call to this tool ' +
+      'per dispatch with the action (propose | counter | accept | reject | question) and the assessment ' +
+      '(reasoning + suggestedRoles). If the decision is ambiguous, pick the most conservative action — usually ' +
+      '`counter` with specific objections, or `reject` with clear reasoning. On the first turn of a negotiation ' +
+      '(turnCount === 0) the action MUST be `propose`. Do not ask the user clarifying questions; you are ' +
+      'authorized to act on their behalf within the scope granted to your agent.',
     querySchema: z.object({
       negotiationId: z.string().describe('The negotiation task ID to respond to.'),
-      action: z.enum(['accept', 'reject', 'counter']).describe('The response action: accept the proposal, reject it, or counter with a new message.'),
-      message: z.string().optional().describe('Required for "counter" action. Your counter-proposal message explaining what you want to change.'),
-      fitScore: z.number().min(0).max(100).optional().describe('Optional fit score (0-100) for your assessment. Defaults to 100 for accept, 0 for reject, 50 for counter.'),
+      action: z.enum(['accept', 'reject', 'counter', 'question']).describe('The response action: accept the proposal, reject it, counter with a new message, or ask a clarifying question.'),
+      message: z.string().optional().describe('Required for "counter" and "question" actions. Your message explaining what you want to change or clarify.'),
     }),
     handler: async ({ context, query }) => {
       try {
@@ -220,13 +282,13 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           return error('Negotiation not found.');
         }
 
-        const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string } | null;
+        const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string; maxTurns?: number } | null;
         if (meta?.type !== 'negotiation') {
           return error('Negotiation not found.');
         }
 
-        // Validate negotiation is waiting for external input
-        if (task.state !== 'waiting_for_external') {
+        // Validate negotiation is waiting for agent input (or claimed via polling)
+        if (task.state !== 'waiting_for_agent' && task.state !== 'claimed') {
           return error(`Negotiation is not waiting for a response. Current status: ${task.state}`);
         }
 
@@ -247,9 +309,9 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           return error('It is not your turn to respond in this negotiation.');
         }
 
-        // Validate counter has a message
-        if (query.action === 'counter' && !query.message?.trim()) {
-          return error('A message is required when countering a proposal. Explain what you want to change.');
+        // Validate counter/question has a message
+        if ((query.action === 'counter' || query.action === 'question') && !query.message?.trim()) {
+          return error(`A message is required when using "${query.action}". Explain what you want to change or clarify.`);
         }
 
         // ── Cancel pending timeout ──
@@ -258,14 +320,13 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         }
 
         // ── Build and persist the external agent's turn ──
-        const defaultFitScore = query.action === 'accept' ? 100 : query.action === 'reject' ? 0 : 50;
         const turnData: NegotiationTurn = {
           action: query.action,
           assessment: {
-            fitScore: query.fitScore ?? defaultFitScore,
             reasoning: query.message ?? `User ${query.action}ed the proposal.`,
             suggestedRoles: { ownUser: 'peer', otherUser: 'peer' },
           },
+          ...(query.message ? { message: query.message } : {}),
         };
 
         const senderId = `agent:${context.userId}`;
@@ -298,25 +359,6 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
             metadata: { hasOpportunity: outcome.hasOpportunity, turnCount: newTurnCount },
           });
 
-          // Emit completed event for both parties
-          if (deps.negotiationEvents) {
-            const outcomeStr = query.action === 'accept' ? 'accepted' : 'rejected';
-            deps.negotiationEvents.emitCompleted({
-              negotiationId: task.id,
-              userId: meta.sourceUserId!,
-              outcome: outcomeStr,
-              finalScore: outcome.finalScore,
-              turnCount: newTurnCount,
-            });
-            deps.negotiationEvents.emitCompleted({
-              negotiationId: task.id,
-              userId: meta.candidateUserId!,
-              outcome: outcomeStr,
-              finalScore: outcome.finalScore,
-              turnCount: newTurnCount,
-            });
-          }
-
           return success({
             message: query.action === 'accept'
               ? 'Negotiation accepted. An opportunity has been created.'
@@ -328,8 +370,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           });
         }
 
-        // ── Handle counter: check if under max turns ──
-        const maxTurns = 6; // Default max turns (matches graph default)
+        // ── Handle counter/question: check if under max turns ──
+        const maxTurns = meta.maxTurns ?? 6; // Read from task metadata; fallback to system default
         if (newTurnCount >= maxTurns) {
           // Max turns reached — finalize with turn_cap
           const allMessages = [...messages, { id: turnMessage.id, senderId: turnMessage.senderId, role: turnMessage.role, parts: turnMessage.parts as unknown[], createdAt: turnMessage.createdAt }];
@@ -349,98 +391,86 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
             metadata: { hasOpportunity: false, turnCount: newTurnCount },
           });
 
-          if (deps.negotiationEvents) {
-            deps.negotiationEvents.emitCompleted({
-              negotiationId: task.id,
-              userId: meta.sourceUserId!,
-              outcome: 'turn_cap',
-              finalScore: 0,
-              turnCount: newTurnCount,
-            });
-            deps.negotiationEvents.emitCompleted({
-              negotiationId: task.id,
-              userId: meta.candidateUserId!,
-              outcome: 'turn_cap',
-              finalScore: 0,
-              turnCount: newTurnCount,
-            });
-          }
-
           return success({
             message: 'Maximum turns reached. Negotiation finalized without opportunity.',
             negotiationId: task.id,
-            action: 'counter',
+            action: query.action,
             turnNumber: newTurnCount,
             outcome,
           });
         }
 
-        // ── Counter under max turns: determine counterparty's next turn ──
+        // ── Counter/question under max turns: dispatch to counterparty's agent ──
         const counterpartyUserId = isSource ? meta.candidateUserId! : meta.sourceUserId!;
         const counterpartySpeaker = isSource ? 'candidate' : 'source';
 
-        // Check if counterparty has an external agent
-        const counterpartyHasWebhook = deps.webhookLookup
-          ? await deps.webhookLookup.hasWebhookForEvent(counterpartyUserId, 'negotiation.turn_received')
-          : false;
-
-        if (counterpartyHasWebhook) {
-          // Yield again for the counterparty's external agent
-          await negotiationDatabase.updateTaskState(task.id, 'waiting_for_external');
-
-          const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-          if (deps.negotiationEvents) {
-            deps.negotiationEvents.emitTurnReceived({
-              negotiationId: task.id,
-              userId: counterpartyUserId,
-              turnNumber: newTurnCount + 1,
-              counterpartyAction: 'counter',
-              counterpartyMessage: query.message,
-              deadline,
-            });
-          }
-
-          if (deps.negotiationTimeoutQueue) {
-            await deps.negotiationTimeoutQueue.enqueueTimeout(task.id, newTurnCount, 24 * 60 * 60 * 1000);
-          }
-
-          return success({
-            message: 'Counter-proposal submitted. Waiting for counterparty response.',
-            negotiationId: task.id,
-            action: 'counter',
-            turnNumber: newTurnCount,
-            waitingForExternal: true,
-          });
-        }
-
-        // ── No external agent for counterparty: run AI agent inline ──
-        await negotiationDatabase.updateTaskState(task.id, 'working');
-
-        const allMessages = [...messages, { id: turnMessage.id, senderId: turnMessage.senderId, role: turnMessage.role, parts: turnMessage.parts as unknown[], createdAt: turnMessage.createdAt }];
-        const history: NegotiationTurn[] = allMessages.map(m => {
+        // Build the current turn history for dispatcher payload
+        const allMessagesWithTurn = [...messages, { id: turnMessage.id, senderId: turnMessage.senderId, role: turnMessage.role, parts: turnMessage.parts as unknown[], createdAt: turnMessage.createdAt }];
+        const historyForDispatch: NegotiationTurn[] = allMessagesWithTurn.map(m => {
           const dp = (m.parts as Array<{ kind?: string; data?: unknown }>)?.find(p => p.kind === 'data');
           return dp?.data as NegotiationTurn;
         }).filter(Boolean);
 
-        // Build user contexts from task metadata for AI agent invocation
-        // Note: we use minimal context here since we don't have full user profiles in the tool.
-        // The AI agent will work with the history which contains all the reasoning.
-        const counterpartyIsSource = counterpartySpeaker === 'source';
-        const agent = counterpartyIsSource ? new NegotiationProposer() : new NegotiationResponder();
+        const isFinalTurn = newTurnCount + 1 >= maxTurns;
 
         const ownUserCtx: UserNegotiationContext = { id: counterpartyUserId, intents: [], profile: {} };
         const otherUserCtx: UserNegotiationContext = { id: context.userId, intents: [], profile: {} };
-        const seedAssessment: SeedAssessment = { score: 50, reasoning: 'Continued negotiation', valencyRole: 'peer' };
+        const seedAssessment: SeedAssessment = { reasoning: 'Continued negotiation', valencyRole: 'peer' };
 
-        const aiTurn = await agent.invoke({
+        const dispatchPayload: NegotiationTurnPayload = {
+          negotiationId: task.id,
           ownUser: ownUserCtx,
           otherUser: otherUserCtx,
-          indexContext: { networkId: '', prompt: '' },
+          indexContext: { networkId: '' },
           seedAssessment,
-          history,
-        });
+          history: historyForDispatch,
+          isFinalTurn,
+          isDiscoverer: false,
+        };
 
-        // Persist AI turn
+        const scope = { action: 'negotiation.respond', scopeType: 'negotiation', scopeId: task.id };
+        const timeoutMs = AMBIENT_PARK_WINDOW_MS;
+
+        const dispatchResult = await deps.agentDispatcher?.dispatch(counterpartyUserId, scope, dispatchPayload, { timeoutMs });
+
+        if (dispatchResult?.handled === false && dispatchResult.reason === 'waiting') {
+          // Counterparty's agent acknowledged — yield and wait
+          await negotiationDatabase.updateTaskState(task.id, 'waiting_for_agent');
+
+          if (deps.negotiationTimeoutQueue) {
+            await deps.negotiationTimeoutQueue.enqueueTimeout(task.id, newTurnCount, timeoutMs);
+          }
+
+          return success({
+            message: `${query.action === 'question' ? 'Question' : 'Counter-proposal'} submitted. Waiting for counterparty response.`,
+            negotiationId: task.id,
+            action: query.action,
+            turnNumber: newTurnCount,
+            waitingForAgent: true,
+          });
+        }
+
+        let aiTurn: NegotiationTurn;
+
+        if (dispatchResult?.handled === true) {
+          // Dispatcher returned an agent turn directly
+          aiTurn = dispatchResult.turn;
+        } else {
+          // No agent or timeout — run the system AI agent inline
+          await negotiationDatabase.updateTaskState(task.id, 'working');
+
+          const agent = new IndexNegotiator();
+          aiTurn = await agent.invoke({
+            ownUser: ownUserCtx,
+            otherUser: otherUserCtx,
+            indexContext: { networkId: '' },
+            seedAssessment,
+            history: historyForDispatch,
+            isFinalTurn,
+          });
+        }
+
+        // Persist the counterparty's turn (from dispatcher or inline AI)
         const aiSenderId = `agent:${counterpartyUserId}`;
         await negotiationDatabase.createMessage({
           conversationId: task.conversationId,
@@ -452,9 +482,9 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
 
         const finalTurnCount = newTurnCount + 1;
 
-        // Evaluate AI response
+        // Evaluate response
         if (aiTurn.action === 'accept' || aiTurn.action === 'reject') {
-          const fullHistory = [...history, aiTurn];
+          const fullHistory = [...historyForDispatch, aiTurn];
           const outcome = buildNegotiationOutcome(fullHistory, finalTurnCount, aiTurn.action, meta.sourceUserId!, meta.candidateUserId!, counterpartySpeaker === 'source' ? 'candidate' : 'source');
 
           await negotiationDatabase.updateTaskState(task.id, 'completed');
@@ -465,37 +495,19 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
             metadata: { hasOpportunity: outcome.hasOpportunity, turnCount: finalTurnCount },
           });
 
-          if (deps.negotiationEvents) {
-            const outcomeStr = aiTurn.action === 'accept' ? 'accepted' : 'rejected';
-            deps.negotiationEvents.emitCompleted({
-              negotiationId: task.id,
-              userId: meta.sourceUserId!,
-              outcome: outcomeStr,
-              finalScore: outcome.finalScore,
-              turnCount: finalTurnCount,
-            });
-            deps.negotiationEvents.emitCompleted({
-              negotiationId: task.id,
-              userId: meta.candidateUserId!,
-              outcome: outcomeStr,
-              finalScore: outcome.finalScore,
-              turnCount: finalTurnCount,
-            });
-          }
-
           return success({
-            message: `Counter submitted. AI agent responded with ${aiTurn.action}.`,
+            message: `${query.action === 'question' ? 'Question' : 'Counter'} submitted. Counterparty responded with ${aiTurn.action}.`,
             negotiationId: task.id,
             action: query.action,
             turnNumber: newTurnCount,
-            aiResponse: { action: aiTurn.action, fitScore: aiTurn.assessment.fitScore, reasoning: aiTurn.assessment.reasoning },
+            counterpartyResponse: { action: aiTurn.action, reasoning: aiTurn.assessment.reasoning, message: aiTurn.message ?? null },
             outcome,
           });
         }
 
-        // AI countered — check if max turns reached
+        // Counterparty countered/questioned — check if max turns reached
         if (finalTurnCount >= maxTurns) {
-          const fullHistory = [...history, aiTurn];
+          const fullHistory = [...historyForDispatch, aiTurn];
           const outcome = buildNegotiationOutcome(fullHistory, finalTurnCount, 'counter', meta.sourceUserId!, meta.candidateUserId!, counterpartySpeaker === 'source' ? 'candidate' : 'source');
 
           await negotiationDatabase.updateTaskState(task.id, 'completed');
@@ -506,76 +518,151 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
             metadata: { hasOpportunity: false, turnCount: finalTurnCount },
           });
 
-          if (deps.negotiationEvents) {
-            deps.negotiationEvents.emitCompleted({
-              negotiationId: task.id,
-              userId: meta.sourceUserId!,
-              outcome: 'turn_cap',
-              finalScore: 0,
-              turnCount: finalTurnCount,
-            });
-            deps.negotiationEvents.emitCompleted({
-              negotiationId: task.id,
-              userId: meta.candidateUserId!,
-              outcome: 'turn_cap',
-              finalScore: 0,
-              turnCount: finalTurnCount,
-            });
-          }
-
           return success({
-            message: 'AI agent countered but max turns reached. Negotiation finalized.',
+            message: 'Counterparty responded but max turns reached. Negotiation finalized.',
             negotiationId: task.id,
             action: query.action,
             turnNumber: newTurnCount,
-            aiResponse: { action: aiTurn.action, fitScore: aiTurn.assessment.fitScore, reasoning: aiTurn.assessment.reasoning },
+            counterpartyResponse: { action: aiTurn.action, reasoning: aiTurn.assessment.reasoning, message: aiTurn.message ?? null },
             outcome,
           });
         }
 
-        // AI countered, user's turn again — check if user has webhook to yield
-        const userHasWebhook = deps.webhookLookup
-          ? await deps.webhookLookup.hasWebhookForEvent(context.userId, 'negotiation.turn_received')
-          : false;
+        // Counterparty countered/questioned, now user's turn again — dispatch to user's agent
+        const userDispatchPayload: NegotiationTurnPayload = {
+          negotiationId: task.id,
+          ownUser: { id: context.userId, intents: [], profile: {} },
+          otherUser: { id: counterpartyUserId, intents: [], profile: {} },
+          indexContext: { networkId: '' },
+          seedAssessment,
+          history: [...historyForDispatch, aiTurn],
+          isFinalTurn: finalTurnCount + 1 >= maxTurns,
+          isDiscoverer: true,
+        };
 
-        if (userHasWebhook) {
-          await negotiationDatabase.updateTaskState(task.id, 'waiting_for_external');
+        const userDispatchResult = await deps.agentDispatcher?.dispatch(context.userId, scope, userDispatchPayload, { timeoutMs });
 
-          const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-          if (deps.negotiationEvents) {
-            deps.negotiationEvents.emitTurnReceived({
-              negotiationId: task.id,
-              userId: context.userId,
-              turnNumber: finalTurnCount + 1,
-              counterpartyAction: aiTurn.action,
-              counterpartyMessage: aiTurn.assessment.reasoning,
-              deadline,
-            });
-          }
+        if (!userDispatchResult || (userDispatchResult.handled === false && userDispatchResult.reason === 'no_agent')) {
+          // No agent for user — set back to waiting_for_agent so they can use respond_to_negotiation
+          await negotiationDatabase.updateTaskState(task.id, 'waiting_for_agent');
 
           if (deps.negotiationTimeoutQueue) {
-            await deps.negotiationTimeoutQueue.enqueueTimeout(task.id, finalTurnCount, 24 * 60 * 60 * 1000);
+            await deps.negotiationTimeoutQueue.enqueueTimeout(task.id, finalTurnCount, timeoutMs);
           }
 
           return success({
-            message: 'Counter submitted. AI agent countered back. Waiting for your next response.',
+            message: `${query.action === 'question' ? 'Question' : 'Counter'} submitted. Counterparty responded. Your turn to respond.`,
             negotiationId: task.id,
             action: query.action,
             turnNumber: newTurnCount,
-            aiResponse: { action: aiTurn.action, fitScore: aiTurn.assessment.fitScore, reasoning: aiTurn.assessment.reasoning },
-            waitingForExternal: true,
+            counterpartyResponse: { action: aiTurn.action, reasoning: aiTurn.assessment.reasoning, message: aiTurn.message ?? null },
+            waitingForAgent: true,
           });
         }
 
-        // No webhook for user either — set back to working so graph can continue
+        if (userDispatchResult.handled === false && userDispatchResult.reason === 'waiting') {
+          // User's agent acknowledged — yield and wait
+          await negotiationDatabase.updateTaskState(task.id, 'waiting_for_agent');
+
+          if (deps.negotiationTimeoutQueue) {
+            await deps.negotiationTimeoutQueue.enqueueTimeout(task.id, finalTurnCount, timeoutMs);
+          }
+
+          return success({
+            message: `${query.action === 'question' ? 'Question' : 'Counter'} submitted. Counterparty countered back. Waiting for your agent's response.`,
+            negotiationId: task.id,
+            action: query.action,
+            turnNumber: newTurnCount,
+            counterpartyResponse: { action: aiTurn.action, reasoning: aiTurn.assessment.reasoning, message: aiTurn.message ?? null },
+            waitingForAgent: true,
+          });
+        }
+
+        if (userDispatchResult.handled === true) {
+          // User's agent returned a turn directly — persist, evaluate, and continue
+          const userAgentTurn: NegotiationTurn = userDispatchResult.turn;
+          const userAgentSenderId = `agent:${context.userId}`;
+          await negotiationDatabase.createMessage({
+            conversationId: task.conversationId,
+            senderId: userAgentSenderId,
+            role: 'agent',
+            parts: [{ kind: 'data' as const, data: userAgentTurn }],
+            taskId: task.id,
+          });
+
+          const userTurnCount = finalTurnCount + 1;
+
+          if (userAgentTurn.action === 'accept' || userAgentTurn.action === 'reject') {
+            const fullHistory = [...historyForDispatch, aiTurn, userAgentTurn];
+            const userSpeaker = isSource ? 'source' : 'candidate';
+            const outcome = buildNegotiationOutcome(fullHistory, userTurnCount, userAgentTurn.action, meta.sourceUserId!, meta.candidateUserId!, userSpeaker === 'source' ? 'candidate' : 'source');
+
+            await negotiationDatabase.updateTaskState(task.id, 'completed');
+            await negotiationDatabase.createArtifact({
+              taskId: task.id,
+              name: 'negotiation-outcome',
+              parts: [{ kind: 'data', data: outcome }],
+              metadata: { hasOpportunity: outcome.hasOpportunity, turnCount: userTurnCount },
+            });
+
+            return success({
+              message: `Your agent ${userAgentTurn.action}ed the counterparty's response.`,
+              negotiationId: task.id,
+              action: query.action,
+              turnNumber: newTurnCount,
+              counterpartyResponse: { action: aiTurn.action, reasoning: aiTurn.assessment.reasoning, message: aiTurn.message ?? null },
+              outcome,
+            });
+          }
+
+          if (userTurnCount >= maxTurns) {
+            const fullHistory = [...historyForDispatch, aiTurn, userAgentTurn];
+            const outcome = buildNegotiationOutcome(fullHistory, userTurnCount, 'counter', meta.sourceUserId!, meta.candidateUserId!, isSource ? 'candidate' : 'source');
+
+            await negotiationDatabase.updateTaskState(task.id, 'completed');
+            await negotiationDatabase.createArtifact({
+              taskId: task.id,
+              name: 'negotiation-outcome',
+              parts: [{ kind: 'data', data: outcome }],
+              metadata: { hasOpportunity: false, turnCount: userTurnCount },
+            });
+
+            return success({
+              message: 'Your agent responded but max turns reached. Negotiation finalized.',
+              negotiationId: task.id,
+              action: query.action,
+              turnNumber: newTurnCount,
+              counterpartyResponse: { action: aiTurn.action, reasoning: aiTurn.assessment.reasoning, message: aiTurn.message ?? null },
+              outcome,
+            });
+          }
+
+          // User's agent countered/questioned — arm timeout for counterparty's next turn
+          await negotiationDatabase.updateTaskState(task.id, 'waiting_for_agent');
+
+          if (deps.negotiationTimeoutQueue) {
+            await deps.negotiationTimeoutQueue.enqueueTimeout(task.id, userTurnCount, timeoutMs);
+          }
+
+          return success({
+            message: `Your agent responded with ${userAgentTurn.action}. Waiting for counterparty.`,
+            negotiationId: task.id,
+            action: query.action,
+            turnNumber: newTurnCount,
+            counterpartyResponse: { action: aiTurn.action, reasoning: aiTurn.assessment.reasoning, message: aiTurn.message ?? null },
+            waitingForAgent: true,
+          });
+        }
+
+        // No agent / timeout — set back to working so graph can continue
         await negotiationDatabase.updateTaskState(task.id, 'working');
 
         return success({
-          message: 'Counter submitted. AI agent countered back. Negotiation continues.',
+          message: `${query.action === 'question' ? 'Question' : 'Counter'} submitted. Counterparty countered back. Negotiation continues.`,
           negotiationId: task.id,
           action: query.action,
           turnNumber: newTurnCount,
-          aiResponse: { action: aiTurn.action, fitScore: aiTurn.assessment.fitScore, reasoning: aiTurn.assessment.reasoning },
+          counterpartyResponse: { action: aiTurn.action, reasoning: aiTurn.assessment.reasoning, message: aiTurn.message ?? null },
         });
       } catch (err) {
         return error(`Failed to respond to negotiation: ${err instanceof Error ? err.message : String(err)}`);
@@ -608,9 +695,6 @@ function buildNegotiationOutcome(
   const hasOpportunity = lastAction === 'accept';
   const atCap = lastAction === 'counter';
 
-  const scores = history.map(t => t.assessment.fitScore);
-  const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-
   let agreedRoles: NegotiationOutcome['agreedRoles'] = [];
   if (hasOpportunity && history.length >= 2) {
     const acceptTurn = history[history.length - 1];
@@ -627,7 +711,6 @@ function buildNegotiationOutcome(
 
   return {
     hasOpportunity,
-    finalScore: hasOpportunity ? avgScore : 0,
     agreedRoles,
     reasoning: history[history.length - 1]?.assessment.reasoning ?? '',
     turnCount,

@@ -11,14 +11,13 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
   const readIndexes = defineTool({
     name: "read_networks",
     description:
-      "Lists all indexes (communities) the authenticated user belongs to, including ones they own. Indexes are shared spaces " +
-      "where members post intents and discover opportunities with each other.\n\n" +
-      "**When to use:** To find available index IDs for scoping other operations (read_intents, create_opportunities, read_network_memberships), " +
-      "or to show the user which communities they're part of.\n\n" +
-      "**Returns:** Two lists — `memberOf` (indexes the user joined) and `ownerOf` (indexes the user created). " +
-      "Each entry includes networkId (UUID), title, prompt (purpose description), memberCount, and joinPolicy ('anyone' or 'invite_only'). " +
-      "Personal indexes (isPersonal=true) are the user's private network and cannot be deleted or renamed.\n\n" +
-      "**Note:** In index-scoped chats, only the scoped index is returned.",
+      "Lists the authenticated user's networks (communities), including ones they own and public communities they can join.\n\n" +
+      "**When to use:** To find network IDs for scoping other operations (read_intents, create_opportunities, read_network_memberships), " +
+      "or to show the user which communities they belong to.\n\n" +
+      "**Returns:** Up to three lists — `memberOf` (networks the user joined), `owns` (networks the user created), and `publicNetworks` " +
+      "(publicly joinable communities the user is not yet a member of). Entries in `memberOf` include `isPersonal` set to `true` for the user's " +
+      "personal network.\n\n" +
+      "**Note:** In index-scoped chats, only the scoped network is returned.",
     querySchema: z.object({
       userId: z.string().optional().describe("Must be the current user's ID or omitted. Cannot list another user's indexes."),
     }),
@@ -47,7 +46,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
         if (context.networkId) {
           return success({
             ...result.readResult,
-            _scopeRestriction: {
+            scopeRestriction: {
               isScoped: true,
               scopedToIndex: context.indexName ?? context.networkId,
               message: `Results are limited to "${context.indexName ?? 'this index'}" because this chat is scoped to that community. The user may belong to other communities not shown here.`,
@@ -73,7 +72,15 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
       "- With both `networkId` and `userId`: checks whether that specific user is a member of that specific index (returns isMember boolean).\n\n" +
       "**When to use:** Before creating introductions (need to verify shared index membership), to explore community members, " +
       "or to check if a user belongs to a specific index.\n\n" +
-      "**Returns:** Member list with user details, or membership list with index details, or a membership check result.",
+      "**Returns:** Member list with user details, or membership list with index details, or a membership check result.\n\n" +
+      "**Personal index semantics.** The personal index (`isPersonal: true` on the membership) is the user's " +
+      "contact list — members of that index are the user's contacts. For another user, this tool only reveals the " +
+      "indexes you already share with them.\n\n" +
+      "**Shared-context pattern.** To find overlap with another user: (1) omit `userId` to read your own " +
+      "memberships, (2) call this tool with the other person's actual `userId` to get the shared indexes, " +
+      "(3) call read_intents for each shared network to see what each is looking for there, (4) call " +
+      "read_user_profiles for the other party. That sequence gives you enough to decide whether to propose a " +
+      "direct connection or an introduction.",
     querySchema: z.object({
       networkId: z.string().optional().describe("Index UUID — lists all members of this index. Get from read_networks. In index-scoped chats, only the scoped index can be queried."),
       userId: z.string().optional().describe("User ID — lists that user's index memberships. Omit to get the current user's memberships. When combined with networkId, checks if this user is in that specific index."),
@@ -152,7 +159,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
                 isMember: true,
                 userId: targetUserId,
                 networkId: context.networkId,
-                _scopeRestriction: {
+                scopeRestriction: {
                   isScoped: true,
                   scopedToIndex: context.indexName ?? context.networkId,
                   message: `This chat is scoped to "${context.indexName ?? 'this index'}". Only membership in this community is shown.`,
@@ -164,7 +171,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
               userId: targetUserId,
               networkId: context.networkId,
               message: "User is not a member of this community.",
-              _scopeRestriction: {
+              scopeRestriction: {
                 isScoped: true,
                 scopedToIndex: context.indexName ?? context.networkId,
                 message: `This chat is scoped to "${context.indexName ?? 'this index'}". Only membership in this community was checked.`,
@@ -248,7 +255,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
             permissions: m.permissions,
             joinedAt: m.joinedAt,
           })),
-          _scopeRestriction: {
+          scopeRestriction: {
             isScoped: true,
             scopedToIndex: context.indexName ?? context.networkId,
             message: `Results are limited to "${context.indexName ?? 'this index'}" because this chat is scoped to that community. The user may belong to other communities not shown here.`,
@@ -332,7 +339,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
       "(complementary matches) between members. The index's prompt guides what kinds of intents belong.\n\n" +
       "**When to use:** When the user wants to create a new community — e.g. a professional network, interest group, or project team.\n\n" +
       "**Returns:** The new index's networkId (UUID) and title. Use the networkId to add members (create_network_membership), " +
-      "link intents (create_intent_index), or run discovery (create_opportunities with networkId).",
+      "link intents (create_intent_network), or run discovery (create_opportunities with networkId).",
     querySchema: z.object({
       title: z.string().describe("Display name of the index (e.g. 'AI Founders Berlin', 'Design Co-op'). Required."),
       prompt: z.string().optional().describe("Description of what this community is about (e.g. 'Early-stage AI/ML founders in Berlin looking for co-founders, advisors, and investors'). Used by the system to evaluate which intents belong in this index. Highly recommended for better auto-assignment."),
@@ -414,7 +421,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
       if (result.mutationResult && !result.mutationResult.success) {
         return error(result.mutationResult.error || "Failed to delete index.");
       }
-      return success({ message: "Index deleted.", _graphTimings: [{ name: 'index', durationMs: _deleteNetworkGraphMs, agents: result.agentTimings ?? [] }] });
+      return success({ message: "Network deleted.", _graphTimings: [{ name: 'index', durationMs: _deleteNetworkGraphMs, agents: result.agentTimings ?? [] }] });
     },
   });
 

@@ -18,8 +18,10 @@ import type { ProfileEnricher } from "../interfaces/enrichment.interface.js";
 import type { IntentGraphQueue } from "../interfaces/queue.interface.js";
 import type { ChatSessionReader } from "../interfaces/chat-session.interface.js";
 import type { Embedder } from "../interfaces/embedder.interface.js";
-import type { WebhookAdapter } from "../interfaces/webhook.interface.js";
-import type { WebhookLookup, NegotiationEventEmitter, NegotiationTimeoutQueue } from "../interfaces/negotiation-events.interface.js";
+import type { AgentDatabase } from "../interfaces/agent.interface.js";
+import type { NegotiationTimeoutQueue } from "../interfaces/negotiation-events.interface.js";
+import type { AgentDispatcher } from "../interfaces/agent-dispatcher.interface.js";
+import type { DeliveryLedger } from "../interfaces/delivery-ledger.interface.js";
 
 /** Profile without embedding — used in resolved context to avoid bloating prompts and memory. */
 export type ProfileContext = Omit<ProfileDocument, "embedding"> | null;
@@ -69,6 +71,8 @@ export interface ResolvedToolContext {
   sessionId?: string;
   /** True when the request originates from an MCP transport (no interactive UI available). */
   isMcp?: boolean;
+  /** Agent ID when the request originates from an API key linked to an agent. */
+  agentId?: string;
 }
 
 /**
@@ -125,22 +129,26 @@ export interface ToolContext {
   createSystemDatabase: (db: ChatGraphCompositeDatabase, userId: string, indexScope: string[], embedder?: Embedder) => SystemDatabase;
   /** Optional runtime LLM config. Pass to override env vars for API key, model, etc. */
   modelConfig?: ModelConfig;
-  /** Webhook adapter for managing webhook registrations (optional). */
-  webhook?: WebhookAdapter;
-  /** Checks if a user has webhooks for a given event (optional — enables external agent yield). */
-  webhookLookup?: WebhookLookup;
-  /** Emits negotiation lifecycle events (optional — enables webhook delivery for negotiations). */
-  negotiationEvents?: NegotiationEventEmitter;
   /** Manages negotiation timeout jobs (optional — enables AI fallback on external agent timeout). */
   negotiationTimeoutQueue?: NegotiationTimeoutQueue;
+  /** Agent registry database adapter (optional — absent when host does not support agents). */
+  agentDatabase?: AgentDatabase;
+  /** Grants the default system-agent permissions after onboarding (optional). */
+  grantDefaultSystemPermissions?: (userId: string) => Promise<void>;
+  /** Dispatcher for routing negotiation turns to personal agents (optional — falls back to system AI). */
+  agentDispatcher?: AgentDispatcher;
+  /** Enqueue a negotiate_existing job after introducer approval (optional). */
+  queueNegotiateExisting?: (opportunityId: string, userId: string) => Promise<void>;
+  /** Delivery ledger for committing opportunity delivery rows (optional — absent in chat context). */
+  deliveryLedger?: DeliveryLedger;
 }
 
 /**
  * All external dependencies needed to initialize the protocol tool engine.
  * The host application (composition root) must provide concrete implementations.
- * This is the subset of ToolContext that is NOT per-request (no userId, indexId, sessionId).
+ * This is the subset of ToolContext that is NOT per-request (no userId, networkId, sessionId).
  */
-export type ProtocolDeps = Omit<ToolContext, 'userId' | 'indexId' | 'sessionId' | 'userDb' | 'systemDb'>;
+export type ProtocolDeps = Omit<ToolContext, 'userId' | 'networkId' | 'sessionId' | 'userDb' | 'systemDb'>;
 
 /**
  * Thrown when a requested chat scope is invalid for the authenticated user.
@@ -322,14 +330,18 @@ export interface ToolDeps {
   enricher: ProfileEnricher;
   /** Database adapter for negotiation/conversation operations. */
   negotiationDatabase: NegotiationDatabase;
-  /** Webhook adapter for managing webhook registrations (optional — absent when host does not support webhooks). */
-  webhook?: WebhookAdapter;
-  /** Checks if a user has webhooks for a given event (optional — enables external agent yield). */
-  webhookLookup?: WebhookLookup;
-  /** Emits negotiation lifecycle events (optional — enables webhook delivery for negotiations). */
-  negotiationEvents?: NegotiationEventEmitter;
+  /** Chat session reader for exposing the caller's past conversations as MCP tools. */
+  chatSession?: ChatSessionReader;
   /** Manages negotiation timeout jobs (optional — enables AI fallback on external agent timeout). */
   negotiationTimeoutQueue?: NegotiationTimeoutQueue;
+  /** Agent registry database adapter (optional — absent when host does not support agents). */
+  agentDatabase?: AgentDatabase;
+  /** Grants the default system-agent permissions after onboarding (optional). */
+  grantDefaultSystemPermissions?: (userId: string) => Promise<void>;
+  /** Dispatcher for routing negotiation turns to personal agents (optional — falls back to system AI). */
+  agentDispatcher?: AgentDispatcher;
+  /** Delivery ledger for committing opportunity delivery rows (optional — absent in chat context). */
+  deliveryLedger?: DeliveryLedger;
   graphs: {
     profile: CompiledGraph;
     intent: CompiledGraph;
@@ -450,5 +462,49 @@ export function extractUrls(text: string): string[] {
     }
   }
 
+  return out;
+}
+
+const SENSITIVE_FIELD_KEYS = new Set([
+  "secret",
+  "webhooksecret",
+  "password",
+  "apikey",
+  "token",
+  "accesstoken",
+  "refreshtoken",
+  "privatekey",
+  "authtoken",
+  "bearertoken",
+  "clientsecret",
+]);
+
+/**
+ * Recursively redacts sensitive field values from an arbitrary payload before
+ * it is passed to a structured logger. Matches field names case-insensitively
+ * and ignoring underscores, so `api_key`, `apiKey`, and `API_KEY` all match.
+ * Non-sensitive fields are passed through unchanged. Never mutates the input —
+ * returns a new value.
+ *
+ * Intended for structured-log redaction only. Do NOT use as a security
+ * boundary for data in motion.
+ *
+ * @param value - Arbitrary JSON-like payload (query object, config blob, etc.)
+ * @returns A new value with sensitive fields replaced by `"[redacted]"`.
+ */
+export function redactSensitiveFields(value: unknown): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    return value.map((item) => redactSensitiveFields(item));
+  }
+  const out: Record<string, unknown> = {};
+  for (const [key, inner] of Object.entries(value as Record<string, unknown>)) {
+    const normalized = key.toLowerCase().replace(/_/g, "");
+    if (SENSITIVE_FIELD_KEYS.has(normalized)) {
+      out[key] = "[redacted]";
+    } else {
+      out[key] = redactSensitiveFields(inner);
+    }
+  }
   return out;
 }

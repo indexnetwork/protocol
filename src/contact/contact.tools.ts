@@ -138,5 +138,27 @@ export function createContactTools(defineTool: DefineTool, deps: ToolDeps) {
     },
   });
 
-  return [import_contacts, list_contacts, add_contact, remove_contact];
+  const search_contacts = defineTool({
+    name: 'search_contacts',
+    description:
+      "Searches the authenticated user's personal network by name or email (case-insensitive substring). " +
+      "Use when the user refers to a contact by partial name or email and you need their userId for another tool " +
+      "(e.g. read_user_profiles, create_opportunities).\n\n" +
+      "**When to use:** Before list_contacts when the network is large — returns only matching contacts, bounded by limit.\n\n" +
+      "**Returns:** Array of matching contacts: contactId (userId), name, email, avatar, isGhost.",
+    querySchema: z.object({
+      query: z.string().trim().min(1).describe('Free-text query matched against contact name and email (case-insensitive, substring).'),
+      limit: z.number().int().positive().max(100).optional().describe('Maximum rows to return. Defaults to 25.'),
+    }),
+    handler: async ({ context, query }) => {
+      try {
+        const rows = await contactService.searchContacts(context.userId, query.query, query.limit ?? 25);
+        return success({ count: rows.length, contacts: rows });
+      } catch (err) {
+        return error(`Failed to search contacts: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+  });
+
+  return [import_contacts, list_contacts, add_contact, remove_contact, search_contacts];
 }

@@ -20,7 +20,8 @@ import {
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import { createModel } from "../shared/agent/model.config.js";
 import { sanitizeForDebugMeta } from "../shared/observability/debug-meta.sanitizer.js";
-import type { DebugMetaToolCall } from "./chat-streaming.types.js";
+import type { DebugMetaToolCall, DebugMetaLlm, DebugMetaOrchestratorNegotiations } from "./chat-streaming.types.js";
+import type { Opportunity } from "../shared/interfaces/database.interface.js";
 import { Timed } from "../shared/observability/performance.js";
 import { requestContext } from "../shared/observability/request-context.js";
 
@@ -51,6 +52,8 @@ export type StreamWriter = (data: unknown) => void;
  * - `graph_end`       — a LangGraph sub-graph completes
  * - `agent_start`     — an LLM agent begins inside a graph node
  * - `agent_end`       — an LLM agent completes
+ * - `opportunity_draft_ready` — an orchestrator-triggered negotiation finalized
+ *                       to `draft` and the card is ready to render inline
  */
 export type AgentStreamEvent =
   | { type: "iteration_start"; iteration: number }
@@ -71,7 +74,62 @@ export type AgentStreamEvent =
   | { type: "graph_start"; name: string }
   | { type: "graph_end"; name: string; durationMs: number }
   | { type: "agent_start"; name: string }
-  | { type: "agent_end"; name: string; durationMs: number; summary: string };
+  | { type: "agent_end"; name: string; durationMs: number; summary: string }
+  | {
+      // Emitted from the orchestrator branch of OpportunityGraph.negotiateNode
+      // each time a per-candidate negotiation resolves to an accepted draft.
+      // Carries the opportunity row plus the counterparty's display basics so
+      // the frontend can append an inline card to the chat timeline without a
+      // second round-trip user lookup.
+      type: "opportunity_draft_ready";
+      opportunityId: string;
+      opportunity: Opportunity;
+      counterparty: {
+        userId: string;
+        name?: string;
+      };
+    }
+  | {
+      type: "negotiation_session_start";
+      opportunityId: string;
+      negotiationConversationId: string;
+      sourceUserId: string;
+      candidateUserId: string;
+      candidateName?: string;
+      trigger: "orchestrator" | "ambient";
+      startedAt: number;
+    }
+  | {
+      type: "negotiation_session_end";
+      opportunityId: string;
+      negotiationConversationId: string;
+      durationMs: number;
+    }
+  | {
+      type: "negotiation_turn";
+      opportunityId: string;
+      negotiationConversationId: string;
+      turnIndex: number;
+      actor: "source" | "candidate";
+      action: "propose" | "accept" | "reject" | "counter" | "question";
+      reasoning?: string;
+      message?: string;
+      suggestedRoles?: { ownUser?: string; otherUser?: string };
+      durationMs: number;
+    }
+  | {
+      type: "negotiation_outcome";
+      opportunityId: string;
+      outcome:
+        | "accepted"
+        | "rejected_stalled"
+        | "waiting_for_agent"
+        | "timed_out"
+        | "turn_cap";
+      turnCount: number;
+      reasoning?: string;
+      agreedRoles?: { ownUser?: string; otherUser?: string };
+    };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -443,6 +501,7 @@ export class ChatAgent {
   private detectHallucinatedBlock(
     text: string,
     toolsUsed: Array<{ name: string; success: boolean; resultSummary?: string }>,
+    userMessage?: string,
   ): { type: string; tool: string; description: string } | null {
     // Only trust successful tool calls that actually returned results.
     // A call that returned "Found 0 match(es)" doesn't produce valid blocks.
@@ -467,10 +526,11 @@ export class ChatAgent {
 
     // Check for hallucinated opportunity blocks
     if (text.includes("```opportunity") && !hasSuccessfulCreateOpportunities) {
-      // Extract a search query from the hallucinated block for the correction call
-      const nameMatch = text.match(/```opportunity\s*\n\s*\{[^}]*"name"\s*:\s*"([^"]+)"/);
-      const reasoningMatch = text.match(/```opportunity\s*\n\s*\{[^}]*"reasoning"\s*:\s*"([^"]+)"/);
-      const description = nameMatch?.[1] || reasoningMatch?.[1] || "find connections";
+      // Use the user's original message as the search query — NOT fields from the
+      // hallucinated JSON. The model fabricates person names and reasoning that have
+      // nothing to do with the user's actual request, leading to wrong results and
+      // the model re-calling the tool with the correct query (doubling negotiation cost).
+      const description = userMessage?.trim() || "find connections";
       return { type: "opportunity", tool: "create_opportunities", description };
     }
 
@@ -693,9 +753,28 @@ export class ChatAgent {
     responseText: string;
     messages: BaseMessage[];
     iterationCount: number;
-    debugMeta: { graph: string; iterations: number; tools: DebugMetaToolCall[] };
+    debugMeta: { graph: string; iterations: number; tools: DebugMetaToolCall[]; llm: DebugMetaLlm; orchestratorNegotiations?: DebugMetaOrchestratorNegotiations };
   }> {
+    const llm: DebugMetaLlm = { calls: 0, totalDurationMs: 0, resets: [], hallucinations: [] };
+    const orchestratorNegotiationIds = new Set<string>();
+    let lastLlmStart = 0;
+
     const emit = (event: AgentStreamEvent) => {
+      if (event.type === "llm_start") {
+        llm.calls += 1;
+        lastLlmStart = Date.now();
+      } else if (event.type === "llm_end") {
+        if (lastLlmStart > 0) {
+          llm.totalDurationMs += Date.now() - lastLlmStart;
+          lastLlmStart = 0;
+        }
+      } else if (event.type === "response_reset") {
+        llm.resets.push({ reason: event.reason, at: Date.now() });
+      } else if (event.type === "hallucination_detected") {
+        llm.hallucinations.push({ blockType: event.blockType, tool: event.tool, at: Date.now() });
+      } else if (event.type === "negotiation_session_start") {
+        orchestratorNegotiationIds.add(event.opportunityId);
+      }
       try {
         writer?.(event);
       } catch {
@@ -847,7 +926,14 @@ export class ChatAgent {
             logger.verbose("Streaming: executing tool", { name: tc.name });
             const currentCtx = requestContext.getStore() ?? {};
             let result = await requestContext.run(
-              { ...currentCtx, traceEmitter: (e) => emit({ type: e.type, name: e.name, durationMs: e.durationMs, summary: e.summary } as AgentStreamEvent) },
+              {
+                ...currentCtx,
+                traceEmitter: (e) => emit(e as AgentStreamEvent),
+                // Propagate the caller's AbortSignal into requestContext so
+                // long-running graph nodes (orchestrator negotiation fan-out)
+                // can suppress event emits after the chat session closes.
+                ...(signal && { abortSignal: signal }),
+              },
               () => tool.invoke(tc.args),
             );
             const toolDurationMs = Date.now() - toolStart;
@@ -946,7 +1032,7 @@ export class ChatAgent {
       // directly instead of calling the corresponding tool. These blocks
       // lack valid proposalIds / data and won't work in the frontend.
       // Auto-invoke the correct tool directly instead of re-asking the LLM.
-      const hallucinatedBlock = this.detectHallucinatedBlock(iterationText, toolsDebug);
+      const hallucinatedBlock = this.detectHallucinatedBlock(iterationText, toolsDebug, iterCtx.currentMessage);
       if (hallucinatedBlock && iterationCount < HARD_ITERATION_LIMIT - 1) {
         logger.warn("Streaming: detected hallucinated block, auto-invoking tool", {
           iteration: iterationCount,
@@ -970,7 +1056,14 @@ export class ChatAgent {
           try {
             const currentCtx = requestContext.getStore() ?? {};
             const result = await requestContext.run(
-              { ...currentCtx, traceEmitter: (e) => emit({ type: e.type, name: e.name, durationMs: e.durationMs, summary: e.summary } as AgentStreamEvent) },
+              {
+                ...currentCtx,
+                traceEmitter: (e) => emit(e as AgentStreamEvent),
+                // Propagate the caller's AbortSignal into requestContext so
+                // long-running graph nodes (orchestrator negotiation fan-out)
+                // can suppress event emits after the chat session closes.
+                ...(signal && { abortSignal: signal }),
+              },
               () => tool.invoke(toolArgs),
             );
             const rawResultStr = typeof result === "string" ? result : JSON.stringify(result);
@@ -1094,7 +1187,15 @@ export class ChatAgent {
         responseText: sanitizedText,
         messages,
         iterationCount,
-        debugMeta: { graph: "agent_loop", iterations: iterationCount, tools: toolsDebug },
+        debugMeta: {
+          graph: "agent_loop",
+          iterations: iterationCount,
+          tools: toolsDebug,
+          llm,
+          ...(orchestratorNegotiationIds.size > 0 && {
+            orchestratorNegotiations: { opportunityIds: [...orchestratorNegotiationIds] },
+          }),
+        },
       };
     }
 
@@ -1104,7 +1205,15 @@ export class ChatAgent {
         responseText: "",
         messages,
         iterationCount,
-        debugMeta: { graph: "agent_loop", iterations: iterationCount, tools: toolsDebug },
+        debugMeta: {
+          graph: "agent_loop",
+          iterations: iterationCount,
+          tools: toolsDebug,
+          llm,
+          ...(orchestratorNegotiationIds.size > 0 && {
+            orchestratorNegotiations: { opportunityIds: [...orchestratorNegotiationIds] },
+          }),
+        },
       };
     }
 
@@ -1139,7 +1248,15 @@ export class ChatAgent {
         ...(forcedAccumulated ? [forcedAccumulated] : []),
       ],
       iterationCount,
-      debugMeta: { graph: "agent_loop", iterations: iterationCount, tools: toolsDebug },
+      debugMeta: {
+        graph: "agent_loop",
+        iterations: iterationCount,
+        tools: toolsDebug,
+        llm,
+        ...(orchestratorNegotiationIds.size > 0 && {
+          orchestratorNegotiations: { opportunityIds: [...orchestratorNegotiationIds] },
+        }),
+      },
     };
   }
 }

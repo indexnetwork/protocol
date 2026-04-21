@@ -90,6 +90,38 @@ function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// RESULT POST-PROCESSING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Strips internal `_`-prefixed keys from `data` and promotes `isError`
+ * from the inner `success: false` signal to the MCP envelope level.
+ * Fail-open: if JSON parsing throws, returns the original text with isError: false.
+ */
+export function sanitizeMcpResult(text: string): { text: string; isError: boolean } {
+  try {
+    const parsed = JSON.parse(text);
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      parsed.data &&
+      typeof parsed.data === 'object' &&
+      !Array.isArray(parsed.data)
+    ) {
+      for (const key of Object.keys(parsed.data)) {
+        if (key.startsWith('_') || key === 'debugSteps') {
+          delete parsed.data[key];
+        }
+      }
+    }
+    const isError = parsed?.success === false;
+    return { text: JSON.stringify(parsed), isError };
+  } catch {
+    return { text, isError: false };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MCP SERVER FACTORY
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -108,19 +140,66 @@ export interface ScopedDepsFactory {
  * Tools resolve auth per-request via the HTTP request available in ServerContext.
  *
  * @param deps - Shared tool dependencies (graphs, database, embedder, etc.)
- * @param authResolver - Resolves authenticated user ID from the HTTP request
+ * @param authResolver - Resolves authenticated identity from the HTTP request
  * @param scopedDepsFactory - Factory for creating per-request scoped databases
  * @returns A configured McpServer ready to be connected to a transport
  */
+export const MCP_INSTRUCTIONS = `
+Index Network is a private, intent-driven discovery protocol. You help users find the right people and help the right people find them, via Index Network MCP tools.
+
+# Voice
+Calm, direct, analytical, concise. Preferred vocabulary: opportunity, overlap, signal, pattern, emerging, relevant, adjacency.
+
+# Banned vocabulary
+NEVER use "search" in any form. Use "looking up" for indexed data, "find" / "look for" for discovery, "check" for verification, "discover" for exploration. Banned: leverage, unlock, optimize, scale, disrupt, revolutionary, AI-powered, maximize value, act fast, networking, match.
+
+# Entity model
+- User — has one Profile, many Memberships, many Intents.
+- Profile — identity (bio, skills, interests, location), vector embedding.
+- Index — community with title, prompt (purpose), join policy. Has Members.
+- Membership — User↔Index junction. \`isPersonal: true\` marks the user's personal index (contacts).
+- Intent — what a user is looking for (signal). Description, summary, embedding.
+- IntentIndex — Intent↔Index junction (auto-assigned).
+- Opportunity — discovered connection between users. Roles, status, reasoning.
+
+# Output rules
+- NEVER expose internal IDs, UUIDs, field names, or tool names — EXCEPT when an ID is actionable for the user (e.g. a \`conversationId\` they need to open a chat). Surface such IDs verbatim when the tool returns them.
+- NEVER use internal vocabulary — say "signal" not "intent", "community" not "index".
+- NEVER dump raw JSON. Synthesize in natural language.
+- Surface top 1–3 relevant points unless asked for the full list.
+- Prefer first names; use full names only to disambiguate.
+- Translate statuses: draft/latent → "draft", pending → "sent", accepted → "connected".
+- NEVER fabricate data. If you don't have it, call the appropriate tool.
+
+# Tool guidance
+Each tool's description contains its own usage rules (when to call, when NOT to call, required prerequisites, post-call follow-ups). Read the description of every tool you call — that is where the per-tool workflow patterns live.
+
+# Authentication
+Pass your API key in the \`x-api-key\` request header (not \`Authorization: Bearer\`).
+
+# Opportunity lifecycle
+Opportunities move through: draft → pending → accepted (or rejected).
+
+- **draft** (you created it, not yet sent): offer to send it; confirm before calling update_opportunity with pending.
+- **pending, you sent it**: waiting for the other side — nothing to do.
+- **pending, you received it**: the other person is waiting for your response. Surface it to the user and ask if they want to start a chat. Only call update_opportunity with accepted after explicit user confirmation.
+- **accepted**: both sides are connected — a direct conversation exists. Surface the conversationId to the user if available.
+
+Never accept a received opportunity without explicit user approval in the current conversation.
+`.trim();
+
 export function createMcpServer(
   deps: ToolDeps,
   authResolver: McpAuthResolver,
   scopedDepsFactory: ScopedDepsFactory,
 ): McpServer {
-  const server = new McpServer({
-    name: 'index-network',
-    version: '1.0.0',
-  });
+  // Tools exempt from the agent-registration gate — available before registration is complete.
+  const AGENT_GATE_EXEMPT = new Set(['register_agent', 'read_docs', 'scrape_url']);
+
+  const server = new McpServer(
+    { name: 'index-network', version: '1.0.0' },
+    { instructions: MCP_INSTRUCTIONS },
+  );
 
   const registry = createToolRegistry(deps);
 
@@ -147,12 +226,34 @@ export function createMcpServer(
             };
           }
 
-          // Resolve authenticated user
-          const userId = await authResolver.resolveUserId(httpReq);
+          // Resolve authenticated identity (userId + optional agentId)
+          const { userId, agentId, isSessionAuth } = await authResolver.resolveIdentity(httpReq);
 
           // Resolve chat context for the user (mark as MCP — no interactive UI available)
           const context = await resolveChatContext({ database: deps.database, userId });
           context.isMcp = true;
+          if (agentId) {
+            context.agentId = agentId;
+          }
+
+          // Gate: API-key callers (background agents) must register before using most tools.
+          // OAuth/JWT session callers (human MCP clients such as Claude Code) are exempt —
+          // their identity is already established via the auth flow and they have no agent entity.
+          if (!isSessionAuth && !context.agentId && !AGENT_GATE_EXEMPT.has(toolName)) {
+            return {
+              content: [{
+                type: 'text' as const,
+                text: JSON.stringify({
+                  error: 'Agent not registered',
+                  message:
+                    'You must register as an agent before using Index tools. ' +
+                    'Call register_agent with your agent name to establish an identity. ' +
+                    'The tools register_agent, read_docs, and scrape_url are available without registration.',
+                }),
+              }],
+              isError: true,
+            };
+          }
 
           // Build per-request scoped databases via injected factory
           const indexScope = context.userNetworks.map((m) => m.networkId);
@@ -186,8 +287,10 @@ export function createMcpServer(
           // Execute the tool handler
           const result = await requestTool.handler({ context, query: validatedArgs });
 
+          const { text: sanitizedText, isError: toolIsError } = sanitizeMcpResult(result);
           return {
-            content: [{ type: 'text' as const, text: result }],
+            content: [{ type: 'text' as const, text: sanitizedText }],
+            ...(toolIsError ? { isError: true } : {}),
           };
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);

@@ -31,7 +31,7 @@ async function ensureScopedMembership(
 }
 
 export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
-  const { graphs } = deps;
+  const { graphs, userDb } = deps;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // INTENT CRUD
@@ -49,7 +49,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       "**Workflow:** To explore what members of an index are looking for, first call read_network_memberships(networkId) to list members, " +
       "then read_intents(networkId) to see all intents in that community. " +
       "Each intent includes: id, description (payload), summary, confidence (0-1), inferenceType (explicit/implicit), status, and linked indexes.\n\n" +
-      "**Returns:** Paginated list of intents with count. Use the intent IDs in subsequent calls to update_intent, delete_intent, or create_intent_index.",
+      "**Returns:** Paginated list of intents with count. Use the intent IDs in subsequent calls to update_intent, delete_intent, or create_intent_network.",
     querySchema: z.object({
       networkId: z.string().optional().describe("Index UUID — filters intents to this index (community). When in an index-scoped chat, defaults to the scoped index. Get index IDs from read_networks."),
       userId: z.string().optional().describe("User ID — filters to this user's intents. Must be combined with networkId when looking up another user. Omit to get the current user's intents."),
@@ -159,7 +159,20 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       "**Returns:** An intent_proposal code block that MUST be included verbatim in the response. The frontend renders it as an interactive " +
       "card the user can approve or skip. On approval, the intent is persisted, indexed, and discovery begins.\n\n" +
       "**Next steps after approval:** The intent is automatically linked to relevant indexes. Call create_opportunities(searchQuery) to explicitly trigger discovery, " +
-      "or wait for background processing to find matches.",
+      "or wait for background processing to find matches.\n\n" +
+      "**Specificity gate.** Before calling this tool, judge whether the description is concrete enough to be " +
+      "useful for matching. If the user says \"find a job\", \"meet people\", or \"learn something\", that's too " +
+      "vague — FIRST call read_user_profiles() + read_intents() to understand their context, THEN propose a " +
+      "refined version (\"Based on your background in X, did you mean 'Y'?\") and wait for confirmation before " +
+      "calling create_intent. Specific asks (\"senior UX design role at a tech company in Berlin\") can go " +
+      "directly to create_intent.\n\n" +
+      "**URL handling.** If the user pastes a URL describing the intent (e.g. a job posting), call scrape_url " +
+      "first with objective=\"Extract key details for an intent\", synthesize a conceptual description from the " +
+      "content, then call create_intent with the synthesis. Exception: profile URLs (LinkedIn, GitHub, X) passed " +
+      "to create_user_profile are handled by that tool directly — do not scrape first.\n\n" +
+      "**Proposal card contract.** The response contains an ```intent_proposal code block. Include that block " +
+      "VERBATIM in your reply to the user — do not summarize it, do not write an intent_proposal block yourself. " +
+      "Only this tool returns valid blocks (they embed a proposalId the UI needs to persist the intent on approval).",
     querySchema: z.object({
       description: z.string().describe("A clear, specific description of what the user is looking for. Should be concept-based, not a raw URL. If the user shared a URL, scrape it first with scrape_url and pass the synthesized content here. Vague descriptions will be rejected — include what kind, what for, and/or timeframe."),
       networkId: z.string().optional().describe("Index UUID to link the intent to upon creation. Defaults to the scoped index in index-scoped chats. Get index IDs from read_networks. If omitted, the system auto-assigns to relevant indexes based on their prompts."),
@@ -338,7 +351,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       "**Returns:** Confirmation of update. The intent's embeddings and index relevancy scores are recalculated automatically.",
     querySchema: z.object({
       intentId: z.string().describe("The UUID of the intent to update. Get this from read_intents results."),
-      newDescription: z.string().describe("The updated description of what the user is looking for. Same guidelines as create_intent — should be clear and specific."),
+      description: z.string().describe("The updated description of what the user is looking for. Same guidelines as create_intent — should be clear and specific."),
     }),
     handler: async ({ context, query }) => {
       const scopeErr = await ensureScopedMembership(context, deps.systemDb);
@@ -346,6 +359,15 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       const intentId = query.intentId?.trim() ?? "";
       if (!UUID_REGEX.test(intentId)) {
         return error("Invalid intent ID format.");
+      }
+
+      // Ownership guard: caller must own the intent
+      const intent = await deps.systemDb.getIntent(intentId);
+      if (!intent || intent.userId !== context.userId) {
+        return error("Intent not found or you can only update your own intents.");
+      }
+      if (intent.archivedAt) {
+        return error("This intent is archived and cannot be updated. Create a new intent instead.");
       }
 
       // Strict scope enforcement: when chat is index-scoped, verify intent is linked to that index
@@ -374,7 +396,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         userId: context.userId,
         userProfile,
         operationMode: 'update' as const,
-        inputContent: query.newDescription,
+        inputContent: query.description,
         targetIntentIds: [intentId],
         ...(context.networkId && { networkId: context.networkId }),
       });
@@ -413,6 +435,12 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         return error("Invalid intent ID format.");
       }
 
+      // Ownership guard: caller must own the intent
+      const intent = await deps.systemDb.getIntent(intentId);
+      if (!intent || intent.userId !== context.userId) {
+        return error("Intent not found or you can only delete your own intents.");
+      }
+
       // Strict scope enforcement: when chat is index-scoped, verify intent is linked to that index
       if (context.networkId) {
         const db = deps.userDb;
@@ -448,11 +476,11 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // INTENT–INDEX JUNCTION (link / list / unlink)
+  // INTENT–NETWORK JUNCTION (link / list / unlink)
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const createIntentIndex = defineTool({
-    name: "create_intent_index",
+  const createIntentNetwork = defineTool({
+    name: "create_intent_network",
     description:
       "Manually links an intent to an index (community), making it visible to other members and eligible for opportunity discovery within that index. " +
       "Normally intents are auto-assigned to relevant indexes on creation, but use this to explicitly add an intent to an additional index.\n\n" +
@@ -479,9 +507,9 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         );
       }
 
-      const _createIntentIndexGraphStart = Date.now();
-      const _createIntentIndexTraceEmitter = requestContext.getStore()?.traceEmitter;
-      _createIntentIndexTraceEmitter?.({ type: "graph_start", name: "intent_network" });
+      const _createIntentNetworkGraphStart = Date.now();
+      const _createIntentNetworkTraceEmitter = requestContext.getStore()?.traceEmitter;
+      _createIntentNetworkTraceEmitter?.({ type: "graph_start", name: "intent_network" });
       const result = await graphs.intentIndex.invoke({
         userId: context.userId,
         networkId,
@@ -489,15 +517,16 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         operationMode: 'create' as const,
         skipEvaluation: true,
       });
-      const _createIntentIndexGraphMs = Date.now() - _createIntentIndexGraphStart;
-      _createIntentIndexTraceEmitter?.({ type: "graph_end", name: "intent_network", durationMs: _createIntentIndexGraphMs });
+      const _createIntentNetworkGraphMs = Date.now() - _createIntentNetworkGraphStart;
+      _createIntentNetworkTraceEmitter?.({ type: "graph_end", name: "intent_network", durationMs: _createIntentNetworkGraphMs });
 
       if (result.mutationResult) {
         if (result.mutationResult.success) {
+          const alreadyExisted = result.mutationResult.message?.includes('already in this network') ?? false;
           return success({
-            created: true,
+            created: !alreadyExisted,
             message: result.mutationResult.message,
-            _graphTimings: [{ name: 'intent_network', durationMs: _createIntentIndexGraphMs, agents: result.agentTimings ?? [] }],
+            _graphTimings: [{ name: 'intent_network', durationMs: _createIntentNetworkGraphMs, agents: result.agentTimings ?? [] }],
           });
         }
         return error(result.mutationResult.error || "Failed to link intent to network.");
@@ -506,8 +535,8 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
     },
   });
 
-  const readIntentIndexes = defineTool({
-    name: "read_intent_indexes",
+  const readIntentNetworks = defineTool({
+    name: "read_intent_networks",
     description:
       "Reads the many-to-many links between intents and indexes. Use this to understand which intents are shared in which communities, " +
       "and which indexes a specific intent belongs to.\n\n" +
@@ -560,9 +589,9 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         }
       }
 
-      const _readIntentIndexGraphStart = Date.now();
-      const _readIntentIndexTraceEmitter = requestContext.getStore()?.traceEmitter;
-      _readIntentIndexTraceEmitter?.({ type: "graph_start", name: "intent_network" });
+      const _readIntentNetworkGraphStart = Date.now();
+      const _readIntentNetworkTraceEmitter = requestContext.getStore()?.traceEmitter;
+      _readIntentNetworkTraceEmitter?.({ type: "graph_start", name: "intent_network" });
       const result = await graphs.intentIndex.invoke({
         userId: context.userId,
         networkId,
@@ -570,29 +599,29 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         operationMode: 'read' as const,
         queryUserId,
       });
-      const _readIntentIndexGraphMs = Date.now() - _readIntentIndexGraphStart;
-      _readIntentIndexTraceEmitter?.({ type: "graph_end", name: "intent_network", durationMs: _readIntentIndexGraphMs });
+      const _readIntentNetworkGraphMs = Date.now() - _readIntentNetworkGraphStart;
+      _readIntentNetworkTraceEmitter?.({ type: "graph_end", name: "intent_network", durationMs: _readIntentNetworkGraphMs });
 
       if (result.error) {
         return error(result.error);
       }
       if (result.readResult) {
-        return success({ ...result.readResult, _graphTimings: [{ name: 'intent_network', durationMs: _readIntentIndexGraphMs, agents: result.agentTimings ?? [] }] });
+        return success({ ...result.readResult, _graphTimings: [{ name: 'intent_network', durationMs: _readIntentNetworkGraphMs, agents: result.agentTimings ?? [] }] });
       }
       return error("Failed to fetch intent-network links.");
     },
   });
 
-  const deleteIntentIndex = defineTool({
-    name: "delete_intent_index",
+  const deleteIntentNetwork = defineTool({
+    name: "delete_intent_network",
     description:
       "Removes the link between an intent and an index. The intent itself is NOT deleted — it just stops being visible in that community " +
       "and no longer participates in opportunity discovery within that index. The intent may still be linked to other indexes.\n\n" +
       "**When to use:** When the user wants to withdraw an intent from a specific community without archiving it entirely. " +
-      "Use read_intent_indexes first to verify the link exists.\n\n" +
+      "Use read_intent_networks first to verify the link exists.\n\n" +
       "**Returns:** Confirmation that the link was removed. To fully remove an intent, use delete_intent instead.",
     querySchema: z.object({
-      intentId: z.string().describe("The UUID of the intent to unlink. Get this from read_intents or read_intent_indexes."),
+      intentId: z.string().describe("The UUID of the intent to unlink. Get this from read_intents or read_intent_networks."),
       networkId: z.string().optional().describe("The UUID of the index to unlink from. Get this from read_networks. Defaults to the scoped index in index-scoped chats."),
     }),
     handler: async ({ context, query }) => {
@@ -611,24 +640,24 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         );
       }
 
-      const _deleteIntentIndexGraphStart = Date.now();
-      const _deleteIntentIndexTraceEmitter = requestContext.getStore()?.traceEmitter;
-      _deleteIntentIndexTraceEmitter?.({ type: "graph_start", name: "intent_network" });
+      const _deleteIntentNetworkGraphStart = Date.now();
+      const _deleteIntentNetworkTraceEmitter = requestContext.getStore()?.traceEmitter;
+      _deleteIntentNetworkTraceEmitter?.({ type: "graph_start", name: "intent_network" });
       const result = await graphs.intentIndex.invoke({
         userId: context.userId,
         networkId,
         intentId,
         operationMode: 'delete' as const,
       });
-      const _deleteIntentIndexGraphMs = Date.now() - _deleteIntentIndexGraphStart;
-      _deleteIntentIndexTraceEmitter?.({ type: "graph_end", name: "intent_network", durationMs: _deleteIntentIndexGraphMs });
+      const _deleteIntentNetworkGraphMs = Date.now() - _deleteIntentNetworkGraphStart;
+      _deleteIntentNetworkTraceEmitter?.({ type: "graph_end", name: "intent_network", durationMs: _deleteIntentNetworkGraphMs });
 
       if (result.mutationResult) {
         if (result.mutationResult.success) {
           return success({
             deleted: true,
             message: result.mutationResult.message,
-            _graphTimings: [{ name: 'intent_network', durationMs: _deleteIntentIndexGraphMs, agents: result.agentTimings ?? [] }],
+            _graphTimings: [{ name: 'intent_network', durationMs: _deleteIntentNetworkGraphMs, agents: result.agentTimings ?? [] }],
           });
         }
         return error(result.mutationResult.error || "Failed to unlink.");
@@ -637,5 +666,31 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
     },
   });
 
-  return [readIntents, createIntent, updateIntent, deleteIntent, createIntentIndex, readIntentIndexes, deleteIntentIndex] as const;
+  const searchIntents = defineTool({
+    name: "search_intents",
+    description:
+      "Text-searches the authenticated user's own active signals by description. Case-insensitive substring " +
+      "match over the signal's payload and summary. Use when the user references a past signal they wrote " +
+      '("find my signal about React mentorship") or wants to audit what they\'ve posted.\n\n' +
+      "For discovery of OTHER users' signals that match a query, use create_opportunities(searchQuery=...) " +
+      "instead — that runs semantic matching across the user's networks.\n\n" +
+      "**Returns:** `intents: [{ id, payload, summary, createdAt }]`, most recent first, up to `limit` (default 25).",
+    querySchema: z.object({
+      query: z.string().min(1).describe("Text to match against payload and summary (case-insensitive)."),
+      limit: z
+        .number()
+        .int()
+        .positive()
+        .max(100)
+        .optional()
+        .describe("Maximum intents to return (default 25, max 100)."),
+    }),
+    handler: async ({ context, query }) => {
+      const rows = await userDb.searchOwnIntents(query.query, query.limit ?? 25);
+      logger.verbose("search_intents", { userId: context.userId, query: query.query, matched: rows.length });
+      return success({ intents: rows });
+    },
+  });
+
+  return [readIntents, createIntent, updateIntent, deleteIntent, createIntentNetwork, readIntentNetworks, deleteIntentNetwork, searchIntents] as const;
 }

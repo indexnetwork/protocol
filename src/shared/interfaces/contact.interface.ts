@@ -30,9 +30,19 @@ export interface ContactEntry {
  * Contact management operations used by chat tools.
  * Consumers must provide a concrete implementation (e.g. backed by ContactService).
  */
+/** Flat contact row returned by searchContacts. */
+export interface ContactSearchResult {
+  contactId: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  isGhost: boolean;
+}
+
 export interface ContactServiceAdapter {
   importContacts(ownerId: string, contacts: ContactInput[]): Promise<ContactImportResult>;
   listContacts(ownerId: string): Promise<ContactEntry[]>;
   addContact(ownerId: string, email: string, options?: { name?: string; restore?: boolean }): Promise<ContactResult>;
   removeContact(ownerId: string, contactUserId: string): Promise<void>;
+  searchContacts(ownerId: string, q: string, limit?: number): Promise<ContactSearchResult[]>;
 }

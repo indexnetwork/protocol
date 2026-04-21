@@ -4,6 +4,8 @@ import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import type {
   ChatStreamEvent,
   DebugMetaToolCall,
+  DebugMetaLlm,
+  DebugMetaOrchestratorNegotiations,
 } from "./chat-streaming.types.js";
 import {
   createAgentEndEvent,
@@ -280,17 +282,20 @@ export class ChatStreamer {
           yield createResponseCompleteEvent(sessionId, responseText);
 
           const debugMeta = agentOutput?.debugMeta as
-            | { graph: string; iterations: number; tools?: DebugMetaToolCall[] }
+            | { graph: string; iterations: number; tools?: DebugMetaToolCall[]; llm?: DebugMetaLlm; orchestratorNegotiations?: DebugMetaOrchestratorNegotiations }
             | undefined;
           if (
             debugMeta?.graph != null &&
             typeof debugMeta.iterations === "number"
           ) {
+            const llmFallback: DebugMetaLlm = { calls: 0, totalDurationMs: 0, resets: [], hallucinations: [] };
             yield createDebugMetaEvent(
               sessionId,
               debugMeta.graph,
               debugMeta.iterations,
               Array.isArray(debugMeta.tools) ? debugMeta.tools : [],
+              debugMeta.llm ?? llmFallback,
+              debugMeta.orchestratorNegotiations,
             );
           }
 

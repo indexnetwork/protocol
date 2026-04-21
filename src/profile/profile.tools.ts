@@ -21,7 +21,7 @@ function isMeaningfulEnrichment(enrichment: EnrichmentResult | null): enrichment
 }
 
 export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
-  const { userDb, systemDb, database, graphs, enricher } = deps;
+  const { userDb, systemDb, database, graphs, enricher, grantDefaultSystemPermissions } = deps;
 
   async function enrichFromUserRecord(user: { name?: string | null; email?: string | null; socials?: { linkedin?: string; x?: string; github?: string; websites?: string[] } | null }) {
     return enricher.enrichUserProfile({
@@ -44,7 +44,7 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
       "This is the primary way to look up a person by name. Add `networkId` to restrict search to one index.\n" +
       "- With `userId`: returns that specific user's full profile (name, bio, skills, interests, location).\n" +
       "- With `networkId` alone: returns profiles of ALL members in that index.\n" +
-      "- No parameters (index-scoped chat only): returns the current user's own profile.\n\n" +
+      "- No parameters: returns the current user's own profile.\n\n" +
       "**When to use:** Before creating introductions (need profiles of both parties), when the user asks about a person, " +
       "or to check if a profile exists before suggesting create_user_profile.\n\n" +
       "**Returns:** Profile objects with name, bio, location, skills[], interests[]. Use userId from results with other tools like read_intents(userId, networkId).",
@@ -110,31 +110,36 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
         // Fetch full profiles for matches
         const profiles = await Promise.all(
           matched.map(async (m) => {
-            const profile = await systemDb.getProfile(m.userId);
-            return {
-              userId: m.userId,
-              name: m.name,
-              hasProfile: !!profile,
-              profile: profile
-                ? {
-                    name: profile.identity.name,
-                    bio: profile.identity.bio,
-                    location: profile.identity.location,
-                    skills: profile.attributes.skills,
-                    interests: profile.attributes.interests,
-                  }
-                : undefined,
-            };
+            try {
+              const profile = await systemDb.getProfile(m.userId);
+              return {
+                userId: m.userId,
+                name: m.name,
+                hasProfile: !!profile,
+                profile: profile
+                  ? {
+                      name: profile.identity.name,
+                      bio: profile.identity.bio,
+                      location: profile.identity.location,
+                      skills: profile.attributes.skills,
+                      interests: profile.attributes.interests,
+                    }
+                  : undefined,
+              };
+            } catch (err) {
+              logger.warn("read_user_profiles: getProfile failed; degrading to hasProfile=false", {
+                userId: m.userId,
+                error: err instanceof Error ? err.message : String(err),
+              });
+              return { userId: m.userId, name: m.name, hasProfile: false };
+            }
           })
         );
 
         return success({ query: nameQuery, matchCount: profiles.length, profiles });
       }
 
-      // Guard: when chat is NOT index-scoped and no userId/networkId provided, disallow
-      if (!effectiveIndexId && !targetUserId && !context.networkId) {
-        return error("Please provide a userId, networkId, or query. Outside of an index-scoped chat, read_user_profiles requires at least one of these parameters. To read your own profile, pass your own userId.");
-      }
+      // When no userId / networkId / query is provided, fall through to Mode 1 (self lookup).
 
       // --- Mode 3: networkId provided → fetch all member profiles ---
       if (effectiveIndexId) {
@@ -493,10 +498,15 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
   const updateUserProfile = defineTool({
     name: "update_user_profile",
     description:
-      "Updates the authenticated user's existing profile with specific changes. Unlike create_user_profile (which regenerates the whole profile), " +
-      "this tool applies targeted modifications — updating bio text, adding/removing skills, changing location, etc.\n\n" +
-      "**When to use:** When the user wants to make specific changes to their profile (e.g. 'add Python to my skills', 'update my bio', " +
-      "'change my location to Berlin'). For full profile regeneration from social URLs, use create_user_profile instead.\n\n" +
+      "Updates the authenticated user's existing profile using a verb-style instruction interface.\n\n" +
+      "**How to use it:**\n" +
+      "- `action`: a natural-language instruction describing what to change (e.g. \"add interests\", \"update bio\", \"remove skill\", \"set location\").\n" +
+      "- `details`: the content to apply (e.g. \"procedural generation, roguelikes, narrative games\").\n\n" +
+      "**Examples:**\n" +
+      "- `action=\"add interests\"`, `details=\"procedural generation, roguelikes\"`\n" +
+      "- `action=\"update bio\"`, `details=\"Product designer focused on desktop CRPG interfaces\"`\n" +
+      "- `action=\"set location\"`, `details=\"Berlin\"`\n\n" +
+      "**When to use:** When the user wants to make specific changes without regenerating the whole profile. For full profile regeneration from social URLs, use create_user_profile instead.\n\n" +
       "**Important:** If the user provides a URL to update from, call scrape_url first, then pass the scraped content in `details`.\n\n" +
       "**Returns:** Confirmation that the profile was updated. The profile's semantic embeddings are automatically recalculated, " +
       "which may surface new opportunity matches.",
@@ -575,6 +585,17 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
           completedAt: new Date().toISOString(),
         },
       });
+
+      if (grantDefaultSystemPermissions) {
+        try {
+          await grantDefaultSystemPermissions(context.userId);
+        } catch (err) {
+          logger.warn('Default system agent permission grant failed (non-fatal)', {
+            userId: context.userId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
 
       const autoJoinIds = (process.env.AUTO_JOIN_INDEX_IDS ?? '')
         .split(',')

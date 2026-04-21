@@ -68,6 +68,7 @@ function createMockGraph(deps?: {
         expiresAt: null,
       }),
     opportunityExistsBetweenActors: () => Promise.resolve(false),
+    getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
     getOpportunityBetweenActors: () => Promise.resolve(null),
     findOverlappingOpportunities: () => Promise.resolve([]),
     getUserIndexIds: deps?.getUserIndexIds ?? (() => Promise.resolve(['idx-1'] as Id<'networks'>[])),
@@ -95,6 +96,7 @@ function createMockGraph(deps?: {
     getOpportunity: () => Promise.resolve(null),
     getOpportunitiesForUser: () => Promise.resolve([]),
     updateOpportunityStatus: () => Promise.resolve(null),
+    updateOpportunityActorApproval: () => Promise.resolve(null),
     getIntent: () => Promise.resolve(null),
     getIntentIndexScores: async () => [],
     getNetworkMemberContext: async () => null,
@@ -160,6 +162,7 @@ function createMockGraphWithFnOverrides(deps?: {
         expiresAt: null,
       }),
     opportunityExistsBetweenActors: () => Promise.resolve(false),
+    getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
     getOpportunityBetweenActors: () => Promise.resolve(null),
     findOverlappingOpportunities: () => Promise.resolve([]),
     getUserIndexIds: deps?.getUserIndexIds ?? (() => Promise.resolve(['idx-1'] as Id<'networks'>[])),
@@ -187,6 +190,7 @@ function createMockGraphWithFnOverrides(deps?: {
     getOpportunity: () => Promise.resolve(null),
     getOpportunitiesForUser: () => Promise.resolve([]),
     updateOpportunityStatus: () => Promise.resolve(null),
+    updateOpportunityActorApproval: () => Promise.resolve(null),
     getIntent: () => Promise.resolve(null),
     getIntentIndexScores: async () => [],
     getNetworkMemberContext: async () => null,
@@ -1426,6 +1430,7 @@ describe('Opportunity Graph', () => {
             expiresAt: null,
           }),
         opportunityExistsBetweenActors: () => Promise.resolve(false),
+        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
         getOpportunityBetweenActors: () => Promise.resolve(null),
         findOverlappingOpportunities: () => Promise.resolve([]),
         getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
@@ -1450,6 +1455,7 @@ describe('Opportunity Graph', () => {
         getOpportunity: () => Promise.resolve(null),
         getOpportunitiesForUser: () => Promise.resolve([]),
         updateOpportunityStatus: () => Promise.resolve(null),
+        updateOpportunityActorApproval: () => Promise.resolve(null),
         getIntent: () => Promise.resolve(null),
             getIntentIndexScores: async () => [],
         getNetworkMemberContext: async () => null,
@@ -1832,6 +1838,7 @@ describe('Opportunity Graph', () => {
           createdAt: new Date(), updatedAt: new Date(), expiresAt: null,
         }),
         opportunityExistsBetweenActors: () => Promise.resolve(false),
+        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
         getOpportunityBetweenActors: () => Promise.resolve(null),
         findOverlappingOpportunities: () => Promise.resolve([]),
         getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
@@ -1854,6 +1861,7 @@ describe('Opportunity Graph', () => {
         getOpportunity: () => Promise.resolve(null),
         getOpportunitiesForUser: () => Promise.resolve([]),
         updateOpportunityStatus: () => Promise.resolve(null),
+        updateOpportunityActorApproval: () => Promise.resolve(null),
         getIntent: () => Promise.resolve(null),
         getIntentIndexScores: async () => [],
         getNetworkMemberContext: async () => null,
@@ -1895,6 +1903,497 @@ describe('Opportunity Graph', () => {
       } as OpportunityGraphInvokeInput)) as OpportunityGraphInvokeResult;
 
       expect(result.candidates.length).toBe(0);
+    });
+  });
+
+  // ─── Introducer gating tests ─────────────────────────────────────────────────
+
+  describe('negotiateNode: introducer gating', () => {
+    test('does not invoke the negotiation graph when an introducer actor has approved: false', async () => {
+      const negotiationInvocations: unknown[] = [];
+
+      // Minimal mock negotiation graph that records every invocation.
+      const mockNegotiationGraph = {
+        invoke: async (input: unknown) => {
+          negotiationInvocations.push(input);
+          return { outcome: null };
+        },
+      };
+
+      // Build a full mockDb that mirrors createMockGraph but with a custom
+      // createOpportunity that appends an unapproved introducer actor.
+      const mockDb: OpportunityGraphDatabase = {
+        getProfile: () => Promise.resolve(null),
+        createOpportunity: (data) =>
+          Promise.resolve({
+            id: 'opp-gated',
+            detection: data.detection,
+            actors: [
+              ...data.actors,
+              {
+                networkId: 'idx-1' as Id<'networks'>,
+                userId: 'introducer-user' as Id<'users'>,
+                role: 'introducer' as const,
+                approved: false,
+              },
+            ],
+            interpretation: data.interpretation,
+            context: data.context,
+            confidence: data.confidence,
+            status: data.status ?? 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            expiresAt: null,
+          }),
+        opportunityExistsBetweenActors: () => Promise.resolve(false),
+        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
+        getOpportunityBetweenActors: () => Promise.resolve(null),
+        findOverlappingOpportunities: () => Promise.resolve([]),
+        getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
+        getNetworkMemberships: () =>
+          Promise.resolve([
+            {
+              networkId: 'idx-1',
+              networkTitle: 'Test Index',
+              indexPrompt: null,
+              permissions: ['member'],
+              memberPrompt: null,
+              autoAssign: true,
+              isPersonal: false,
+              joinedAt: new Date(),
+            },
+          ]),
+        getActiveIntents: () =>
+          Promise.resolve([
+            {
+              id: 'intent-1' as Id<'intents'>,
+              payload: 'Looking for a technical co-founder',
+              summary: 'Co-founder',
+              createdAt: new Date(),
+            },
+          ]),
+        getNetwork: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
+        getNetworkMemberCount: () => Promise.resolve(2),
+        getNetworkIdsForIntent: () => Promise.resolve(['idx-1']),
+        getUser: (userId: string) =>
+          Promise.resolve({ id: userId, name: 'Test User', email: 'test@example.com' }),
+        isNetworkMember: () => Promise.resolve(true),
+        isIndexOwner: () => Promise.resolve(false),
+        getOpportunity: () => Promise.resolve(null),
+        getOpportunitiesForUser: () => Promise.resolve([]),
+        updateOpportunityStatus: () => Promise.resolve(null),
+        updateOpportunityActorApproval: () => Promise.resolve(null),
+        getIntent: () => Promise.resolve(null),
+        getIntentIndexScores: async () => [],
+        getNetworkMemberContext: async () => null,
+      };
+
+      const mockEmbedder: Embedder = {
+        generate: () => Promise.resolve(dummyEmbedding),
+        search: () => Promise.resolve([]),
+        searchWithHydeEmbeddings: () =>
+          Promise.resolve([
+            {
+              type: 'intent' as const,
+              id: 'intent-bob' as Id<'intents'>,
+              userId: 'b0000000-0000-4000-8000-000000000002',
+              score: 0.9,
+              matchedVia: 'mirror' as const,
+              networkId: 'idx-1',
+            },
+          ]),
+        searchWithProfileEmbedding: () => Promise.resolve([]),
+      } as unknown as Embedder;
+
+      const mockHydeGenerator = {
+        invoke: () =>
+          Promise.resolve({
+            hydeEmbeddings: { mirror: dummyEmbedding, reciprocal: dummyEmbedding },
+          }),
+      };
+
+      const evaluator = createMockEvaluator(defaultMockEvaluatorResult);
+      const factory = new OpportunityGraphFactory(
+        mockDb,
+        mockEmbedder,
+        mockHydeGenerator,
+        evaluator,
+        async () => undefined,
+        mockNegotiationGraph,
+      );
+      const compiledGraph = factory.createGraph();
+
+      await compiledGraph.invoke({
+        userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
+        searchQuery: 'co-founder',
+        operationMode: 'create' as const,
+        options: { initialStatus: 'latent' as const },
+      });
+
+      // The gate should prevent the negotiation graph from being invoked
+      // because the persisted opportunity has an introducer with approved: false.
+      expect(negotiationInvocations).toHaveLength(0);
+    });
+
+    test('invokes the negotiation graph when introducer actor has approved: true', async () => {
+      const negotiationInvocations: unknown[] = [];
+
+      const mockNegotiationGraph = {
+        invoke: async (input: unknown) => {
+          negotiationInvocations.push(input);
+          return { outcome: null };
+        },
+      };
+
+      const mockDb: OpportunityGraphDatabase = {
+        getProfile: () => Promise.resolve(null),
+        createOpportunity: (data) =>
+          Promise.resolve({
+            id: 'opp-approved',
+            detection: data.detection,
+            actors: [
+              ...data.actors,
+              {
+                networkId: 'idx-1' as Id<'networks'>,
+                userId: 'introducer-user' as Id<'users'>,
+                role: 'introducer' as const,
+                approved: true,
+              },
+            ],
+            interpretation: data.interpretation,
+            context: data.context,
+            confidence: data.confidence,
+            status: data.status ?? 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            expiresAt: null,
+          }),
+        opportunityExistsBetweenActors: () => Promise.resolve(false),
+        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
+        getOpportunityBetweenActors: () => Promise.resolve(null),
+        findOverlappingOpportunities: () => Promise.resolve([]),
+        getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
+        getNetworkMemberships: () =>
+          Promise.resolve([
+            {
+              networkId: 'idx-1',
+              networkTitle: 'Test Index',
+              indexPrompt: null,
+              permissions: ['member'],
+              memberPrompt: null,
+              autoAssign: true,
+              isPersonal: false,
+              joinedAt: new Date(),
+            },
+          ]),
+        getActiveIntents: () =>
+          Promise.resolve([
+            {
+              id: 'intent-1' as Id<'intents'>,
+              payload: 'Looking for a technical co-founder',
+              summary: 'Co-founder',
+              createdAt: new Date(),
+            },
+          ]),
+        getNetwork: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
+        getNetworkMemberCount: () => Promise.resolve(2),
+        getNetworkIdsForIntent: () => Promise.resolve(['idx-1']),
+        getUser: (userId: string) =>
+          Promise.resolve({ id: userId, name: 'Test User', email: 'test@example.com' }),
+        isNetworkMember: () => Promise.resolve(true),
+        isIndexOwner: () => Promise.resolve(false),
+        getOpportunity: () => Promise.resolve(null),
+        getOpportunitiesForUser: () => Promise.resolve([]),
+        updateOpportunityStatus: () => Promise.resolve(null),
+        updateOpportunityActorApproval: () => Promise.resolve(null),
+        getIntent: () => Promise.resolve(null),
+        getIntentIndexScores: async () => [],
+        getNetworkMemberContext: async () => null,
+      };
+
+      const mockEmbedder: Embedder = {
+        generate: () => Promise.resolve(dummyEmbedding),
+        search: () => Promise.resolve([]),
+        searchWithHydeEmbeddings: () =>
+          Promise.resolve([
+            {
+              type: 'intent' as const,
+              id: 'intent-bob' as Id<'intents'>,
+              userId: 'b0000000-0000-4000-8000-000000000002',
+              score: 0.9,
+              matchedVia: 'mirror' as const,
+              networkId: 'idx-1',
+            },
+          ]),
+        searchWithProfileEmbedding: () => Promise.resolve([]),
+      } as unknown as Embedder;
+
+      const mockHydeGenerator = {
+        invoke: () =>
+          Promise.resolve({
+            hydeEmbeddings: { mirror: dummyEmbedding, reciprocal: dummyEmbedding },
+          }),
+      };
+
+      const evaluator = createMockEvaluator(defaultMockEvaluatorResult);
+      const factory = new OpportunityGraphFactory(
+        mockDb,
+        mockEmbedder,
+        mockHydeGenerator,
+        evaluator,
+        async () => undefined,
+        mockNegotiationGraph,
+      );
+      const compiledGraph = factory.createGraph();
+
+      await compiledGraph.invoke({
+        userId: 'a0000000-0000-4000-8000-000000000001' as Id<'users'>,
+        searchQuery: 'co-founder',
+        operationMode: 'create' as const,
+        options: { initialStatus: 'latent' as const },
+      });
+
+      // The gate should allow negotiation when introducer is approved.
+      expect(negotiationInvocations.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ─── negotiate_existing mode tests ───────────────────────────────────────────
+
+  describe('negotiate_existing mode', () => {
+    test('invokes negotiation with source and candidate actors, notifies non-introducer actors on acceptance', async () => {
+      const negotiationInvocations: unknown[] = [];
+      const notifiedUserIds: string[] = [];
+
+      // Mock negotiation graph that records invocations and returns acceptance
+      const mockNegotiationGraph = {
+        invoke: async (input: unknown) => {
+          negotiationInvocations.push(input);
+          return {
+            outcome: {
+              hasOpportunity: true,
+              agreedRoles: [{ userId: 'patient-user', role: 'patient' as const }, { userId: 'agent-user', role: 'agent' as const }],
+              reasoning: 'Great match.',
+              turnCount: 2,
+            },
+          };
+        },
+      };
+
+      const existingOpportunity = {
+        id: 'opp-existing',
+        detection: { source: 'manual' as const, createdBy: 'introducer-user' as Id<'users'> },
+        actors: [
+          {
+            userId: 'patient-user' as Id<'users'>,
+            role: 'patient' as const,
+            networkId: 'idx-1' as Id<'networks'>,
+            intentId: 'intent-patient' as Id<'intents'>,
+            approved: undefined,
+          },
+          {
+            userId: 'agent-user' as Id<'users'>,
+            role: 'agent' as const,
+            networkId: 'idx-1' as Id<'networks'>,
+            intentId: 'intent-agent' as Id<'intents'>,
+            approved: undefined,
+          },
+          {
+            userId: 'introducer-user' as Id<'users'>,
+            role: 'introducer' as const,
+            networkId: 'idx-1' as Id<'networks'>,
+            intentId: undefined,
+            approved: true,
+          },
+        ],
+        interpretation: { reasoning: 'Great match.' },
+        context: null,
+        confidence: 0.9,
+        status: 'latent' as const,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        expiresAt: null,
+      };
+
+      const mockDb: OpportunityGraphDatabase = {
+        getProfile: () => Promise.resolve(null),
+        createOpportunity: (data) =>
+          Promise.resolve({
+            id: 'opp-1',
+            detection: data.detection,
+            actors: data.actors,
+            interpretation: data.interpretation,
+            context: data.context,
+            confidence: data.confidence,
+            status: data.status ?? 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            expiresAt: null,
+          }),
+        opportunityExistsBetweenActors: () => Promise.resolve(false),
+        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
+        getOpportunityBetweenActors: () => Promise.resolve(null),
+        findOverlappingOpportunities: () => Promise.resolve([]),
+        getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
+        getNetworkMemberships: () => Promise.resolve([{
+          networkId: 'idx-1',
+          networkTitle: 'Test Index',
+          indexPrompt: null,
+          permissions: ['member'],
+          memberPrompt: null,
+          autoAssign: true,
+          isPersonal: false,
+          joinedAt: new Date(),
+        }]),
+        getActiveIntents: (userId: string) => Promise.resolve([
+          {
+            id: `intent-${userId}` as Id<'intents'>,
+            payload: `Intent for ${userId}`,
+            summary: null,
+            createdAt: new Date(),
+          },
+        ]),
+        getNetwork: () => Promise.resolve({ id: 'idx-1', title: 'Test Index' }),
+        getNetworkMemberCount: () => Promise.resolve(2),
+        getNetworkIdsForIntent: () => Promise.resolve(['idx-1']),
+        getUser: (userId: string) => Promise.resolve({ id: userId, name: `User ${userId}`, email: `${userId}@example.com` }),
+        isNetworkMember: () => Promise.resolve(true),
+        isIndexOwner: () => Promise.resolve(false),
+        getOpportunity: (id: string) => id === 'opp-existing'
+          ? Promise.resolve(existingOpportunity as unknown as Opportunity)
+          : Promise.resolve(null),
+        getOpportunitiesForUser: () => Promise.resolve([]),
+        updateOpportunityStatus: () => Promise.resolve(null),
+        updateOpportunityActorApproval: () => Promise.resolve(null),
+        getIntent: () => Promise.resolve(null),
+        getIntentIndexScores: async () => [],
+        getNetworkMemberContext: async () => null,
+      };
+
+      const mockEmbedder: Embedder = {
+        generate: () => Promise.resolve(dummyEmbedding),
+        search: () => Promise.resolve([]),
+        searchWithHydeEmbeddings: () => Promise.resolve([]),
+        searchWithProfileEmbedding: () => Promise.resolve([]),
+      } as unknown as Embedder;
+
+      const mockHydeGenerator = {
+        invoke: () => Promise.resolve({ hydeEmbeddings: { mirror: dummyEmbedding } }),
+      };
+
+      const evaluator = createMockEvaluator();
+      const queueNotification = async (oppId: string, userId: string) => {
+        notifiedUserIds.push(userId);
+      };
+
+      const factory = new OpportunityGraphFactory(
+        mockDb,
+        mockEmbedder,
+        mockHydeGenerator,
+        evaluator,
+        queueNotification,
+        mockNegotiationGraph,
+        undefined, // agentDispatcher
+        async () => undefined, // queueNegotiateExisting
+      );
+      const compiledGraph = factory.createGraph();
+
+      await compiledGraph.invoke({
+        userId: 'patient-user' as Id<'users'>,
+        operationMode: 'negotiate_existing' as const,
+        opportunityId: 'opp-existing',
+        options: {},
+      });
+
+      // Negotiation should have been invoked
+      expect(negotiationInvocations.length).toBeGreaterThan(0);
+
+      // Notifications should be sent to non-introducer actors only
+      expect(notifiedUserIds).toContain('patient-user');
+      expect(notifiedUserIds).toContain('agent-user');
+      expect(notifiedUserIds).not.toContain('introducer-user');
+    });
+  });
+
+  // ─── approve_introduction mode tests ─────────────────────────────────────────
+
+  describe('approve_introduction mode', () => {
+    test('sets approved=true on introducer actor and enqueues negotiate job', async () => {
+      const approvalCalls: Array<[string, string, boolean]> = [];
+      const negotiateJobsEnqueued: Array<{ opportunityId: string; userId: string }> = [];
+
+      const existingOpp = {
+        id: 'opp-456',
+        status: 'latent' as const,
+        actors: [
+          { networkId: 'idx-1' as Id<'networks'>, userId: 'target-user' as Id<'users'>, role: 'patient' as const },
+          { networkId: 'idx-1' as Id<'networks'>, userId: 'candidate-user' as Id<'users'>, role: 'agent' as const },
+          { networkId: 'idx-1' as Id<'networks'>, userId: 'introducer-user' as Id<'users'>, role: 'introducer' as const, approved: false },
+        ],
+        detection: { source: 'manual' as const, createdBy: 'introducer-user', timestamp: new Date().toISOString() },
+        interpretation: { category: 'collaboration', reasoning: 'test', confidence: 0.8, signals: [] },
+        context: { networkId: 'idx-1' as Id<'networks'> },
+        confidence: '0.8',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        expiresAt: null,
+      };
+
+      // Build the mock db directly (same pattern as negotiate_existing tests)
+      const mockDb: OpportunityGraphDatabase = {
+        getProfile: () => Promise.resolve(null),
+        createOpportunity: (data) => Promise.resolve({ id: 'opp-new', ...data, status: data.status ?? 'latent', createdAt: new Date(), updatedAt: new Date(), expiresAt: null }),
+        opportunityExistsBetweenActors: () => Promise.resolve(false),
+        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
+        getOpportunityBetweenActors: () => Promise.resolve(null),
+        findOverlappingOpportunities: () => Promise.resolve([]),
+        getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
+        getNetworkMemberships: async () => [],
+        getActiveIntents: () => Promise.resolve([]),
+        getNetworkIdsForIntent: () => Promise.resolve([]),
+        getNetwork: () => Promise.resolve(null),
+        getNetworkMemberCount: () => Promise.resolve(0),
+        getIntentIndexScores: async () => [],
+        getNetworkMemberContext: async () => null,
+        getUser: (_id: string) => Promise.resolve({ id: _id, name: 'Test', email: 'test@test.com' }),
+        isNetworkMember: () => Promise.resolve(false),
+        isIndexOwner: () => Promise.resolve(false),
+        getOpportunity: () => Promise.resolve(existingOpp as any),
+        getOpportunitiesForUser: () => Promise.resolve([]),
+        updateOpportunityStatus: () => Promise.resolve(null),
+        updateOpportunityActorApproval: (_id: string, userId: string, approved: boolean) => {
+          approvalCalls.push([_id, userId, approved]);
+          return Promise.resolve({ ...existingOpp, actors: existingOpp.actors.map((a: any) => a.userId === userId && a.role === 'introducer' ? { ...a, approved } : a) } as any);
+        },
+        getIntent: () => Promise.resolve(null),
+      };
+
+      const mockEmbedder = { generate: async () => new Array(2000).fill(0.1) };
+      const mockHyde = { invoke: async () => ({ hydeEmbeddings: {} }) };
+
+      const factory = new OpportunityGraphFactory(
+        mockDb,
+        mockEmbedder as any,
+        mockHyde as any,
+        undefined, // evaluator
+        undefined, // queueNotification
+        undefined, // negotiationGraph
+        undefined, // agentDispatcher
+        async (opportunityId: string, userId: string) => {
+          negotiateJobsEnqueued.push({ opportunityId, userId });
+        },
+      );
+
+      await factory.createGraph().invoke({
+        userId: 'introducer-user' as Id<'users'>,
+        opportunityId: 'opp-456',
+        operationMode: 'approve_introduction',
+      });
+
+      expect(approvalCalls).toHaveLength(1);
+      expect(approvalCalls[0]).toEqual(['opp-456', 'introducer-user', true]);
+      expect(negotiateJobsEnqueued).toHaveLength(1);
+      expect(negotiateJobsEnqueued[0].opportunityId).toBe('opp-456');
     });
   });
 });
@@ -2090,6 +2589,7 @@ function createTraceMockGraph() {
         expiresAt: null,
       }),
     opportunityExistsBetweenActors: () => Promise.resolve(false),
+    getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
     getOpportunityBetweenActors: () => Promise.resolve(null),
     findOverlappingOpportunities: () => Promise.resolve([]),
     getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
@@ -2114,6 +2614,7 @@ function createTraceMockGraph() {
     getOpportunity: () => Promise.resolve(null),
     getOpportunitiesForUser: () => Promise.resolve([]),
     updateOpportunityStatus: () => Promise.resolve(null),
+    updateOpportunityActorApproval: () => Promise.resolve(null),
     getIntent: () => Promise.resolve(null),
     getIntentIndexScores: async () => [],
     getNetworkMemberContext: async () => null,

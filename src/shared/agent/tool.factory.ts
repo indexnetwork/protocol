@@ -12,8 +12,6 @@ import { NetworkMembershipGraphFactory } from "../../network/membership/membersh
 import { IntentNetworkGraphFactory } from "../../network/indexer/indexer.graph.js";
 import { IntentIndexer } from "../../intent/intent.indexer.js";
 import { NegotiationGraphFactory } from "../../negotiation/negotiation.graph.js";
-import { NegotiationProposer } from "../../negotiation/negotiation.proposer.js";
-import { NegotiationResponder } from "../../negotiation/negotiation.responder.js";
 import { protocolLogger } from "../observability/protocol.logger.js";
 import { configureProtocol } from "./model.config.js";
 
@@ -31,7 +29,7 @@ import { createOpportunityTools } from "../../opportunity/opportunity.tools.js";
 import { createUtilityTools } from "./utility.tools.js";
 import { createIntegrationTools } from "../../integration/integration.tools.js";
 import { createContactTools } from "../../contact/contact.tools.js";
-import { createWebhookTools } from "../../webhook/webhook.tools.js";
+import { createAgentTools } from "../../agent/agent.tools.js";
 import { createNegotiationTools } from "../../negotiation/negotiation.tools.js";
 
 // Re-export types for consumers
@@ -117,14 +115,13 @@ export async function createChatTools(
     lensInferrer,
     hydeGenerator
   ).createGraph();
-  const negotiationGraph = new NegotiationGraphFactory(
-    deps.negotiationDatabase,
-    new NegotiationProposer(),
-    new NegotiationResponder(),
-    deps.webhookLookup,
-    deps.negotiationEvents,
-    deps.negotiationTimeoutQueue,
-  ).createGraph();
+  const negotiationGraph = deps.agentDispatcher
+    ? new NegotiationGraphFactory(
+        deps.negotiationDatabase,
+        deps.agentDispatcher,
+        deps.negotiationTimeoutQueue,
+      ).createGraph()
+    : undefined;
   const opportunityGraph = new OpportunityGraphFactory(
     database,
     embedder,
@@ -132,6 +129,8 @@ export async function createChatTools(
     undefined, // evaluator (default)
     undefined, // queueNotification
     negotiationGraph,
+    deps.agentDispatcher,
+    deps.queueNegotiateExisting,
   ).createGraph();
   const networkGraph = new NetworkGraphFactory(database).createGraph();
   const networkMembershipGraph = new NetworkMembershipGraphFactory(database).createGraph();
@@ -165,10 +164,11 @@ export async function createChatTools(
     integrationImporter: deps.integrationImporter,
     enricher: deps.enricher,
     negotiationDatabase: deps.negotiationDatabase,
-    webhook: deps.webhook,
-    webhookLookup: deps.webhookLookup,
-    negotiationEvents: deps.negotiationEvents,
     negotiationTimeoutQueue: deps.negotiationTimeoutQueue,
+    agentDatabase: deps.agentDatabase,
+    grantDefaultSystemPermissions: deps.grantDefaultSystemPermissions,
+    agentDispatcher: deps.agentDispatcher,
+    deliveryLedger: deps.deliveryLedger,
     graphs: {
       profile: profileGraph,
       intent: intentGraph,
@@ -186,14 +186,22 @@ export async function createChatTools(
   const opportunityTools = createOpportunityTools(defineTool, toolDeps);
   const utilityTools = createUtilityTools(defineTool, toolDeps);
   const contactTools = createContactTools(defineTool, toolDeps);
+  const agentTools = createAgentTools(defineTool, toolDeps);
   const integrationTools = createIntegrationTools(defineTool, toolDeps);
-  const webhookTools = createWebhookTools(defineTool, toolDeps);
-  const negotiationTools = createNegotiationTools(defineTool, toolDeps);
+  const negotiationTools = deps.agentDispatcher
+    ? createNegotiationTools(defineTool, toolDeps)
+    : [];
 
   // Chat only proposes opportunities from the conversation (create_opportunities).
   // Other opportunities are shown on the home view; do not give the agent list_opportunities.
+  // confirm_opportunity_delivery is an OpenClaw-delivery ledger write and must not be
+  // callable from regular chat sessions.
+  const chatOpportunityToolExclusions = new Set([
+    "list_opportunities",
+    "confirm_opportunity_delivery",
+  ]);
   const opportunityToolsForChat = opportunityTools.filter(
-    (t) => (t as { name: string }).name !== "list_opportunities"
+    (t) => !chatOpportunityToolExclusions.has((t as { name: string }).name)
   );
 
   return [
@@ -204,7 +212,7 @@ export async function createChatTools(
     ...utilityTools,
     ...integrationTools,
     ...contactTools,
-    ...webhookTools,
+    ...agentTools,
     ...negotiationTools,
   ];
 }

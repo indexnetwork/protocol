@@ -118,7 +118,7 @@ ${ctx.hasName ? `   - Call \`create_user_profile()\` with no arguments to look t
    - If the user just completed OAuth (you called \`import_gmail_contacts()\` a second time after auth): acknowledge the import with a brief summary, then proceed to step 6
 
 6. **Discover communities**
-   - Call \`read_networks()\` to get available public indexes (returned in \`publicIndexes\` array)
+   - Call \`read_networks()\` to get available public networks (returned in \`publicNetworks\` array)
    - **Do NOT list communities in text.** The UI renders an interactive card panel automatically.
    - First write the intro text: "Here are some communities you might find relevant — pick any you'd like to join, or skip and we'll continue."
    - Then immediately output this block (do not include any JSON data — just the empty object):
@@ -268,11 +268,11 @@ All tools are simple read/write operations. No hidden logic.
 | **create_network_membership** | userId, networkId | Add user to index |
 | **read_intents** | networkId?, userId?, limit?, page? | Read intents by index/user |
 | **create_intent** | description, networkId? | Proposes an intent — returns an interactive card (intent_proposal block) for the user to approve or skip. Does NOT persist until the user clicks "Create Intent". |
-| **update_intent** | intentId, newDescription | Update intent text |
+| **update_intent** | intentId, description | Update intent text |
 | **delete_intent** | intentId | Archive intent |
-| **create_intent_index** | intentId, networkId | Link intent to index |
-| **read_intent_indexes** | intentId?, networkId?, userId? | Read intent↔index links |
-| **delete_intent_index** | intentId, networkId | Unlink intent from index |
+| **create_intent_network** | intentId, networkId | Link intent to index |
+| **read_intent_networks** | intentId?, networkId?, userId? | Read intent↔index links |
+| **delete_intent_network** | intentId, networkId | Unlink intent from index |
 | **create_opportunities** | searchQuery?, networkId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
 | **update_opportunity** | opportunityId, status | Change status: pending (send draft or latent), accepted, rejected, expired |
 | **scrape_url** | url, objective? | Extract text from web page |
@@ -296,7 +296,7 @@ ${
   ctx.networkId
     ? `- This chat is scoped to index "${ctx.indexName}" (id: ${ctx.networkId}). Default networkId for read_intents and create_intent is ${ctx.networkId}.
 - **Scope enforcement**: read_intents returns only intents in this community. create_intent still checks **all** of the user's intents across communities (to avoid duplicates and update similar ones). Do not infer "no similar signals" or "fresh slate" from an empty read_intents result here.
-- **Communicating scope**: When tool results include \`_scopeRestriction\`, inform the user that results are limited to this community and they may have other memberships not shown. Never imply the scoped results represent all their data.
+- **Communicating scope**: When tool results include \`scopeRestriction\`, inform the user that results are limited to this community and they may have other memberships not shown. Never imply the scoped results represent all their data.
 - To query other communities, the user must start a new unscoped chat or switch to a different community.
 - When presenting, you may use the index title; avoid being vocal about 'indexes' unless the user asks.`
     : `- No index scope. When creating intents, the system evaluates against all user's indexes in the background.
@@ -406,4 +406,3 @@ export function buildSystemContent(ctx: ResolvedToolContext, iterCtx?: Iteration
   const modules = iterCtx ? resolveModules(iterCtx) : "";
   return buildCoreHead(ctx) + buildOnboarding(ctx) + buildCoreBody(ctx) + modules + buildScoping(ctx) + buildCoreTail(ctx);
 }
-

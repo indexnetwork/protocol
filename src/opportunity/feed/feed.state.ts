@@ -1,5 +1,5 @@
 import { Annotation } from '@langchain/langgraph';
-import type { Opportunity } from '../../shared/interfaces/database.interface.js';
+import type { Opportunity, OpportunityStatus } from '../../shared/interfaces/database.interface.js';
 import type { DebugMetaAgent } from '../../chat/chat-streaming.types.js';
 
 /**
@@ -77,6 +77,12 @@ export const HomeGraphState = Annotation.Root({
   noCache: Annotation<boolean>({
     reducer: (curr, next) => next ?? curr,
     default: () => false,
+  }),
+
+  /** Optional status filter. When undefined, the graph uses `DEFAULT_HOME_STATUSES`. */
+  statuses: Annotation<OpportunityStatus[] | undefined>({
+    reducer: (curr, next) => next ?? curr,
+    default: () => undefined,
   }),
 
   /** Raw opportunities visible to the viewer (after visibility filter). */

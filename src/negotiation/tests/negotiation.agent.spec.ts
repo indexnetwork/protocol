@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, it, expect } from "bun:test";
-import { NegotiationProposer } from "../negotiation.proposer.js";
+import { IndexNegotiator } from "../negotiation.agent.js";
 import type { UserNegotiationContext, SeedAssessment } from "../negotiation.state.js";
 
 const mlUser: UserNegotiationContext = {
@@ -23,18 +23,17 @@ const engineerUser: UserNegotiationContext = {
 };
 
 const seedAssessment: SeedAssessment = {
-  score: 78,
   reasoning: 'Strong skill match — Bob has the LLM production experience Alice needs.',
   valencyRole: 'patient',
 };
 
 const indexContext = { networkId: 'net-1', prompt: 'AI founders and engineers looking to connect' };
 
-describe('NegotiationProposer', () => {
-  const proposer = new NegotiationProposer();
+describe('IndexNegotiator', () => {
+  const negotiator = new IndexNegotiator();
 
-  it('returns a valid NegotiationTurn with action and assessment on first turn', async () => {
-    const result = await proposer.invoke({
+  it('returns a valid turn with action and assessment on first turn', async () => {
+    const result = await negotiator.invoke({
       ownUser: mlUser,
       otherUser: engineerUser,
       indexContext,
@@ -43,17 +42,16 @@ describe('NegotiationProposer', () => {
     });
 
     expect(['propose', 'accept', 'reject', 'counter']).toContain(result.action);
-    expect(typeof result.assessment.fitScore).toBe('number');
-    expect(result.assessment.fitScore).toBeGreaterThanOrEqual(0);
-    expect(result.assessment.fitScore).toBeLessThanOrEqual(100);
     expect(typeof result.assessment.reasoning).toBe('string');
     expect(result.assessment.reasoning.length).toBeGreaterThan(0);
     expect(['agent', 'patient', 'peer']).toContain(result.assessment.suggestedRoles.ownUser);
     expect(['agent', 'patient', 'peer']).toContain(result.assessment.suggestedRoles.otherUser);
+    // fitScore should NOT be present
+    expect((result.assessment as Record<string, unknown>).fitScore).toBeUndefined();
   }, 60000);
 
-  it('returns "propose" action on the opening turn for a good match', async () => {
-    const result = await proposer.invoke({
+  it('returns propose action on opening turn for a good match', async () => {
+    const result = await negotiator.invoke({
       ownUser: mlUser,
       otherUser: engineerUser,
       indexContext,
@@ -64,23 +62,21 @@ describe('NegotiationProposer', () => {
     expect(result.action).toBe('propose');
   }, 60000);
 
-  it('returns reject or counter for a clearly mismatched pair', async () => {
-    const chefUser: UserNegotiationContext = {
-      id: 'user-chef',
-      intents: [{ id: 'i3', title: 'Find restaurant investors', description: 'Seeking capital for a restaurant chain', confidence: 0.9 }],
-      profile: { name: 'Chef Carlo', bio: 'Head chef opening a Michelin-star restaurant', skills: ['cooking', 'menu design'] },
-    };
+  it('constrains to accept/reject on final turn', async () => {
+    const history = [
+      { action: 'propose' as const, assessment: { reasoning: 'Good match', suggestedRoles: { ownUser: 'peer' as const, otherUser: 'peer' as const } } },
+      { action: 'counter' as const, assessment: { reasoning: 'Not convinced', suggestedRoles: { ownUser: 'peer' as const, otherUser: 'peer' as const } } },
+    ];
 
-    const poorSeed: SeedAssessment = { score: 12, reasoning: 'No overlap — AI startup vs. restaurant.', valencyRole: 'patient' };
-
-    const result = await proposer.invoke({
+    const result = await negotiator.invoke({
       ownUser: mlUser,
-      otherUser: chefUser,
+      otherUser: engineerUser,
       indexContext,
-      seedAssessment: poorSeed,
-      history: [],
+      seedAssessment,
+      history,
+      isFinalTurn: true,
     });
 
-    expect(result.assessment.fitScore).toBeLessThan(50);
+    expect(['accept', 'reject']).toContain(result.action);
   }, 60000);
 });

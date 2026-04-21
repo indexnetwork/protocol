@@ -6,7 +6,7 @@ import { ProfileGraphDatabase } from "../shared/interfaces/database.interface.js
 import { Embedder } from "../shared/interfaces/embedder.interface.js";
 import { Scraper } from "../shared/interfaces/scraper.interface.js";
 import type { ProfileEnricher } from "../shared/interfaces/enrichment.interface.js";
-import { shouldEnrichGhostDisplayNameFromParallel } from "./profile.enricher.js";
+import { shouldEnrichGhostDisplayNameFromParallel, isEnrichedNameMeaningful } from "./profile.enricher.js";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import { timed } from "../shared/observability/performance.js";
 import { requestContext } from "../shared/observability/request-context.js";
@@ -140,11 +140,11 @@ export class ProfileGraphFactory {
                     hasProfile: true,
                     profile: {
                       id: profileWithId?.id,
-                      name: profile.identity.name,
-                      bio: profile.identity.bio,
-                      location: profile.identity.location,
-                      skills: profile.attributes.skills,
-                      interests: profile.attributes.interests,
+                      name: profile.identity?.name,
+                      bio: profile.identity?.bio,
+                      location: profile.identity?.location,
+                      skills: profile.attributes?.skills,
+                      interests: profile.attributes?.interests,
                     },
                   }
                 : {
@@ -401,10 +401,18 @@ export class ProfileGraphFactory {
             return parts || "No information available";
           };
 
+          if (!this.enricher) {
+            logger.warn("No enricher configured — falling back to basic info", { userId: state.userId });
+            return {
+              input: buildBasicInfo(),
+              needsUserInfo: false,
+              needsProfileGeneration: true,
+              operationsPerformed: { scraped: true },
+            };
+          }
+
           try {
-            const enrichment = this.enricher
-              ? await this.enricher.enrichUserProfile(request)
-              : null;
+            const enrichment = await this.enricher.enrichUserProfile(request);
 
             if (enrichment && !enrichment.isHuman) {
               logger.info("Enrichment detected non-human entity, soft-deleting ghost", { userId: state.userId });
@@ -422,6 +430,12 @@ export class ProfileGraphFactory {
               );
 
             if (hasMeaningfulEnrichment) {
+              if (user.isGhost && !isEnrichedNameMeaningful(user.email || '', enrichment!.identity.name || '')) {
+                logger.info("Enrichment has content but no real name for ghost, soft-deleting", { userId: state.userId });
+                await this.database.softDeleteGhost(state.userId);
+                return { error: "No real name found for ghost user" };
+              }
+
               logger.verbose("Chat API enrichment succeeded", {
                 userId: state.userId,
                 skillsCount: enrichment!.attributes.skills.length,
@@ -620,14 +634,14 @@ export class ProfileGraphFactory {
           const profile = { ...state.profile };
           const textToEmbed = [
             '# Identity',
-            '## Name', profile.identity.name,
-            '## Bio', profile.identity.bio,
-            '## Location', profile.identity.location,
+            '## Name', profile.identity?.name ?? '',
+            '## Bio', profile.identity?.bio ?? '',
+            '## Location', profile.identity?.location ?? '',
             '# Narrative',
-            '## Context', profile.narrative.context,
+            '## Context', profile.narrative?.context ?? '',
             '# Attributes',
-            '## Interests', profile.attributes.interests.join(', '),
-            '## Skills', profile.attributes.skills.join(', ')
+            '## Interests', (profile.attributes?.interests ?? []).join(', '),
+            '## Skills', (profile.attributes?.skills ?? []).join(', ')
           ].join('\n');
 
           logger.verbose("Generating embedding...", {
@@ -677,7 +691,7 @@ export class ProfileGraphFactory {
 
         logger.verbose("Starting HyDE generation...", {
           userId: state.userId,
-          profileName: state.profile.identity.name
+          profileName: state.profile.identity?.name
         });
 
         const agentTimingsAccum: DebugMetaAgent[] = [];
@@ -913,12 +927,17 @@ export class ProfileGraphFactory {
             logger.verbose("Enrichment succeeded — using pre-populated profile");
             return "use_prepopulated_profile";
           }
-          logger.verbose("Enrichment failed — falling back to LLM profile generation");
-          return "generate_profile";
+          if (state.input) {
+            logger.verbose("Enrichment fell back — using basic info for LLM generation");
+            return "generate_profile";
+          }
+          logger.verbose("Enrichment ended without data (ghost soft-deleted or error) — done");
+          return END;
         },
         {
           use_prepopulated_profile: "use_prepopulated_profile",
           generate_profile: "generate_profile",
+          [END]: END,
         }
       )
 
