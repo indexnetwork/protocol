@@ -20,13 +20,10 @@ When user sends, the system notifies the appropriate next person based on roles.
 
 ## Role-Based Visibility Model
 
-Who can see an opportunity is determined by **actor role** and **status**. There is no separate "sender" or "receiver" at creation time. The presence of an **introducer** pushes the patient and agent one tier later in the reveal cascade.
+Who can see an opportunity is determined by **actor role** and **status**. Two distinct predicates govern this:
 
-### Status Tiers
-
-- **Tier 0** (`latent`): First to see — can send to next tier
-- **Tier 1** (`pending`): Sees after someone sent; can accept/reject
-- **Tier 2** (`accepted`, `rejected`, `expired`): Terminal; all actors can see
+- **`canUserSeeOpportunity`** — read-level ACL for fetching opportunity details. Broadly: introducer and peer always see; patient/party/agent see when the opportunity has cleared the introducer gate or has no introducer. Details in `opportunity.utils.ts`.
+- **`isActionableForViewer`** — home feed visibility ("act on this now"). Governed by the introducer's `approved` flag, not a tier/send sequence. See the Role–Visibility Matrix below.
 
 ### Role–Visibility Matrix (Home / Actionable)
 
@@ -48,11 +45,11 @@ Rules, expressed compactly:
   - `status === 'latent'` **and** (no introducer **or** introducer is approved).
 
 > **Terminal statuses (`accepted`, `rejected`, `expired`)** never appear on home. `accepted` opportunities surface only in the conversations sidebar because the counterparty is now a contact.
-
+>
 > **`stalled`** is not in `DEFAULT_HOME_STATUSES`; the home graph never loads it in the default path.
-
+>
 > **`draft`** is the chat-orchestrator equivalent of `pending` and is internal to that flow; it never reaches the home feed.
-
+>
 > **Future work — peer + introducer interaction:** the current rule treats `peer` like `patient` / `agent` under introducer gating (hidden while `approved=false`). If we add a scenario where peer opportunities can exist alongside an introducer (currently they don't in the model), revisit this row.
 
 ## Three Scenarios
@@ -130,13 +127,14 @@ sequenceDiagram
 | `pending` → `accepted`          | User action (e.g. Start Chat / `update_opportunity`).                   |
 | any → `expired`                 | Expiry job.                                                             |
 
-## Notification Targeting (Send Node)
+## Notification Targeting
 
-When an opportunity is promoted from latent to pending, **only the role that becomes visible at the next tier** is notified:
+When an opportunity transitions to `pending`, **only the role that becomes newly visible** is notified:
 
-- **Sender is introducer** → notify **patient** (and party if present).
-- **Sender is patient or party** (no introducer) → notify **agent**.
-- **Sender is peer** → notify the **other peer(s)**.
+- **Introducer path** (`negotiating → pending` after approval): notify **patient** (and party if present); agent is notified later on `pending → accepted`.
+- **No introducer — patient/party initiates**: notify **agent**.
+- **No introducer — ambient** (`create → pending`): notify the non-discovering actor(s) based on the roles assigned by the evaluator.
+- **Peer** sends: notify the **other peer(s)**.
 
 No schema changes are required; targeting is derived from `actors[].role`.
 
@@ -152,11 +150,15 @@ No schema changes are required; targeting is derived from `actors[].role`.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> latent: Agent creates
-    latent --> pending: User with Tier0 role sends
+    [*] --> latent: Agent creates (introducer-gated)
+    [*] --> pending: Agent creates (ambient / no introducer)
+    latent --> negotiating: Introducer approves → negotiation enqueued
     latent --> expired: User dismisses / TTL
-    pending --> accepted: Recipient accepts
-    pending --> rejected: Recipient declines
+    negotiating --> pending: Negotiation accepts
+    negotiating --> rejected: Negotiation rejects
+    negotiating --> stalled: No terminal action
+    pending --> accepted: User accepts (Start Chat)
+    pending --> rejected: User declines
     pending --> expired: TTL
 ```
 
@@ -191,8 +193,8 @@ graph LR
 ### Send Node (CRUD Path)
 
 - Validates opportunity is latent and caller is an actor.
-- **Authorization**: Only actors who can see at latent (introducer, peer, patient without introducer, party without introducer) can send.
-- Updates status to `pending` and queues notifications only to the role that becomes visible at the next tier (see Notification Targeting above).
+- **Authorization**: Only non-introducer actors who can see at latent (peer, patient without introducer, party without introducer) can send. The introducer's action is `updateOpportunityActorApproval` (actor-level flip), which enqueues a background negotiation rather than directly promoting status.
+- Updates status to `pending` and queues notifications only to the role that becomes visible (see Notification Targeting above).
 
 ## How LLM Agents Use Role Information
 
