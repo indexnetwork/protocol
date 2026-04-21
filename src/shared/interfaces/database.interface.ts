@@ -1249,6 +1249,13 @@ export interface Database {
    */
   getOrCreateDM(userA: string, userB: string): Promise<{ id: string }>;
 
+  /**
+   * Clears hiddenAt for a user on a conversation, making it visible in their
+   * conversation list again. Called by startChat when reusing an existing DM
+   * that the user had previously hidden.
+   */
+  unhideConversation(userId: string, conversationId: string): Promise<void>;
+
   /** Hard-delete a contact membership from the owner's personal index. */
   hardDeleteContactMembership(ownerId: string, contactUserId: string): Promise<void>;
 
@@ -1933,6 +1940,7 @@ export type OpportunityControllerDatabase = Pick<
   // (rather than ConversationControllerDatabase) because the transition is
   // owned by OpportunityService — services cannot import other services.
   | 'getOrCreateDM'
+  | 'unhideConversation'
 >;
 
 /**
