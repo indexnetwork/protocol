@@ -174,122 +174,130 @@ describe('opportunity.utils', () => {
   });
 
   // ─── isActionableForViewer ───────────────────────────────────────────────
-  // Tests the Home feed actionability matrix: which status × role combos
-  // have a pending action (Send, Accept/Reject, Go to chat).
+  // Rules:
+  //   (1) latent, no introducer            → all actors actionable
+  //   (2) latent, introducer !approved     → introducer only
+  //   (3) latent, introducer approved      → all non-introducer actors
+  //   (4) pending, any introducer config   → all non-introducer actors
+  //   (5) terminal / stalled / draft / negotiating → never actionable
 
   describe('isActionableForViewer', () => {
     const VIEWER = 'user-viewer';
+    const OTHER = 'user-other';
+    const INTRO = 'user-intro';
 
-    test('returns false when user is not an actor', () => {
+    const NON_ACTIONABLE_STATUSES = [
+      'draft',
+      'negotiating',
+      'stalled',
+      'accepted',
+      'rejected',
+      'expired',
+    ] as const;
+
+    /**
+     * Build an actors array where `viewerRole` is the viewer's role. If
+     * `introducerApproved` is undefined, no introducer is present.
+     */
+    const actors = (
+      viewerRole: 'introducer' | 'patient' | 'party' | 'agent' | 'peer',
+      introducerApproved: boolean | undefined,
+    ) => {
+      const list: Array<{ userId: string; role: string; approved?: boolean }> = [];
+      if (viewerRole === 'introducer') {
+        list.push({ userId: VIEWER, role: 'introducer', approved: introducerApproved ?? false });
+        list.push({ userId: OTHER, role: 'patient' });
+      } else {
+        list.push({ userId: VIEWER, role: viewerRole });
+        list.push({ userId: OTHER, role: viewerRole === 'patient' ? 'agent' : 'patient' });
+        if (introducerApproved !== undefined) {
+          list.push({ userId: INTRO, role: 'introducer', approved: introducerApproved });
+        }
+      }
+      return list;
+    };
+
+    test('returns false when viewer is not an actor', () => {
       const a = [{ userId: 'someone-else', role: 'patient' }];
       expect(isActionableForViewer(a, 'latent', VIEWER)).toBe(false);
+      expect(isActionableForViewer(a, 'pending', VIEWER)).toBe(false);
     });
 
-    // Introducer: actionable only at latent (can Send)
     describe('introducer', () => {
-      test('actionable at latent', () => {
-        const a = [
-          { userId: VIEWER, role: 'introducer' },
-          { userId: 'b', role: 'patient' },
-        ];
-        expect(isActionableForViewer(a, 'latent', VIEWER)).toBe(true);
+      it('is actionable only when latent and not yet approved', () => {
+        expect(isActionableForViewer(actors('introducer', false), 'latent', VIEWER)).toBe(true);
       });
-      for (const status of ['draft', 'pending', 'accepted', 'rejected', 'expired'] as const) {
-        test(`not actionable at ${status}`, () => {
-          const a = [
-            { userId: VIEWER, role: 'introducer' },
-            { userId: 'b', role: 'patient' },
-          ];
-          expect(isActionableForViewer(a, status, VIEWER)).toBe(false);
+
+      it('stops being actionable once approved=true (status stays latent)', () => {
+        expect(isActionableForViewer(actors('introducer', true), 'latent', VIEWER)).toBe(false);
+      });
+
+      it('is not actionable at pending or any terminal status', () => {
+        expect(isActionableForViewer(actors('introducer', false), 'pending', VIEWER)).toBe(false);
+        expect(isActionableForViewer(actors('introducer', true), 'pending', VIEWER)).toBe(false);
+        for (const status of NON_ACTIONABLE_STATUSES) {
+          expect(isActionableForViewer(actors('introducer', false), status, VIEWER)).toBe(false);
+          expect(isActionableForViewer(actors('introducer', true), status, VIEWER)).toBe(false);
+        }
+      });
+    });
+
+    describe('non-introducer actor, no introducer', () => {
+      for (const role of ['patient', 'party', 'agent', 'peer'] as const) {
+        describe(role, () => {
+          it('is actionable at latent', () => {
+            expect(isActionableForViewer(actors(role, undefined), 'latent', VIEWER)).toBe(true);
+          });
+
+          it('is actionable at pending', () => {
+            expect(isActionableForViewer(actors(role, undefined), 'pending', VIEWER)).toBe(true);
+          });
+
+          it('is not actionable at terminal or internal statuses', () => {
+            for (const status of NON_ACTIONABLE_STATUSES) {
+              expect(isActionableForViewer(actors(role, undefined), status, VIEWER)).toBe(false);
+            }
+          });
         });
       }
     });
 
-    // Patient/party with introducer: actionable at pending (Accept/Reject)
-    describe('patient with introducer', () => {
-      const makeActors = () => [
-        { userId: VIEWER, role: 'patient' },
-        { userId: 'intro', role: 'introducer' },
-        { userId: 'agent-user', role: 'agent' },
-      ];
-      test('not actionable at latent', () => {
-        expect(isActionableForViewer(makeActors(), 'latent', VIEWER)).toBe(false);
-      });
-      test('actionable at pending', () => {
-        expect(isActionableForViewer(makeActors(), 'pending', VIEWER)).toBe(true);
-      });
-      for (const status of ['draft', 'accepted', 'rejected', 'expired'] as const) {
-        test(`not actionable at ${status}`, () => {
-          expect(isActionableForViewer(makeActors(), status, VIEWER)).toBe(false);
+    describe('non-introducer actor, with introducer NOT approved', () => {
+      for (const role of ['patient', 'party', 'agent', 'peer'] as const) {
+        describe(role, () => {
+          it('is NOT actionable at latent (only introducer sees it)', () => {
+            expect(isActionableForViewer(actors(role, false), 'latent', VIEWER)).toBe(false);
+          });
+
+          it('is actionable at pending', () => {
+            expect(isActionableForViewer(actors(role, false), 'pending', VIEWER)).toBe(true);
+          });
+
+          it('is not actionable at terminal or internal statuses', () => {
+            for (const status of NON_ACTIONABLE_STATUSES) {
+              expect(isActionableForViewer(actors(role, false), status, VIEWER)).toBe(false);
+            }
+          });
         });
       }
     });
 
-    // Patient/party without introducer: actionable at latent only (can Send)
-    describe('patient without introducer', () => {
-      const makeActors = () => [
-        { userId: VIEWER, role: 'patient' },
-        { userId: 'agent-user', role: 'agent' },
-      ];
-      test('actionable at latent', () => {
-        expect(isActionableForViewer(makeActors(), 'latent', VIEWER)).toBe(true);
-      });
-      for (const status of ['draft', 'pending', 'accepted', 'rejected', 'expired'] as const) {
-        test(`not actionable at ${status}`, () => {
-          expect(isActionableForViewer(makeActors(), status, VIEWER)).toBe(false);
-        });
-      }
-    });
+    describe('non-introducer actor, with introducer approved', () => {
+      for (const role of ['patient', 'party', 'agent', 'peer'] as const) {
+        describe(role, () => {
+          it('is actionable at latent', () => {
+            expect(isActionableForViewer(actors(role, true), 'latent', VIEWER)).toBe(true);
+          });
 
-    // Agent with introducer: actionable at accepted only (Go to chat)
-    describe('agent with introducer', () => {
-      const makeActors = () => [
-        { userId: VIEWER, role: 'agent' },
-        { userId: 'intro', role: 'introducer' },
-        { userId: 'patient-user', role: 'patient' },
-      ];
-      test('actionable at accepted', () => {
-        expect(isActionableForViewer(makeActors(), 'accepted', VIEWER)).toBe(true);
-      });
-      for (const status of ['latent', 'draft', 'pending', 'rejected', 'expired'] as const) {
-        test(`not actionable at ${status}`, () => {
-          expect(isActionableForViewer(makeActors(), status, VIEWER)).toBe(false);
-        });
-      }
-    });
+          it('is actionable at pending', () => {
+            expect(isActionableForViewer(actors(role, true), 'pending', VIEWER)).toBe(true);
+          });
 
-    // Agent without introducer: actionable at pending (Accept/Reject)
-    describe('agent without introducer', () => {
-      const makeActors = () => [
-        { userId: VIEWER, role: 'agent' },
-        { userId: 'patient-user', role: 'patient' },
-      ];
-      for (const status of ['pending'] as const) {
-        test(`actionable at ${status}`, () => {
-          expect(isActionableForViewer(makeActors(), status, VIEWER)).toBe(true);
-        });
-      }
-      for (const status of ['latent', 'draft', 'accepted', 'rejected', 'expired'] as const) {
-        test(`not actionable at ${status}`, () => {
-          expect(isActionableForViewer(makeActors(), status, VIEWER)).toBe(false);
-        });
-      }
-    });
-
-    // Peer: actionable at latent, pending
-    describe('peer', () => {
-      const makeActors = () => [
-        { userId: VIEWER, role: 'peer' },
-        { userId: 'other-peer', role: 'peer' },
-      ];
-      for (const status of ['latent', 'pending'] as const) {
-        test(`actionable at ${status}`, () => {
-          expect(isActionableForViewer(makeActors(), status, VIEWER)).toBe(true);
-        });
-      }
-      for (const status of ['draft', 'accepted', 'rejected', 'expired'] as const) {
-        test(`not actionable at ${status}`, () => {
-          expect(isActionableForViewer(makeActors(), status, VIEWER)).toBe(false);
+          it('is not actionable at terminal or internal statuses', () => {
+            for (const status of NON_ACTIONABLE_STATUSES) {
+              expect(isActionableForViewer(actors(role, true), status, VIEWER)).toBe(false);
+            }
+          });
         });
       }
     });
