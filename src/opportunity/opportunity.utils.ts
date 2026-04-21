@@ -66,11 +66,15 @@ export function validateOpportunityActors(actors: Array<{ userId?: string; role:
  * Read-level ACL: whether a user is an actor on the opportunity and may fetch
  * its details. Intentionally broader than `isActionableForViewer` — a user can
  * read an opportunity they are not currently expected to act on (e.g. an agent
- * viewing an accepted opportunity). The two predicates diverge for `agent with
- * introducer at pending`: `canUserSeeOpportunity` returns false (hasIntroducer
- * blocks it), while `isActionableForViewer` returns true (Rule 4 shows pending
- * to all non-introducer actors). This is intentional — the agent is not granted
- * read access via this path until the introducer path completes.
+ * viewing an accepted opportunity).
+ *
+ * The feed graph and debug controller chain both predicates: an opportunity only
+ * reaches the home feed if it passes `canUserSeeOpportunity` first, then
+ * `isActionableForViewer`. For `agent with introducer at pending`,
+ * `canUserSeeOpportunity` returns false (read gate blocks it), so the opportunity
+ * never surfaces even though `isActionableForViewer` Rule 4 would return true in
+ * isolation. This is by design — the agent is not granted read access through the
+ * home path until the introducer path completes (negotiation → accepted).
  *
  * Compact Visibility Rule (from lifecycle doc):
  * - Introducer or peer: always see.
