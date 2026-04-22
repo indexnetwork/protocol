@@ -1676,19 +1676,43 @@ export class OpportunityGraphFactory {
 
         // Build candidates from persisted opportunities. Each opportunity carries its DB id
         // so the negotiation graph's finalize node can update its status from the outcome.
+        logger.verbose('[Graph:Negotiate] Building candidates from opportunities', {
+          opportunityCount: state.opportunities.length,
+          discoveryUserId,
+        });
+
         const candidateEntries = state.opportunities
           .map(opp => {
             // Skip opportunities where any introducer exists but has not yet approved.
             const introducerActors = (opp.actors as OpportunityActor[])
               .filter(a => a.role === 'introducer');
-            if (introducerActors.length > 0 && !introducerActors.every(a => a.approved === true)) return null;
+            if (introducerActors.length > 0 && !introducerActors.every(a => a.approved === true)) {
+              logger.verbose('[Graph:Negotiate] Skipping opportunity: introducer not approved', {
+                opportunityId: opp.id,
+                introducerCount: introducerActors.length,
+                approvedCount: introducerActors.filter(a => a.approved === true).length,
+              });
+              return null;
+            }
 
             const candidateActor = (opp.actors as Array<{ userId: string; role?: string; networkId?: string; intentId?: string }>)
               .find(a => a.userId !== discoveryUserId);
-            if (!candidateActor) return null;
+            if (!candidateActor) {
+              logger.verbose('[Graph:Negotiate] Skipping opportunity: no candidateActor found', {
+                opportunityId: opp.id,
+                discoveryUserId,
+                actors: (opp.actors as OpportunityActor[])?.map(a => ({ userId: a.userId, role: a.role })) ?? [],
+              });
+              return null;
+            }
             return { opp, candidateActor };
           })
           .filter((e): e is NonNullable<typeof e> => e !== null);
+
+        logger.verbose('[Graph:Negotiate] Candidate filtering complete', {
+          inputOpportunities: state.opportunities.length,
+          outputCandidates: candidateEntries.length,
+        });
 
         const candidates: NegotiationCandidate[] = await Promise.all(
           candidateEntries.map(async ({ opp, candidateActor }) => {

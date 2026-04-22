@@ -16,14 +16,11 @@ const logger = protocolLogger("ChatTools:Opportunity");
 /**
  * Statuses for which `update_opportunity` must refuse mutations.
  * - `accepted` / `rejected` / `expired`: terminal outcomes.
- * - `negotiating`: an async negotiation graph is actively writing this row;
- *   a concurrent user/agent override would race with it.
  */
 const UPDATE_OPPORTUNITY_BLOCKED_STATUSES = new Set<OpportunityStatus>([
   "accepted",
   "rejected",
   "expired",
-  "negotiating",
 ]);
 
 /** Maximum number of opportunity cards to show per chat response. */
