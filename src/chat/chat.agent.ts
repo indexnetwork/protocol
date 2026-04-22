@@ -864,20 +864,11 @@ export class ChatAgent {
           tools: toolCalls.map((tc) => tc.name),
         });
 
-        // Strip ```shell (or ```bash, ```plaintext, etc.) code fences that some models
-        // (e.g. Gemini) wrap around narration text during tool-calling iterations.
-        // Keep the narration content itself — only remove the fence markers.
+        // Clear any narration text streamed before tool calls — this text is
+        // intermediate reasoning and should not appear in the final response.
+        // The next iteration (after tool execution) will produce the real response.
         if (iterationText) {
-          const cleaned = iterationText
-            .replace(/```(?:shell|bash|plaintext|text|)\s*\n?/g, "")
-            .replace(/```\s*$/gm, "");
-          if (cleaned !== iterationText) {
-            emit({ type: "response_reset", reason: "Stripped code fence markers from tool-calling narration" });
-            if (cleaned.trim()) {
-              emit({ type: "text_chunk", content: cleaned });
-            }
-            iterationText = cleaned;
-          }
+          emit({ type: "response_reset", reason: "Tool calls detected" });
         }
 
         // Execute tools one-by-one.
