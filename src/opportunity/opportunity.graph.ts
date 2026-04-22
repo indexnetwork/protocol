@@ -2237,6 +2237,7 @@ export class OpportunityGraphFactory {
           // and excluding them causes the same user pair to get duplicate opportunities
           // when multiple intents trigger separate discovery jobs (IND-166).
           const DEDUP_SKIP_STATUSES: Array<'draft'> = ['draft'];
+          const DEDUP_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
           const introducerUserForOnBehalf = state.onBehalfOfUserId
             ? await this.database.getUser(state.userId)
