@@ -2478,17 +2478,21 @@ export class OpportunityGraphFactory {
               if (overlapping.length > 0) {
                 const existing = overlapping[0];
                 const existingIndexId = (existing.context?.networkId ?? state.networkId ?? state.userNetworks?.[0] ?? '') as Id<'networks'>;
+                const isRecent = new Date(existing.createdAt).getTime() > Date.now() - DEDUP_WINDOW_MS;
 
-                if (existing.status === 'expired') {
+                if (existing.status === 'expired' || existing.status === 'stalled') {
+                  // Reactivate expired or stalled opportunities
                   const reactivated = await this.database.updateOpportunityStatus(existing.id, initialStatus);
                   if (reactivated) {
-                    logger.verbose('[Graph:Persist] Reactivated expired opportunity', {
+                    logger.verbose('[Graph:Persist] Reactivated opportunity', {
                       opportunityId: existing.id,
                       candidateUserId,
+                      previousStatus: existing.status,
                       newStatus: initialStatus,
                     });
                     reactivatedOpportunities.push(reactivated);
                   }
+                  continue;
                 } else if (existing.status === 'latent' && initialStatus !== 'latent') {
                   // Upgrade latent (background-discovered) to the higher-priority status (e.g. pending)
                   const upgraded = await this.database.updateOpportunityStatus(existing.id, initialStatus);
@@ -2501,20 +2505,31 @@ export class OpportunityGraphFactory {
                     });
                     reactivatedOpportunities.push(upgraded);
                   }
-                } else if (candidateUserId) {
+                  continue;
+                } else if (isRecent && candidateUserId) {
+                  // Time-gated skip: only skip if opportunity was created within DEDUP_WINDOW_MS
+                  // This prevents parallel job duplicates while allowing new discoveries for long-connected pairs
                   existingBetweenActors.push({
                     candidateUserId: candidateUserId as Id<'users'>,
                     networkId: existingIndexId,
                     existingOpportunityId: existing.id as Id<'opportunities'>,
                     existingStatus: existing.status,
                   });
-                  logger.verbose('[Graph:Persist] Skipping duplicate; opportunity already exists between actors', {
+                  logger.verbose('[Graph:Persist] Skipping recent duplicate; opportunity created within dedup window', {
                     candidateUserId,
                     existingStatus: existing.status,
                     existingOpportunityId: existing.id,
+                    createdAt: existing.createdAt,
                   });
+                  continue;
                 }
-                continue;
+                // Else: existing opportunity is old enough (>10 min), allow new opportunity creation
+                logger.verbose('[Graph:Persist] Allowing new opportunity; existing is outside dedup window', {
+                  candidateUserId,
+                  existingStatus: existing.status,
+                  existingOpportunityId: existing.id,
+                  createdAt: existing.createdAt,
+                });
               }
 
               data = {
