@@ -269,4 +269,34 @@ describe('opportunity graph — time-based dedup (Persist node)', () => {
 
     expect(createCalled).toBe(true);
   });
+
+  test('introduction path: recent existing opp skips creation (onBehalfOfUserId dedup)', async () => {
+    // Discovery running on behalf of USER_A — USER_B already has a recent pending opp with USER_A.
+    const recentCreatedAt = new Date(Date.now() - 2 * 60 * 1000);
+    const existingOpp = makeOpportunity({ status: 'pending', createdAt: recentCreatedAt });
+
+    let createCalled = false;
+    const db = buildDb({
+      findOverlappingOpportunities: async () => [existingOpp],
+      createOpportunity: async (data) => {
+        createCalled = true;
+        return { ...data, id: 'opp-new', status: 'latent' as const, createdAt: new Date(), updatedAt: new Date(), expiresAt: null };
+      },
+      // Return USER_A's user record when the graph looks up the introducer.
+      getUser: async (id) => ({ id, name: 'Alice', email: 'alice@example.com' }),
+    });
+
+    const graph = buildGraph(db);
+    // userId = introducer (USER_B running discovery on behalf of USER_A)
+    const result = await graph.invoke({
+      userId: USER_B,
+      onBehalfOfUserId: USER_A,
+      networkId: NET_ID,
+      operationMode: 'discover' as const,
+      options: { initialStatus: 'latent' as const },
+    });
+
+    expect(createCalled).toBe(false);
+    expect(result.existingBetweenActors?.length).toBeGreaterThanOrEqual(1);
+  });
 });

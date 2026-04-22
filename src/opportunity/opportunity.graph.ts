@@ -75,6 +75,9 @@ import { requestContext } from "../shared/observability/request-context.js";
 
 const logger = protocolLogger('OpportunityGraph');
 
+/** Time window for persist-node dedup. Parallel jobs arrive within seconds; 10 min catches those while allowing new opportunities for long-connected pairs. */
+const DEDUP_WINDOW_MS = 10 * 60 * 1000;
+
 /** Input shape for the HyDE graph invoke call (query-based embedding). */
 export interface HydeGeneratorInvokeInput {
   sourceType: 'query';
@@ -2237,7 +2240,6 @@ export class OpportunityGraphFactory {
           // and excluding them causes the same user pair to get duplicate opportunities
           // when multiple intents trigger separate discovery jobs (IND-166).
           const DEDUP_SKIP_STATUSES: Array<'draft'> = ['draft'];
-          const DEDUP_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
           const introducerUserForOnBehalf = state.onBehalfOfUserId
             ? await this.database.getUser(state.userId)
@@ -2379,7 +2381,9 @@ export class OpportunityGraphFactory {
                 );
 
                 if (existing.status === 'expired' || existing.status === 'stalled') {
-                  // Reactivate expired or stalled opportunities (only if same introducer for expired)
+                  // Reactivate expired or stalled opportunities (only if same introducer for expired).
+                  // A different introducer creating for an expired pair falls through to new creation —
+                  // the prior expiry belongs to the original introducer, not this one.
                   if (existing.status === 'stalled' || sameIntroducer) {
                     const reactivated = await this.database.updateOpportunityStatus(existing.id, 'draft');
                     if (reactivated) {
