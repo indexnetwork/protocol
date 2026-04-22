@@ -2384,7 +2384,11 @@ export class OpportunityGraphFactory {
                   // Reactivate expired or stalled opportunities (only if same introducer for expired).
                   // A different introducer creating for an expired pair falls through to new creation —
                   // the prior expiry belongs to the original introducer, not this one.
+                  // Stalled opportunities are reactivated regardless of age: a stalled negotiation
+                  // is still in-flight for this pair, so we resume it rather than create a parallel one.
                   if (existing.status === 'stalled' || sameIntroducer) {
+                    // Introduction path always targets 'draft' (chat-only surface) rather than using
+                    // initialStatus, because introductions are always chat-initiated, not background-discovered.
                     const reactivated = await this.database.updateOpportunityStatus(existing.id, 'draft');
                     if (reactivated) {
                       logger.verbose('[Graph:Persist] Reactivated opportunity (introduction path)', {
@@ -2507,7 +2511,9 @@ export class OpportunityGraphFactory {
                 const isRecent = new Date(existing.createdAt).getTime() > Date.now() - DEDUP_WINDOW_MS;
 
                 if (existing.status === 'expired' || existing.status === 'stalled') {
-                  // Reactivate expired or stalled opportunities
+                  // Reactivate expired or stalled opportunities.
+                  // Stalled opportunities are reactivated regardless of age: a stalled negotiation
+                  // is still in-flight for this pair, so we resume it rather than create a parallel one.
                   const reactivated = await this.database.updateOpportunityStatus(existing.id, initialStatus);
                   if (reactivated) {
                     logger.verbose('[Graph:Persist] Reactivated opportunity', {

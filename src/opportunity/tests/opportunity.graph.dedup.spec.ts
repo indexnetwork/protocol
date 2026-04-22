@@ -248,6 +248,36 @@ describe('opportunity graph — time-based dedup (Persist node)', () => {
     expect(result.opportunities?.length).toBeGreaterThanOrEqual(1);
   });
 
+  test('latent upgrade: existing latent opp is upgraded when initialStatus is higher priority', async () => {
+    // A background-discovered latent opportunity already exists; a chat-initiated discovery with
+    // initialStatus 'pending' should upgrade the latent opp rather than creating a new one.
+    const latentOpp = makeOpportunity({ status: 'latent', createdAt: new Date(Date.now() - 5 * 60 * 1000) });
+    const upgraded: Opportunity = { ...latentOpp, status: 'pending' };
+
+    let updateCalledWith: [string, string] | null = null;
+    let createCalled = false;
+
+    const db = buildDb({
+      findOverlappingOpportunities: async () => [latentOpp],
+      updateOpportunityStatus: async (id, status) => {
+        updateCalledWith = [id, status];
+        return upgraded;
+      },
+      createOpportunity: async (data) => {
+        createCalled = true;
+        return { ...data, id: 'opp-new', status: 'pending' as const, createdAt: new Date(), updatedAt: new Date(), expiresAt: null };
+      },
+    });
+
+    const graph = buildGraph(db);
+    await graph.invoke({ ...discoveryInput, options: { initialStatus: 'pending' as const } });
+
+    expect(createCalled).toBe(false);
+    expect(updateCalledWith).not.toBeNull();
+    expect(updateCalledWith![0]).toBe(OPP_ID);
+    expect(updateCalledWith![1]).toBe('pending');
+  });
+
   test('stuck negotiating fix: old negotiating opp allows new opportunity creation', async () => {
     // Existing negotiating opportunity created 15 minutes ago — outside the 10-minute window.
     const oldNegotiatingOpp = makeOpportunity({
