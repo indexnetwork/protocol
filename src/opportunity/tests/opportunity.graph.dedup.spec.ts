@@ -1,11 +1,16 @@
 /**
  * Opportunity Graph: time-based dedup tests.
  * Tests the DEDUP_WINDOW_MS (10 min) gate in the Persist node.
+ *
+ * Run with: OPENROUTER_API_KEY=test bun test opportunity.graph.dedup.spec.ts
+ * The env var must be set BEFORE Bun loads this file because ESM static imports
+ * are resolved before the module body runs, and opportunity.evaluator.ts calls
+ * createModel() at module load time.
  */
+
+// Fallback for environments where the env var is already set (e.g., CI with .env.test)
 import { config } from 'dotenv';
 config({ path: '.env.test' });
-
-// Provide a fake API key so createModel() initialisation doesn't throw at import time.
 process.env.OPENROUTER_API_KEY ??= 'test';
 
 import { describe, test, expect } from 'bun:test';
