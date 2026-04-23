@@ -2,9 +2,9 @@ import { z } from 'zod';
 import type { DefineTool, ToolDeps } from '../shared/agent/tool.helpers.js';
 import { success, error } from '../shared/agent/tool.helpers.js';
 import { requestContext } from "../shared/observability/request-context.js";
-import { log } from '../shared/observability/log.js';
+import { protocolLogger } from '../shared/observability/protocol.logger.js';
 
-const logger = log.lib.from('integration.tools');
+const logger = protocolLogger('IntegrationTools');
 
 /**
  * Creates integration tools for the chat agent.
@@ -78,7 +78,7 @@ export function createIntegrationTools(defineTool: DefineTool, deps: ToolDeps) {
       } catch (err) {
         logger.error('import_gmail_contacts failed', {
           userId: context.userId,
-          error: err instanceof Error ? err.message : String(err),
+          err,
         });
         return error('Failed to import Gmail contacts. Please try again.');
       }

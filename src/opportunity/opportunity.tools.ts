@@ -919,7 +919,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
 
       const cardDataList: Array<ReturnType<typeof buildMinimalOpportunityCard>> = [];
       const seenOpportunityIds = new Set<string>();
-      const skippedCards: Array<{ opportunityId: string; error: string }> = [];
+      const skippedIds: string[] = [];
 
       for (const opp of opportunities) {
         if (seenOpportunityIds.has(opp.id)) continue;
@@ -990,31 +990,30 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
 
           cardDataList.push(cardData);
         } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
           logger.warn("Skipping opportunity that failed to build minimal card", {
             opportunityId: opp.id,
-            error: errMsg,
+            err,
           });
-          skippedCards.push({ opportunityId: opp.id, error: errMsg });
+          skippedIds.push(opp.id);
           continue;
         }
       }
 
       const listDebugSteps: Array<{ step: string; detail?: string; data?: Record<string, unknown> }> = [];
-      if (skippedCards.length > 0) {
+      if (skippedIds.length > 0) {
         listDebugSteps.push({
           step: "card_build_errors",
-          detail: `${skippedCards.length} opportunity card(s) failed to build`,
+          detail: `${skippedIds.length} opportunity card(s) failed to build`,
           data: {
-            skippedCount: skippedCards.length,
+            skippedCount: skippedIds.length,
             totalOpportunities: opportunities.length,
-            errors: skippedCards,
+            skippedOpportunityIds: skippedIds,
           },
         });
       }
 
       if (cardDataList.length === 0) {
-        if (skippedCards.length > 0) {
+        if (skippedIds.length > 0) {
           return success({
             found: false,
             count: 0,
