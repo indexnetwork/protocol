@@ -145,7 +145,7 @@ export function createContactTools(defineTool: DefineTool, deps: ToolDeps) {
       "Use when the user refers to a contact by partial name or email and you need their userId for another tool " +
       "(e.g. read_user_profiles, create_opportunities).\n\n" +
       "**When to use:** Before list_contacts when the network is large — returns only matching contacts, bounded by limit.\n\n" +
-      "**Returns:** Array of matching contacts: contactId (userId), name, email, avatar, isGhost.",
+      "**Returns:** Array of matching contacts: userId, name, email, avatar, isGhost.",
     querySchema: z.object({
       query: z.string().trim().min(1).describe('Free-text query matched against contact name and email (case-insensitive, substring).'),
       limit: z.number().int().positive().max(100).optional().describe('Maximum rows to return. Defaults to 25.'),
@@ -153,7 +153,16 @@ export function createContactTools(defineTool: DefineTool, deps: ToolDeps) {
     handler: async ({ context, query }) => {
       try {
         const rows = await contactService.searchContacts(context.userId, query.query, query.limit ?? 25);
-        return success({ count: rows.length, contacts: rows });
+        return success({
+          count: rows.length,
+          contacts: rows.map(r => ({
+            userId: r.contactId,
+            name: r.name,
+            email: r.email,
+            avatar: r.avatar,
+            isGhost: r.isGhost,
+          })),
+        });
       } catch (err) {
         return error(`Failed to search contacts: ${err instanceof Error ? err.message : String(err)}`);
       }

@@ -87,4 +87,29 @@ describe("search_contacts", () => {
     await tool.handler({ context: makeContext(), query: { query: "anything" } });
     expect(capturedLimit).toBe(25);
   });
+
+  test("response uses userId not contactId", async () => {
+    const contactService = {
+      searchContacts: async () => [
+        {
+          contactId: "cid-42",
+          name: "Bob Jones",
+          email: "bob@example.com",
+          avatar: null,
+          isGhost: false,
+        },
+      ],
+    };
+    const tools = captureTools({ contactService } as unknown as ToolDeps);
+    const tool = tools.find((t) => t.name === "search_contacts")!;
+
+    const result = JSON.parse(
+      await tool.handler({ context: makeContext("alice"), query: { query: "bob" } })
+    );
+
+    expect(result.success).toBe(true);
+    const contact = result.data.contacts[0];
+    expect(contact.userId).toBe("cid-42");
+    expect(contact.contactId).toBeUndefined();
+  });
 });
