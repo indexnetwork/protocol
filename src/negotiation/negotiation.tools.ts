@@ -70,7 +70,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           const messages = await negotiationDatabase.getMessagesForConversation(task.conversationId);
           const lastMessage = messages[messages.length - 1];
           const lastTurnData = lastMessage
-            ? ((lastMessage.parts as Array<{ kind?: string; data?: unknown }>)?.find(p => p.kind === 'data')?.data as { action?: string; assessment?: { reasoning?: string } } | undefined)
+            ? ((lastMessage.parts as Array<{ kind?: string; data?: unknown }>)?.find(p => p.kind === 'data')?.data as { action?: string; assessment?: { reasoning?: string }; message?: string | null } | undefined)
             : undefined;
 
           // Determine whose turn it is based on message count (alternating source/candidate)
@@ -94,7 +94,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
             status,
             isUsersTurn,
             latestAction: lastTurnData?.action ?? null,
-            latestMessagePreview: (lastTurnData as { message?: string | null } | undefined)?.message ?? null,
+            latestMessagePreview: lastTurnData?.message ?? null,
             createdAt: task.createdAt,
             updatedAt: task.updatedAt,
           };
