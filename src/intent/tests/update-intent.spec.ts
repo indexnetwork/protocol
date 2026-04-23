@@ -205,3 +205,35 @@ describe("update_intent — ownership", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("update_intent — response shape", () => {
+  test("success response includes intentId and description", async () => {
+    const tools = captureTools({
+      userDb: {},
+      systemDb: {
+        getIntent: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "caller-user" }),
+      },
+      graphs: {
+        profile: { invoke: async () => ({ profile: null, agentTimings: [] }) },
+        intent: {
+          invoke: async () => ({ executionResults: [{ success: true }], agentTimings: [] }),
+        },
+      },
+    } as unknown as ToolDeps);
+    const tool = tools.find((t) => t.name === "update_intent")!;
+
+    const result = JSON.parse(
+      await tool.handler({
+        context: makeContext("caller-user"),
+        query: {
+          intentId: "11111111-1111-4111-8111-111111111111",
+          description: "Find a TypeScript architect for a 3-month contract",
+        },
+      })
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.intentId).toBe("11111111-1111-4111-8111-111111111111");
+    expect(result.data.description).toBe("Find a TypeScript architect for a 3-month contract");
+  });
+});

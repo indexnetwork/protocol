@@ -169,10 +169,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       "**URL handling.** If the user pastes a URL describing the intent (e.g. a job posting), call scrape_url " +
       "first with objective=\"Extract key details for an intent\", synthesize a conceptual description from the " +
       "content, then call create_intent with the synthesis. Exception: profile URLs (LinkedIn, GitHub, X) passed " +
-      "to create_user_profile are handled by that tool directly — do not scrape first.\n\n" +
-      "**Proposal card contract.** The response contains an ```intent_proposal code block. Include that block " +
-      "VERBATIM in your reply to the user — do not summarize it, do not write an intent_proposal block yourself. " +
-      "Only this tool returns valid blocks (they embed a proposalId the UI needs to persist the intent on approval).",
+      "to create_user_profile are handled by that tool directly — do not scrape first.",
     querySchema: z.object({
       description: z.string().describe("A clear, specific description of what the user is looking for. Should be concept-based, not a raw URL. If the user shared a URL, scrape it first with scrape_url and pass the synthesized content here. Vague descriptions will be rejected — include what kind, what for, and/or timeframe."),
       networkId: z.string().optional().describe("Index UUID to link the intent to upon creation. Defaults to the scoped index in index-scoped chats. Get index IDs from read_networks. If omitted, the system auto-assigns to relevant indexes based on their prompts."),
@@ -348,7 +345,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       "re-evaluates its index assignments, and triggers fresh opportunity discovery with the new description.\n\n" +
       "**When to use:** When the user wants to refine or change what they're looking for — e.g. narrowing scope, adding specificity, " +
       "or pivoting to a different need. Prefer updating over delete+create to preserve the intent's history and existing index links.\n\n" +
-      "**Returns:** Confirmation of update. The intent's embeddings and index relevancy scores are recalculated automatically.",
+      "**Returns:** Updated `intentId` and `description`, plus a confirmation message. The intent's embeddings and index relevancy scores are recalculated automatically.",
     querySchema: z.object({
       intentId: z.string().describe("The UUID of the intent to update. Get this from read_intents results."),
       description: z.string().describe("The updated description of what the user is looking for. Same guidelines as create_intent — should be clear and specific."),
@@ -408,6 +405,8 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       }
       return success({
         message: "Intent updated.",
+        intentId,
+        description: query.description,
         _graphTimings: [
           { name: 'profile', durationMs: _profileGraphMs2, agents: profileResult.agentTimings ?? [] },
           { name: 'intent', durationMs: _intentGraphMs2, agents: result.agentTimings ?? [] },
@@ -469,7 +468,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
         return error("Failed to delete intent.");
       }
       return success({
-        message: "Intent archived.",
+        message: "Intent archived successfully.",
         _graphTimings: [{ name: 'intent', durationMs: _deleteIntentGraphMs, agents: result.agentTimings ?? [] }],
       });
     },

@@ -84,4 +84,25 @@ describe("delete_intent", () => {
     );
     expect(result.success).toBe(true);
   });
+
+  test("success message says 'Intent archived successfully.'", async () => {
+    const deps = {
+      userDb: { getNetworkIdsForIntent: async () => [] },
+      systemDb: {
+        isNetworkMember: async () => true,
+        getNetworksByScope: async () => [],
+        getIntent: async () => ({ id: "11111111-1111-4111-8111-111111111111", userId: "caller-user" }),
+      },
+      graphs: {
+        intent: { invoke: async () => ({ executionResults: [{ success: true }], agentTimings: [] }) },
+      },
+    } as unknown as ToolDeps;
+
+    const tool = captureTool(deps);
+    const result = JSON.parse(
+      await tool.handler({ context: makeContext("caller-user"), query: { intentId: "11111111-1111-4111-8111-111111111111" } })
+    );
+    expect(result.success).toBe(true);
+    expect(result.data.message).toBe("Intent archived successfully.");
+  });
 });
