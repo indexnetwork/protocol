@@ -74,4 +74,31 @@ describe("read_networks — field naming", () => {
     expect(network.prompt).toBe("For my contacts");
     expect(network.description).toBeUndefined();
   });
+
+  test("publicNetworks entries expose prompt not description", async () => {
+    const deps = {
+      graphs: {
+        index: {
+          invoke: async () => ({
+            readResult: {
+              memberOf: [],
+              owns: [],
+              publicNetworks: [{ networkId: "net-3", title: "Public Hub", prompt: "Open community", memberCount: 10, owner: null }],
+              stats: { memberOfCount: 0, ownsCount: 0, publicNetworksCount: 1 },
+            },
+          }),
+        },
+      },
+    };
+
+    const tool = captureTool("read_networks", deps);
+    const result = JSON.parse(
+      await tool.handler({ context: makeContext("user-1"), query: {} })
+    );
+
+    expect(result.success).toBe(true);
+    const network = result.data.publicNetworks[0];
+    expect(network.prompt).toBe("Open community");
+    expect(network.description).toBeUndefined();
+  });
 });
