@@ -176,6 +176,26 @@ describe("list_negotiations — pagination", () => {
     expect(result.data.page).toBe(2);
   });
 
+  test("returns partial last page", async () => {
+    const tasks = makeTasks(5);
+
+    const deps = {
+      negotiationDatabase: {
+        getTasksForUser: async () => tasks,
+        getMessagesForConversation: async () => [],
+      },
+    };
+
+    const tool = captureTool("list_negotiations", deps);
+    const result = JSON.parse(
+      await tool.handler({ context: makeContext("user-src"), query: { limit: 2, page: 3 } })
+    );
+
+    expect(result.data.negotiations).toHaveLength(1);
+    expect(result.data.totalPages).toBe(3);
+    expect(result.data.page).toBe(3);
+  });
+
   test("no pagination params → returns all results without totalCount", async () => {
     const tasks = makeTasks(3);
 
