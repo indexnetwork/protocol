@@ -80,7 +80,7 @@ export function createIntegrationTools(defineTool: DefineTool, deps: ToolDeps) {
           userId: context.userId,
           error: err instanceof Error ? err.message : String(err),
         });
-        return error(`Failed to import Gmail contacts: ${err instanceof Error ? err.message : String(err)}`);
+        return error('Failed to import Gmail contacts. Please try again.');
       }
     },
   });
