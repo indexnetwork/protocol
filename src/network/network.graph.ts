@@ -60,14 +60,14 @@ export class NetworkGraphFactory {
                   ? [{
                       networkId: membership.networkId,
                       title: membership.networkTitle,
-                      description: membership.indexPrompt,
+                      prompt: membership.indexPrompt,
                       autoAssign: membership.autoAssign,
                       isPersonal: membership.isPersonal,
                       joinedAt: membership.joinedAt,
                     }]
                   : [],
                 owns: owned
-                  ? [{ networkId: owned.id, title: owned.title, description: owned.prompt, memberCount: owned.memberCount, intentCount: owned.intentCount, joinPolicy: owned.permissions.joinPolicy }]
+                  ? [{ networkId: owned.id, title: owned.title, prompt: owned.prompt, memberCount: owned.memberCount, intentCount: owned.intentCount, joinPolicy: owned.permissions.joinPolicy }]
                   : [],
                 stats: { memberOfCount: membership ? 1 : 0, ownsCount: owned ? 1 : 0, scopeNote: "Showing current index. Use showAll: true for all indexes." },
               },
@@ -78,7 +78,7 @@ export class NetworkGraphFactory {
           const publicNetworks = publicIndexesResult.networks.map((idx) => ({
             networkId: idx.id,
             title: idx.title,
-            description: idx.prompt,
+            prompt: idx.prompt,
             memberCount: idx.memberCount,
             owner: idx.owner,
           }));
@@ -88,12 +88,12 @@ export class NetworkGraphFactory {
               memberOf: allMemberships.map((m) => ({
                 networkId: m.networkId,
                 title: m.networkTitle,
-                description: m.indexPrompt,
+                prompt: m.indexPrompt,
                 autoAssign: m.autoAssign,
                 isPersonal: m.isPersonal,
                 joinedAt: m.joinedAt,
               })),
-              owns: ownedIndexes.map((o) => ({ networkId: o.id, title: o.title, description: o.prompt, memberCount: o.memberCount, intentCount: o.intentCount, joinPolicy: o.permissions.joinPolicy })),
+              owns: ownedIndexes.map((o) => ({ networkId: o.id, title: o.title, prompt: o.prompt, memberCount: o.memberCount, intentCount: o.intentCount, joinPolicy: o.permissions.joinPolicy })),
               publicNetworks,
               stats: { memberOfCount: allMemberships.length, ownsCount: ownedIndexes.length, publicNetworksCount: publicNetworks.length },
             },
