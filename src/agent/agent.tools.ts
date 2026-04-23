@@ -70,7 +70,10 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
     }),
     handler: async ({ context, query }) => {
       if (context.agentId) {
-        return error('This agent can only manage its own registration.');
+        return error(
+          'Agent registration must be done from a user session (web UI or personal API key), ' +
+          'not from within an existing agent context. To register a new agent, visit the Index web app.'
+        );
       }
 
       try {
