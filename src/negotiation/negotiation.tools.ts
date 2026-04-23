@@ -123,7 +123,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           negotiations: filtered,
         });
       } catch (err) {
-        return error(`Failed to list negotiations: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to list negotiations', { err });
+        return error('Failed to list negotiations. Please try again.');
       }
     },
   });
@@ -267,7 +268,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           updatedAt: task.updatedAt,
         });
       } catch (err) {
-        return error(`Failed to get negotiation: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to get negotiation', { err });
+        return error('Failed to get negotiation. Please try again.');
       }
     },
   });
@@ -687,7 +689,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           counterpartyResponse: { action: aiTurn.action, reasoning: aiTurn.assessment.reasoning, message: aiTurn.message ?? null },
         });
       } catch (err) {
-        return error(`Failed to respond to negotiation: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to respond to negotiation', { err });
+        return error('Failed to respond to negotiation. Please try again.');
       }
     },
   });

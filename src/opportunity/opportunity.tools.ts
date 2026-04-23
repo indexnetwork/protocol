@@ -1168,7 +1168,8 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         });
         return success({ status: result });
       } catch (err) {
-        return error(err instanceof Error ? err.message : String(err));
+        logger.error('Failed to confirm opportunity delivery', { err });
+        return error('Failed to confirm opportunity delivery. Please try again.');
       }
     },
   });
