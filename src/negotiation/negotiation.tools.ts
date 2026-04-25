@@ -42,6 +42,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
     querySchema: z.object({
       status: z.enum(['active', 'waiting_for_agent', 'completed', 'all']).optional()
         .describe('Filter by negotiation status. Omit or use "all" to return all negotiations.'),
+      since: z.string().datetime().optional()
+        .describe('ISO 8601 date-time. Only return negotiations created at or after this timestamp.'),
       limit: z.number().int().min(1).max(100).optional()
         .describe('Maximum negotiations to return per page (1-100). Omit to return all.'),
       page: z.number().int().min(1).optional()
@@ -100,7 +102,12 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           };
         }));
 
-        const filtered = negotiations.filter(Boolean);
+        let filtered = negotiations.filter(Boolean);
+
+        if (query.since) {
+          const sinceMs = new Date(query.since).getTime();
+          filtered = filtered.filter(n => new Date(n!.createdAt).getTime() >= sinceMs);
+        }
 
         const shouldPaginate = query.limit !== undefined;
         if (shouldPaginate) {
