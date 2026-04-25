@@ -2,7 +2,7 @@ import type { Cache } from '../shared/interfaces/cache.interface.js';
 import type { OpportunityPresenter, PresenterDatabase } from './opportunity.presenter.js';
 import { gatherPresenterContext } from './opportunity.presenter.js';
 
-export interface HomeCardItem {
+export interface CachedHomeCard {
   opportunityId: string;
   headline: string;
   personalizedSummary: string;
@@ -27,7 +27,7 @@ export async function getOrCreateHomeCardBatch(
   opportunities: OpportunityWithContext[],
   viewerId: string,
   options?: { ttl?: number }
-): Promise<Map<string, HomeCardItem>> {
+): Promise<Map<string, CachedHomeCard>> {
   if (opportunities.length === 0) {
     return new Map();
   }
@@ -36,9 +36,9 @@ export async function getOrCreateHomeCardBatch(
   const keys = opportunities.map(
     (opp) => `home:card:${opp.id}:${opp.status}:${viewerId}`
   );
-  const cached = await cache.mget<HomeCardItem>(keys);
+  const cached = await cache.mget<CachedHomeCard>(keys);
 
-  const result = new Map<string, HomeCardItem>();
+  const result = new Map<string, CachedHomeCard>();
   const misses: Array<{ opp: OpportunityWithContext; index: number }> = [];
 
   for (let i = 0; i < opportunities.length; i++) {
@@ -61,7 +61,7 @@ export async function getOrCreateHomeCardBatch(
       presenterInput.opportunityStatus = opp.status;
 
       const presented = await presenter.presentHomeCard(presenterInput);
-      const card: HomeCardItem = {
+      const card: CachedHomeCard = {
         opportunityId: opp.id,
         headline: presented.headline,
         personalizedSummary: presented.personalizedSummary,

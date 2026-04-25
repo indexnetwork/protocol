@@ -117,7 +117,7 @@ export { stripUuids, stripIntroducerMentions } from "./opportunity/opportunity.p
 export {
   getOrCreateHomeCardBatch,
   HOME_CARD_CACHE_TTL,
-  type HomeCardItem,
+  type CachedHomeCard,
   type OpportunityWithContext,
 } from "./opportunity/home-card.cache.js";
 

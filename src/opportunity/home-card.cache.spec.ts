@@ -121,6 +121,41 @@ describe('getOrCreateHomeCardBatch', () => {
     expect(setCalls[0].opts).toEqual({ ttl: 24 * 60 * 60 });
   });
 
+  it('propagates presenter error so callers can handle failure', async () => {
+    const mockCache: Cache = {
+      get: mock(() => Promise.resolve(null)),
+      set: mock(() => Promise.resolve(undefined)),
+      mget: mock(() => Promise.resolve([null])),
+      delete: mock(() => Promise.resolve(undefined)),
+      exists: mock(() => Promise.resolve(false)),
+      deleteByPattern: mock(() => Promise.resolve(undefined)),
+    };
+    const mockPresenter = {
+      presentHomeCard: mock(() => Promise.reject(new Error('LLM unavailable'))),
+    } as unknown as OpportunityPresenter;
+    const mockPresenterDb = {
+      getProfile: mock(() => Promise.resolve(null)),
+      getActiveIntents: mock(() => Promise.resolve([])),
+      getNetwork: mock(() => Promise.resolve(null)),
+    } as unknown as PresenterDatabase;
+
+    const opportunities = [{
+      id: 'opp-err',
+      status: 'pending',
+      actors: [{ userId: 'user-1', role: 'candidate' }],
+    }];
+
+    await expect(
+      getOrCreateHomeCardBatch(
+        mockCache,
+        mockPresenter,
+        mockPresenterDb,
+        opportunities as any,
+        'user-1'
+      )
+    ).rejects.toThrow('LLM unavailable');
+  });
+
   it('handles mixed batch with some hits and some misses', async () => {
     const cachedCard = {
       opportunityId: 'opp-1',
