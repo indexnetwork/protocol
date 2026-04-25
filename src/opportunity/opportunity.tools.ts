@@ -7,6 +7,7 @@ import { success, error, UUID_REGEX } from "../shared/agent/tool.helpers.js";
 import { MINIMAL_MAIN_TEXT_MAX_CHARS, getPrimaryActionLabel, SECONDARY_ACTION_LABEL } from "./opportunity.labels.js";
 import { viewerCentricCardSummary, narratorRemarkFromReasoning } from "./opportunity.presentation.js";
 import { runDiscoverFromQuery, continueDiscovery } from "./opportunity.discover.js";
+import { OpportunityPresenter } from "./opportunity.presenter.js";
 import type { EvaluatorEntity } from "./opportunity.evaluator.js";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import type { Opportunity, OpportunityStatus } from "../shared/interfaces/database.interface.js";
@@ -347,7 +348,8 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           discoveryId: query.continueFrom,
           expectedIndexId: context.networkId,
           limit: 20,
-          minimalForChat: true,
+          presenter: new OpportunityPresenter(),
+          useHomeCardFormat: true,
           ...(context.sessionId ? { chatSessionId: context.sessionId } : {}),
         });
         const _graphMs = Date.now() - _graphStart;
@@ -677,7 +679,8 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         query: searchQuery,
         indexScope,
         limit: 20,
-        minimalForChat: true, // Skip LLM presenter; return only required fields for fast chat
+        presenter: new OpportunityPresenter(),
+        useHomeCardFormat: true,
         triggerIntentId,
         targetUserId: query.targetUserId?.trim() || undefined,
         onBehalfOfUserId: query.introTargetUserId?.trim() || undefined,
