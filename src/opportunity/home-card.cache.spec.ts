@@ -1,3 +1,6 @@
+// Stub API key to prevent module-level createModel() from throwing
+process.env.OPENROUTER_API_KEY = 'test-key-unused';
+
 import { mock, describe, expect, it } from 'bun:test';
 import { getOrCreateHomeCardBatch } from './home-card.cache.js';
 import type { OpportunityPresenter } from './opportunity.presenter.js';

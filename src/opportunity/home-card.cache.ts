@@ -58,7 +58,7 @@ export async function getOrCreateHomeCardBatch(
         opp as Parameters<typeof gatherPresenterContext>[1],
         viewerId
       );
-      presenterInput.opportunityStatus = opp.status as 'pending' | 'draft';
+      presenterInput.opportunityStatus = opp.status;
 
       const presented = await presenter.presentHomeCard(presenterInput);
       const card: HomeCardItem = {
