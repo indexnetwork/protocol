@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import type { DefineTool, ToolDeps } from '../shared/agent/tool.helpers.js';
 import { success, error } from '../shared/agent/tool.helpers.js';
+import { protocolLogger } from '../shared/observability/protocol.logger.js';
+
+const logger = protocolLogger('ContactTools');
 
 /**
  * Creates contact management tools for the chat agent.
@@ -41,7 +44,8 @@ export function createContactTools(defineTool: DefineTool, deps: ToolDeps) {
           existingContacts: result.existingContacts,
         });
       } catch (err) {
-        return error(`Failed to import contacts: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to import contacts', { err });
+        return error('Failed to import contacts. Please try again.');
       }
     },
   });
@@ -78,7 +82,8 @@ export function createContactTools(defineTool: DefineTool, deps: ToolDeps) {
           })),
         });
       } catch (err) {
-        return error(`Failed to list contacts: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to list contacts', { err });
+        return error('Failed to list contacts. Please try again.');
       }
     },
   });
@@ -111,7 +116,8 @@ export function createContactTools(defineTool: DefineTool, deps: ToolDeps) {
           isNewGhost: result.isNew,
         });
       } catch (err) {
-        return error(`Failed to add contact: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to add contact', { err });
+        return error('Failed to add contact. Please try again.');
       }
     },
   });
@@ -133,7 +139,8 @@ export function createContactTools(defineTool: DefineTool, deps: ToolDeps) {
         await contactService.removeContact(context.userId, query.contactUserId);
         return success({ removed: true, message: 'Contact removed from your network.' });
       } catch (err) {
-        return error(`Failed to remove contact: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to remove contact', { err });
+        return error('Failed to remove contact. Please try again.');
       }
     },
   });
@@ -145,7 +152,7 @@ export function createContactTools(defineTool: DefineTool, deps: ToolDeps) {
       "Use when the user refers to a contact by partial name or email and you need their userId for another tool " +
       "(e.g. read_user_profiles, create_opportunities).\n\n" +
       "**When to use:** Before list_contacts when the network is large — returns only matching contacts, bounded by limit.\n\n" +
-      "**Returns:** Array of matching contacts: contactId (userId), name, email, avatar, isGhost.",
+      "**Returns:** Array of matching contacts: userId, name, email, avatar, isGhost.",
     querySchema: z.object({
       query: z.string().trim().min(1).describe('Free-text query matched against contact name and email (case-insensitive, substring).'),
       limit: z.number().int().positive().max(100).optional().describe('Maximum rows to return. Defaults to 25.'),
@@ -153,9 +160,19 @@ export function createContactTools(defineTool: DefineTool, deps: ToolDeps) {
     handler: async ({ context, query }) => {
       try {
         const rows = await contactService.searchContacts(context.userId, query.query, query.limit ?? 25);
-        return success({ count: rows.length, contacts: rows });
+        return success({
+          count: rows.length,
+          contacts: rows.map(r => ({
+            userId: r.contactId,
+            name: r.name,
+            email: r.email,
+            avatar: r.avatar,
+            isGhost: r.isGhost,
+          })),
+        });
       } catch (err) {
-        return error(`Failed to search contacts: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to search contacts', { err });
+        return error('Failed to search contacts. Please try again.');
       }
     },
   });

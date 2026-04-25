@@ -63,7 +63,7 @@ export const NetworkGraphState = Annotation.Root({
     memberOf: Array<{
       networkId: string;
       title: string;
-      description: string | null;
+      prompt: string | null;
       autoAssign: boolean;
       isPersonal: boolean;
       joinedAt: Date;
@@ -71,7 +71,7 @@ export const NetworkGraphState = Annotation.Root({
     owns: Array<{
       networkId: string;
       title: string;
-      description: string | null;
+      prompt: string | null;
       memberCount: number;
       intentCount: number;
       joinPolicy: string;
@@ -79,7 +79,7 @@ export const NetworkGraphState = Annotation.Root({
     publicNetworks?: Array<{
       networkId: string;
       title: string;
-      description: string | null;
+      prompt: string | null;
       memberCount: number;
       owner: { name: string; avatar: string | null } | null;
     }>;

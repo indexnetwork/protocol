@@ -42,6 +42,10 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
     querySchema: z.object({
       status: z.enum(['active', 'waiting_for_agent', 'completed', 'all']).optional()
         .describe('Filter by negotiation status. Omit or use "all" to return all negotiations.'),
+      limit: z.number().int().min(1).max(100).optional()
+        .describe('Maximum negotiations to return per page (1-100). Omit to return all.'),
+      page: z.number().int().min(1).optional()
+        .describe('Page number (1-based). Only used when limit is provided. Defaults to 1.'),
     }),
     handler: async ({ context, query }) => {
       try {
@@ -66,19 +70,21 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           const messages = await negotiationDatabase.getMessagesForConversation(task.conversationId);
           const lastMessage = messages[messages.length - 1];
           const lastTurnData = lastMessage
-            ? ((lastMessage.parts as Array<{ kind?: string; data?: unknown }>)?.find(p => p.kind === 'data')?.data as { action?: string; assessment?: { reasoning?: string } } | undefined)
+            ? ((lastMessage.parts as Array<{ kind?: string; data?: unknown }>)?.find(p => p.kind === 'data')?.data as { action?: string; assessment?: { reasoning?: string }; message?: string | null } | undefined)
             : undefined;
 
           // Determine whose turn it is based on message count (alternating source/candidate)
           const turnCount = messages.length;
           const currentSpeaker = turnCount % 2 === 0 ? 'source' : 'candidate';
-          const isUsersTurn = (isSource && currentSpeaker === 'source') || (!isSource && currentSpeaker === 'candidate');
 
           // Map task state to tool status
           const status = task.state === 'working' ? 'active'
             : task.state === 'waiting_for_agent' ? 'waiting_for_agent'
             : task.state === 'completed' ? 'completed'
             : task.state;
+
+          const isUsersTurn = status !== 'completed' &&
+            ((isSource && currentSpeaker === 'source') || (!isSource && currentSpeaker === 'candidate'));
 
           return {
             id: task.id,
@@ -88,9 +94,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
             status,
             isUsersTurn,
             latestAction: lastTurnData?.action ?? null,
-            latestMessagePreview: lastTurnData?.assessment?.reasoning
-              ? lastTurnData.assessment.reasoning.substring(0, 150) + (lastTurnData.assessment.reasoning.length > 150 ? '...' : '')
-              : null,
+            latestMessagePreview: lastTurnData?.message ?? null,
             createdAt: task.createdAt,
             updatedAt: task.updatedAt,
           };
@@ -98,12 +102,29 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
 
         const filtered = negotiations.filter(Boolean);
 
+        const shouldPaginate = query.limit !== undefined;
+        if (shouldPaginate) {
+          const limit = query.limit!;
+          const page = query.page ?? 1;
+          const offset = (page - 1) * limit;
+          const paged = filtered.slice(offset, offset + limit);
+          return success({
+            count: paged.length,
+            totalCount: filtered.length,
+            limit,
+            page,
+            totalPages: Math.ceil(filtered.length / limit),
+            negotiations: paged,
+          });
+        }
+
         return success({
           count: filtered.length,
           negotiations: filtered,
         });
       } catch (err) {
-        return error(`Failed to list negotiations: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to list negotiations', { err });
+        return error('Failed to list negotiations. Please try again.');
       }
     },
   });
@@ -223,12 +244,14 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         // Determine whose turn it is
         const turnCount = messages.length;
         const currentSpeaker = turnCount % 2 === 0 ? 'source' : 'candidate';
-        const isUsersTurn = (isSource && currentSpeaker === 'source') || (!isSource && currentSpeaker === 'candidate');
 
         const status = task.state === 'working' ? 'active'
           : task.state === 'waiting_for_agent' ? 'waiting_for_agent'
           : task.state === 'completed' ? 'completed'
           : task.state;
+
+        const isUsersTurn = status !== 'completed' &&
+          ((isSource && currentSpeaker === 'source') || (!isSource && currentSpeaker === 'candidate'));
 
         return success({
           id: task.id,
@@ -245,7 +268,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           updatedAt: task.updatedAt,
         });
       } catch (err) {
-        return error(`Failed to get negotiation: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to get negotiation', { err });
+        return error('Failed to get negotiation. Please try again.');
       }
     },
   });
@@ -665,7 +689,8 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           counterpartyResponse: { action: aiTurn.action, reasoning: aiTurn.assessment.reasoning, message: aiTurn.message ?? null },
         });
       } catch (err) {
-        return error(`Failed to respond to negotiation: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to respond to negotiation', { err });
+        return error('Failed to respond to negotiation. Please try again.');
       }
     },
   });

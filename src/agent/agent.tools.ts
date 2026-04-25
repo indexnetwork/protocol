@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 import type { DefineTool, ToolDeps } from '../shared/agent/tool.helpers.js';
 import { error, success } from '../shared/agent/tool.helpers.js';
+import { protocolLogger } from '../shared/observability/protocol.logger.js';
+
+const logger = protocolLogger('AgentTools');
 
 const AGENT_ACTIONS = [
   'manage:profile',
@@ -70,7 +73,10 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
     }),
     handler: async ({ context, query }) => {
       if (context.agentId) {
-        return error('This agent can only manage its own registration.');
+        return error(
+          'Agent registration must be done from a user session (web UI or personal API key), ' +
+          'not from within an existing agent context. To register a new agent, visit the Index web app.'
+        );
       }
 
       try {
@@ -118,7 +124,8 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
           agent: sanitizeAgentForOutput(fullAgent ?? ({ ...agent, transports: [], permissions: [] })),
         });
       } catch (err) {
-        return error(`Failed to register agent: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to register agent', { err });
+        return error('Failed to register agent. Please try again.');
       }
     },
   });
@@ -138,7 +145,8 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
           count: filteredAgents.length,
         });
       } catch (err) {
-        return error(`Failed to list agents: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to list agents', { err });
+        return error('Failed to list agents. Please try again.');
       }
     },
   });
@@ -198,7 +206,8 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
           agent: sanitizeAgentForOutput(fullAgent ?? ({ ...updated, transports: [], permissions: [] })),
         });
       } catch (err) {
-        return error(`Failed to update agent: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to update agent', { err });
+        return error('Failed to update agent. Please try again.');
       }
     },
   });
@@ -227,7 +236,8 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
         await agentDb.deleteAgent(query.agent_id);
         return success({ message: `Agent "${agent.name}" deleted.` });
       } catch (err) {
-        return error(`Failed to delete agent: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to delete agent', { err });
+        return error('Failed to delete agent. Please try again.');
       }
     },
   });
@@ -279,7 +289,8 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
 
         return success({ message: 'Permission granted.', permission });
       } catch (err) {
-        return error(`Failed to grant permission: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to grant permission', { err });
+        return error('Failed to grant permission. Please try again.');
       }
     },
   });
@@ -311,7 +322,8 @@ export function createAgentTools(defineTool: DefineTool, deps: ToolDeps) {
         await agentDb.revokePermission(query.permission_id);
         return success({ message: 'Permission revoked.' });
       } catch (err) {
-        return error(`Failed to revoke permission: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error('Failed to revoke permission', { err });
+        return error('Failed to revoke permission. Please try again.');
       }
     },
   });

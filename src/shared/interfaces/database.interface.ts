@@ -94,6 +94,8 @@ export interface ActiveIntent {
   summary: string | null;
   /** When the intent was created */
   createdAt: Date;
+  /** Relevancy score for this intent in its index context (0.0–1.0, null if not scored) */
+  relevancyScore?: number | null;
 }
 
 /**
@@ -330,6 +332,8 @@ export interface IndexedIntentDetails {
   userName: string;
   /** When the intent was created */
   createdAt: Date;
+  /** Relevancy score for this intent in its index context (0.0–1.0, null if not scored) */
+  relevancyScore?: number | null;
 }
 
 /**

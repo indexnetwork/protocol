@@ -138,6 +138,7 @@ export const IntentNetworkGraphState = Annotation.Root({
       userId?: string;
       userName?: string;
       createdAt?: Date;
+      relevancyScore?: number | null;
     }>;
     count: number;
     mode: string;
