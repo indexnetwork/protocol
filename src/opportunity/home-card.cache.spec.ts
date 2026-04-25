@@ -117,4 +117,66 @@ describe('getOrCreateHomeCardBatch', () => {
     expect(setCalls[0].key).toBe('home:card:opp-2:pending:user-1');
     expect(setCalls[0].opts).toEqual({ ttl: 24 * 60 * 60 });
   });
+
+  it('handles mixed batch with some hits and some misses', async () => {
+    const cachedCard = {
+      opportunityId: 'opp-1',
+      headline: 'Cached',
+      personalizedSummary: 'Cached summary',
+      suggestedAction: 'Cached action',
+      narratorRemark: 'Cached remark',
+    };
+    let presentCalledCount = 0;
+    let setCalls: any[] = [];
+
+    const mockCache: Cache = {
+      get: mock(() => Promise.resolve(null)),
+      set: mock((key: string, value: any, opts: any) => {
+        setCalls.push({ key, value, opts });
+        return Promise.resolve(undefined);
+      }),
+      mget: mock(() => Promise.resolve([cachedCard, null])),
+      delete: mock(() => Promise.resolve(undefined)),
+      exists: mock(() => Promise.resolve(false)),
+      deleteByPattern: mock(() => Promise.resolve(undefined)),
+    };
+
+    const presentedCard = {
+      headline: 'Generated',
+      personalizedSummary: 'Generated summary',
+      suggestedAction: 'Generated action',
+      narratorRemark: 'Generated remark',
+    };
+
+    const mockPresenter = {
+      presentHomeCard: mock(() => {
+        presentCalledCount++;
+        return Promise.resolve(presentedCard);
+      }),
+    } as unknown as OpportunityPresenter;
+    const mockPresenterDb = {
+      getProfile: mock(() => Promise.resolve(null)),
+      getActiveIntents: mock(() => Promise.resolve([])),
+      getNetwork: mock(() => Promise.resolve(null)),
+    } as unknown as PresenterDatabase;
+
+    const opportunities = [
+      { id: 'opp-1', status: 'pending', actors: [] },
+      { id: 'opp-2', status: 'pending', actors: [{ userId: 'user-1', role: 'candidate' }] },
+    ];
+
+    const result = await getOrCreateHomeCardBatch(
+      mockCache,
+      mockPresenter,
+      mockPresenterDb,
+      opportunities as any,
+      'user-1'
+    );
+
+    expect(result.size).toBe(2);
+    expect(result.get('opp-1')?.headline).toBe('Cached');
+    expect(result.get('opp-2')?.headline).toBe('Generated');
+    expect(presentCalledCount).toBe(1);
+    expect(setCalls.length).toBe(1);
+  });
 });
