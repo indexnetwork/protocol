@@ -114,6 +114,12 @@ export { persistOpportunities } from "./opportunity/opportunity.persist.js";
 export { presentOpportunity } from "./opportunity/opportunity.presentation.js";
 export type { UserInfo } from "./opportunity/opportunity.presentation.js";
 export { stripUuids, stripIntroducerMentions } from "./opportunity/opportunity.presentation.js";
+export {
+  getOrCreateHomeCardBatch,
+  HOME_CARD_CACHE_TTL,
+  type HomeCardItem,
+  type OpportunityWithContext,
+} from "./opportunity/home-card.cache.js";
 
 // ─── Tools ────────────────────────────────────────────────────────────────────
 
