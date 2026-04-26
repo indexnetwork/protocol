@@ -75,7 +75,9 @@ openclaw mcp set index-network '{"url":"https://protocol.index.network/mcp","tra
 
 > Background polling is on. I'll check for new negotiation turns every 30 seconds, sweep for opportunities every 5 minutes, and roll a daily digest at your configured digest time — handling each silently. Opportunities will be rendered here in my voice on your active channel. You can disable negotiations any time by setting `plugins.entries.indexnetwork-openclaw-plugin.config.negotiationMode` to `disabled`.
 
-The plugin surfaces Index Network notifications through your main OpenClaw agent — no separate channel or routing configuration is needed. By default the agent renders opportunities without calling any extra MCP tools (`mainAgentToolUse` is `disabled`). If you want your agent to be able to call MCP tools while rendering, set:
+The plugin surfaces Index Network notifications through your main OpenClaw agent via `POST /hooks/agent` (with `deliver: true, channel: "last"`), so the gateway routes the agent's reply to whichever channel you last chatted on. The setup wizard bootstraps the gateway hooks subsystem automatically — `hooks.enabled=true` and a fresh `hooks.token` are written the first time setup runs. If you already have a `hooks.token` for other integrations, it is preserved.
+
+By default the agent renders opportunities without calling any extra MCP tools (`mainAgentToolUse` is `disabled`). If you want your agent to be able to call MCP tools while rendering, set:
 
 ```bash
 openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.mainAgentToolUse "enabled"
@@ -85,7 +87,7 @@ openclaw config set plugins.entries.indexnetwork-openclaw-plugin.config.mainAgen
 
 - **Polling never fires**: confirm the plugin is enabled and OpenClaw is running. Check that `agentId` and `apiKey` are set correctly via `openclaw config get plugins.entries.indexnetwork-openclaw-plugin.config.agentId`.
 - **Turns not being responded to**: check OpenClaw logs for pickup errors. The agent's API key may have expired or the agentId may be wrong.
-- **Opportunities picked up but not rendered**: confirm `agentId` and `apiKey` are set. The plugin hands items to your main agent via an embedded turn; if that turn fails, check OpenClaw logs for embedded-agent errors.
+- **Opportunities picked up but not rendered**: gateway logs will show one of three reasons. `hooks.enabled=false or hooks.token unset` → re-run setup. `/hooks/agent returned 401` → `hooks.token` is wrong; `openclaw config unset hooks.token` and re-run setup. `/hooks/agent returned 404` → `hooks.enabled` is still `false`.
 
 ## Daily summary payloads (deferred)
 
