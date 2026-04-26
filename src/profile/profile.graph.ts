@@ -473,6 +473,25 @@ export class ProfileGraphFactory {
                 await this.database.updateUser(state.userId, updatePayload);
               }
 
+              // Post-enrichment dedup: check if this ghost matches an existing user
+              if (user.isGhost) {
+                const enrichedSocials: { x?: string; linkedin?: string; github?: string; websites?: string[] } = {};
+                if (enrichment!.socials.twitter) enrichedSocials.x = enrichment!.socials.twitter;
+                if (enrichment!.socials.linkedin) enrichedSocials.linkedin = enrichment!.socials.linkedin;
+                if (enrichment!.socials.github) enrichedSocials.github = enrichment!.socials.github;
+                if (enrichment!.socials.websites?.length) enrichedSocials.websites = enrichment!.socials.websites;
+
+                const duplicate = await this.database.findDuplicateUser(state.userId, enrichedSocials);
+                if (duplicate) {
+                  logger.info("Post-enrichment dedup: merging ghost into existing user", {
+                    ghostId: state.userId,
+                    targetId: duplicate.id,
+                  });
+                  await this.database.mergeGhostUser(state.userId, duplicate.id);
+                  return { error: `Merged as duplicate of user ${duplicate.id}` };
+                }
+              }
+
               return {
                 prePopulatedProfile: {
                   identity: enrichment!.identity,

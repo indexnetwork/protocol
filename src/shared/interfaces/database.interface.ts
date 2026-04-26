@@ -1745,6 +1745,9 @@ export type ChatGraphCompositeDatabase = Pick<
   | 'getNetworkMemberCount'
   | 'addMemberToNetwork'
   | 'removeMemberFromIndex'
+  // ProfileGraph post-enrichment ghost deduplication
+  | 'findDuplicateUser'
+  | 'mergeGhostUser'
 >;
 
 /**
