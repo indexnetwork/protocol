@@ -115,11 +115,11 @@ export { presentOpportunity } from "./opportunity/opportunity.presentation.js";
 export type { UserInfo } from "./opportunity/opportunity.presentation.js";
 export { stripUuids, stripIntroducerMentions } from "./opportunity/opportunity.presentation.js";
 export {
-  getOrCreateHomeCardBatch,
-  HOME_CARD_CACHE_TTL,
-  type CachedHomeCard,
+  getOrCreateDeliveryCardBatch,
+  DELIVERY_CARD_CACHE_TTL,
+  type CachedDeliveryCard,
   type OpportunityWithContext,
-} from "./opportunity/home-card.cache.js";
+} from "./opportunity/delivery-card.cache.js";
 
 // ─── Tools ────────────────────────────────────────────────────────────────────
 

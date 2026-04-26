@@ -2,7 +2,7 @@ import type { Cache } from '../shared/interfaces/cache.interface.js';
 import type { OpportunityPresenter, PresenterDatabase } from './opportunity.presenter.js';
 import { gatherPresenterContext } from './opportunity.presenter.js';
 
-export interface CachedHomeCard {
+export interface CachedDeliveryCard {
   opportunityId: string;
   headline: string;
   personalizedSummary: string;
@@ -18,27 +18,27 @@ export interface OpportunityWithContext {
   detection?: unknown;
 }
 
-export const HOME_CARD_CACHE_TTL = 24 * 60 * 60; // 24 hours
+export const DELIVERY_CARD_CACHE_TTL = 24 * 60 * 60; // 24 hours
 
-export async function getOrCreateHomeCardBatch(
+export async function getOrCreateDeliveryCardBatch(
   cache: Cache,
   presenter: OpportunityPresenter,
   presenterDb: PresenterDatabase,
   opportunities: OpportunityWithContext[],
   viewerId: string,
   options?: { ttl?: number }
-): Promise<Map<string, CachedHomeCard>> {
+): Promise<Map<string, CachedDeliveryCard>> {
   if (opportunities.length === 0) {
     return new Map();
   }
 
-  const ttl = options?.ttl ?? HOME_CARD_CACHE_TTL;
+  const ttl = options?.ttl ?? DELIVERY_CARD_CACHE_TTL;
   const keys = opportunities.map(
-    (opp) => `home:card:${opp.id}:${opp.status}:${viewerId}`
+    (opp) => `delivery:card:${opp.id}:${opp.status}:${viewerId}`
   );
-  const cached = await cache.mget<CachedHomeCard>(keys);
+  const cached = await cache.mget<CachedDeliveryCard>(keys);
 
-  const result = new Map<string, CachedHomeCard>();
+  const result = new Map<string, CachedDeliveryCard>();
   const misses: Array<{ opp: OpportunityWithContext; index: number }> = [];
 
   for (let i = 0; i < opportunities.length; i++) {
@@ -61,7 +61,7 @@ export async function getOrCreateHomeCardBatch(
       presenterInput.opportunityStatus = opp.status;
 
       const presented = await presenter.presentHomeCard(presenterInput);
-      const card: CachedHomeCard = {
+      const card: CachedDeliveryCard = {
         opportunityId: opp.id,
         headline: presented.headline,
         personalizedSummary: presented.personalizedSummary,

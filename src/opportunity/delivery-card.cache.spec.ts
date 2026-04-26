@@ -2,7 +2,7 @@
 process.env.OPENROUTER_API_KEY = 'test-key-unused';
 
 import { mock, describe, expect, it } from 'bun:test';
-import { getOrCreateHomeCardBatch } from './home-card.cache.js';
+import { getOrCreateDeliveryCardBatch } from './delivery-card.cache.js';
 import type { OpportunityPresenter } from './opportunity.presenter.js';
 import type { PresenterDatabase } from './opportunity.presenter.js';
 import type { Cache } from '../shared/interfaces/cache.interface.js';
@@ -14,7 +14,7 @@ mock.module('./opportunity.presenter.js', () => ({
   })),
 }));
 
-describe('getOrCreateHomeCardBatch', () => {
+describe('getOrCreateDeliveryCardBatch', () => {
   it('returns cached card without calling presenter on cache hit', async () => {
     const cachedCard = {
       opportunityId: 'opp-1',
@@ -51,7 +51,7 @@ describe('getOrCreateHomeCardBatch', () => {
     } as unknown as PresenterDatabase;
 
     const opportunities = [{ id: 'opp-1', status: 'pending', actors: [] }];
-    const result = await getOrCreateHomeCardBatch(
+    const result = await getOrCreateDeliveryCardBatch(
       mockCache,
       mockPresenter,
       mockPresenterDb,
@@ -104,7 +104,7 @@ describe('getOrCreateHomeCardBatch', () => {
       interpretation: { reasoning: 'test' },
     }];
 
-    const result = await getOrCreateHomeCardBatch(
+    const result = await getOrCreateDeliveryCardBatch(
       mockCache,
       mockPresenter,
       mockPresenterDb,
@@ -117,7 +117,7 @@ describe('getOrCreateHomeCardBatch', () => {
     expect(resultCard?.headline).toBe('Generated headline');
     expect(presentCalledCount).toBeGreaterThan(0);
     expect(setCalls.length).toBeGreaterThan(0);
-    expect(setCalls[0].key).toBe('home:card:opp-2:pending:user-1');
+    expect(setCalls[0].key).toBe('delivery:card:opp-2:pending:user-1');
     expect(setCalls[0].opts).toEqual({ ttl: 24 * 60 * 60 });
   });
 
@@ -146,7 +146,7 @@ describe('getOrCreateHomeCardBatch', () => {
     }];
 
     await expect(
-      getOrCreateHomeCardBatch(
+      getOrCreateDeliveryCardBatch(
         mockCache,
         mockPresenter,
         mockPresenterDb,
@@ -203,7 +203,7 @@ describe('getOrCreateHomeCardBatch', () => {
       { id: 'opp-2', status: 'pending', actors: [{ userId: 'user-1', role: 'candidate' }] },
     ];
 
-    const result = await getOrCreateHomeCardBatch(
+    const result = await getOrCreateDeliveryCardBatch(
       mockCache,
       mockPresenter,
       mockPresenterDb,
