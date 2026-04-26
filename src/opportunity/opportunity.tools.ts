@@ -1150,11 +1150,18 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
     description:
       "Marks an opportunity as delivered to the user via the OpenClaw channel. " +
       "Call this for each opportunity you decide to surface, BEFORE including it in your delivery message. " +
+      "The 'trigger' argument records which dispatch path produced this delivery: " +
+      "'ambient' for real-time critical alerts (target ≤3/day), 'digest' for the daily sweep. " +
       "Idempotent — safe to call even if the opportunity was already confirmed.",
     querySchema: z.object({
       opportunityId: z
         .string()
         .describe("The UUID of the opportunity to mark as delivered."),
+      trigger: z
+        .enum(['ambient', 'digest'])
+        .describe(
+          "Which dispatch path produced this delivery. Use 'ambient' if the dispatch prompt says you are in the ambient pass; use 'digest' if it says you are in the daily digest.",
+        ),
     }),
     handler: async ({ context, query }) => {
       if (!context.isMcp || !context.agentId) {
@@ -1173,6 +1180,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           opportunityId: query.opportunityId,
           userId: context.userId,
           agentId: context.agentId,
+          trigger: query.trigger,
         });
         return success({ status: result });
       } catch (err) {
