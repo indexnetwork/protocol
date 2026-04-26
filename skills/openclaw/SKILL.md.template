@@ -50,7 +50,7 @@ Replace `<key>` with what the user pasted. Never log the key back to the user, a
 
 ## Enable automatic polling
 
-Automatic background polling requires a personal agent key stored in the plugin config. The plugin polls Index Network every 30 seconds for pending negotiation turns and opportunities — no public URL or webhook is needed.
+Automatic background polling requires a personal agent key stored in the plugin config. The plugin polls Index Network on three independent cadences — pending negotiation turns every 30 seconds, ambient discovery opportunities every 5 minutes, and a daily digest at the configured digest time — no public URL or webhook is needed.
 
 Tell the user:
 
@@ -73,7 +73,7 @@ openclaw mcp set index-network '{"url":"https://protocol.index.network/mcp","tra
 
 ## Confirm to the user
 
-> Background polling is on. I'll check for new negotiation turns and opportunities every 30 seconds and handle them silently. Opportunities will be rendered here in my voice on your active channel. You can disable negotiations any time by setting `plugins.entries.indexnetwork-openclaw-plugin.config.negotiationMode` to `disabled`.
+> Background polling is on. I'll check for new negotiation turns every 30 seconds, sweep for opportunities every 5 minutes, and roll a daily digest at your configured digest time — handling each silently. Opportunities will be rendered here in my voice on your active channel. You can disable negotiations any time by setting `plugins.entries.indexnetwork-openclaw-plugin.config.negotiationMode` to `disabled`.
 
 The plugin surfaces Index Network notifications through your main OpenClaw agent — no separate channel or routing configuration is needed. By default the agent renders opportunities without calling any extra MCP tools (`mainAgentToolUse` is `disabled`). If you want your agent to be able to call MCP tools while rendering, set:
 
