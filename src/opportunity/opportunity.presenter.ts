@@ -238,6 +238,12 @@ When NEGOTIATION CONTEXT is provided, this opportunity passed through an agent-t
   - mutualIntentsLabel: a short connector label (e.g. "Connector match", "You can bridge this").
   - headline: describe the connection between the parties (e.g., "Connecting a PhD researcher with a translator"). Do NOT reference the introducer's own needs.
   - personalizedSummary: explain why the parties you're introducing should meet, referencing THEIR profiles and intents, not yours.
+
+**CRITICAL for latent introducer cards (opportunity status is "latent"):**
+When the viewer is the introducer and the opportunity status is "latent", the introducer has NOT yet approved this match. They are evaluating whether to make the introduction.
+- narratorRemark MUST use evaluation/curation language (e.g. "Could be a strong match", "Worth introducing?", "Interesting overlap here").
+- Do NOT say "you suggested", "you introduced", "you connected", or any past-tense language implying the introduction was already made.
+- suggestedAction should encourage evaluation (e.g. "Approve if you see the fit").
 - Exception for new-connection reveal: if viewer role is "agent", status is "accepted", and there is an introducer, this is the agent's first time seeing this opportunity. Use:
   - suggestedAction: a short line about joining the conversation.
 `;
@@ -623,10 +629,14 @@ export async function gatherPresenterContext(
 
   if (isIntroducer) {
     // Introducer view: minimal viewer context (just name + role), rich other-party context with intents
+    const introducerApproved = opportunity.actors.find(a => a.role === 'introducer')?.approved === true;
+    const hasApproved = introducerApproved || opportunity.status !== 'latent';
     viewerContext = [
       "Profile:",
       `Name: ${viewerProfile?.identity?.name ?? "Unknown"}`,
-      "Role: You are the introducer who suggested this connection.",
+      hasApproved
+        ? "Role: You are the introducer who suggested this connection."
+        : "Role: You are being asked whether these two people would benefit from meeting. You have NOT yet approved this introduction.",
     ].join("\n");
 
     const otherParts = otherPartyIds.map((uid, idx) => {
