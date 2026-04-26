@@ -937,8 +937,8 @@ describe('Opportunity enricher — cross-domain deduplication', () => {
 });
 
 describe('Opportunity enricher — default excludeStatuses', () => {
-  test("the exported default excludes 'accepted' and 'negotiating'", () => {
-    expect(DEFAULT_ENRICHER_EXCLUDE_STATUSES).toEqual(['accepted', 'negotiating']);
+  test("the exported default excludes 'accepted', 'negotiating', and 'expired'", () => {
+    expect(DEFAULT_ENRICHER_EXCLUDE_STATUSES).toEqual(['accepted', 'negotiating', 'expired']);
   });
 
   test('passes the default excludeStatuses to findOverlappingOpportunities when caller omits it', async () => {
@@ -957,7 +957,7 @@ describe('Opportunity enricher — default excludeStatuses', () => {
 
     await enrichOrCreate(db, embedder, newData);
 
-    expect(receivedExcludeStatuses).toEqual(['accepted', 'negotiating']);
+    expect(receivedExcludeStatuses).toEqual(['accepted', 'negotiating', 'expired']);
   });
 
   test('caller-supplied excludeStatuses replaces the default', async () => {

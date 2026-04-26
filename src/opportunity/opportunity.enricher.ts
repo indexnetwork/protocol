@@ -30,10 +30,13 @@ const MIN_REASONING_LENGTH_FOR_EMBEDDING = 10;
  *   candidate into it would blur the outcome of the active turn. Wait for the
  *   negotiation to finalize (→ draft/pending/rejected/stalled) first, then
  *   enrichment can pick it up on the next pass.
+ * - 'expired': already superseded by a later enriched opportunity. Without this
+ *   exclusion, each enrichment cycle re-merges previously-expired enriched
+ *   opportunities, compounding their actor arrays into 100+ entries.
  *
  * Exported for callers that want to extend rather than replace the default.
  */
-export const DEFAULT_ENRICHER_EXCLUDE_STATUSES: OpportunityStatus[] = ['accepted', 'negotiating'];
+export const DEFAULT_ENRICHER_EXCLUDE_STATUSES: OpportunityStatus[] = ['accepted', 'negotiating', 'expired'];
 
 export type EnricherDatabase = {
   findOverlappingOpportunities(
