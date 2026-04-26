@@ -479,6 +479,27 @@ export interface Database {
    */
   softDeleteGhost(userId: string): Promise<boolean>;
 
+  /**
+   * Find an existing user that matches the given social handles.
+   * Checks LinkedIn, GitHub, and Twitter/X handles (case-insensitive, exact match).
+   * Excludes the given userId and soft-deleted users.
+   * Prefers real users over ghosts; among ghosts, returns the oldest.
+   * @param userId - The ghost user being enriched (excluded from results)
+   * @param socials - Enriched social handles to match against
+   * @returns The matching user's id, or null if no match
+   */
+  findDuplicateUser(userId: string, socials: UserSocials): Promise<{ id: string } | null>;
+
+  /**
+   * Merge a ghost user (source) into a target user.
+   * Re-points all data (intents, opportunities, memberships, etc.) from source to target,
+   * deletes ghost-only records (profile, sessions, etc.), and soft-deletes the source user.
+   * Runs in a single transaction.
+   * @param sourceId - The ghost user to merge away
+   * @param targetId - The user to merge into
+   */
+  mergeGhostUser(sourceId: string, targetId: string): Promise<void>;
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Pre-Graph Operations (State Population)
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1648,7 +1669,7 @@ export interface SystemDatabase {
  */
 export type ProfileGraphDatabase = Pick<
   Database,
-  'getProfile' | 'getUser' | 'updateUser' | 'saveProfile' | 'getProfileByUserId' | 'getHydeDocument' | 'saveHydeDocument' | 'softDeleteGhost'
+  'getProfile' | 'getUser' | 'updateUser' | 'saveProfile' | 'getProfileByUserId' | 'getHydeDocument' | 'saveHydeDocument' | 'softDeleteGhost' | 'findDuplicateUser' | 'mergeGhostUser'
 >;
 
 /**
