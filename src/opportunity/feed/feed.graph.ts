@@ -406,6 +406,7 @@ export class HomeGraphFactory {
             }
 
             const isCounterpartGhost = otherUser?.isGhost ?? false;
+            const isPendingIntroducerFallback = isIntroducer && opportunity.status !== 'latent';
             const fallbackCard = (): HomeCardItem => ({
               opportunityId: opportunity.id,
               userId: otherActor?.userId ?? '',
@@ -413,7 +414,7 @@ export class HomeGraphFactory {
               avatar: userAvatar,
               mainText: reasoningSnippet.slice(0, 300),
               cta: isIntroducer
-                ? 'Share this introduction to get things started.'
+                ? (isPendingIntroducerFallback ? 'Share this introduction to get things started.' : 'Take a look and decide if this is a good match.')
                 : 'Take a look and decide whether to reach out.',
               primaryActionLabel: getPrimaryActionLabel(viewerRole),
               secondaryActionLabel: SECONDARY_ACTION_LABEL,
@@ -516,6 +517,9 @@ export class HomeGraphFactory {
               const status = statusById.get(card.opportunityId);
               // Skip persisting negotiating cards — see read-side note.
               if (!status || status === 'negotiating') return Promise.resolve();
+              // Skip caching cards with unresolved names — transient DB failures
+              // would persist "Unknown" placeholders for the full TTL.
+              if (!card.name || card.name === 'Unknown') return Promise.resolve();
               return this.cache.set(
                 `home:card:${card.opportunityId}:${status}:${userId}`,
                 card,
