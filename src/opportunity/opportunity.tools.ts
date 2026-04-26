@@ -840,10 +840,9 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       "Lists the authenticated user's actionable opportunities (discovered connections). Returns opportunity cards ready for display.\n\n" +
       "**What are opportunities?** Matches between users whose intents complement each other within shared indexes. " +
       "Each opportunity has a status: draft (not yet sent), pending (sent, awaiting response), accepted, rejected, or expired.\n\n" +
-      "**Default filter:** Returns only draft and pending opportunities — the ones the user can act on. " +
-      "Pass `status` to override (e.g. 'accepted' to see connected people, or 'all' to see everything).\n\n" +
-      "**When to use:** When the user wants to see their current connections/matches, check the status of previously discovered opportunities, " +
-      "or review what's waiting for their response.\n\n" +
+      "**What this returns:** Only draft and pending opportunities — the ones the user can still act on. " +
+      "Accepted, rejected, and expired ones are not surfaced through this tool.\n\n" +
+      "**When to use:** When the user wants to see their current matches or review what's waiting for their response.\n\n" +
       "**Returns:** Up to 3 opportunity code blocks (interactive cards) with counterpart name, match reasoning, confidence score, " +
       "and current status. Use update_opportunity to act on them (send, accept, reject).",
     querySchema: z.object({
@@ -851,10 +850,6 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         .string()
         .optional()
         .describe("Index UUID to filter opportunities to a specific community. Get from read_networks. Defaults to the scoped index in index-scoped chats. Omit to see opportunities across all indexes."),
-      status: z
-        .string()
-        .optional()
-        .describe("Filter by status: 'draft', 'pending', 'accepted', 'rejected', 'expired', or 'all'. Defaults to showing draft + pending (actionable items). Pass 'all' to see every status."),
     }),
     handler: async ({ context, query }) => {
       // Strict scope enforcement: when chat is index-scoped, only allow that index
@@ -876,21 +871,16 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         return error("Invalid network ID format.");
       }
 
-      const DEFAULT_STATUSES: OpportunityStatus[] = ["draft", "pending"];
-      const requestedStatus = query.status?.trim().toLowerCase();
-      const statuses =
-        !requestedStatus || requestedStatus === ""
-          ? DEFAULT_STATUSES
-          : requestedStatus === "all"
-            ? undefined
-            : [requestedStatus as OpportunityStatus];
+      // The MCP/chat surface only ever exposes actionable opportunities.
+      // Other statuses are reachable via the home view / REST API, not here.
+      const statuses: OpportunityStatus[] = ["draft", "pending"];
 
       // Get opportunities; use minimal card data (no LLM presenter) for fast chat response
       const opportunities = await database.getOpportunitiesForUser(
         context.userId,
         {
           networkId: effectiveIndexId,
-          ...(statuses ? { statuses } : {}),
+          statuses,
           limit: CHAT_DISPLAY_LIMIT,
         },
       );
