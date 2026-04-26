@@ -475,13 +475,7 @@ export class ProfileGraphFactory {
 
               // Post-enrichment dedup: check if this ghost matches an existing user
               if (user.isGhost) {
-                const enrichedSocials: { x?: string; linkedin?: string; github?: string; websites?: string[] } = {};
-                if (enrichment!.socials.twitter) enrichedSocials.x = enrichment!.socials.twitter;
-                if (enrichment!.socials.linkedin) enrichedSocials.linkedin = enrichment!.socials.linkedin;
-                if (enrichment!.socials.github) enrichedSocials.github = enrichment!.socials.github;
-                if (enrichment!.socials.websites?.length) enrichedSocials.websites = enrichment!.socials.websites;
-
-                const duplicate = await this.database.findDuplicateUser(state.userId, enrichedSocials);
+                const duplicate = await this.database.findDuplicateUser(state.userId, socials);
                 if (duplicate) {
                   logger.info("Post-enrichment dedup: merging ghost into existing user", {
                     ghostId: state.userId,
