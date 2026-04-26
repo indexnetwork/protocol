@@ -837,9 +837,11 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
   const listOpportunities = defineTool({
     name: "list_opportunities",
     description:
-      "Lists the authenticated user's existing opportunities (discovered connections). Returns opportunity cards ready for display.\n\n" +
+      "Lists the authenticated user's actionable opportunities (discovered connections). Returns opportunity cards ready for display.\n\n" +
       "**What are opportunities?** Matches between users whose intents complement each other within shared indexes. " +
       "Each opportunity has a status: draft (not yet sent), pending (sent, awaiting response), accepted, rejected, or expired.\n\n" +
+      "**Default filter:** Returns only draft and pending opportunities — the ones the user can act on. " +
+      "Pass `status` to override (e.g. 'accepted' to see connected people, or 'all' to see everything).\n\n" +
       "**When to use:** When the user wants to see their current connections/matches, check the status of previously discovered opportunities, " +
       "or review what's waiting for their response.\n\n" +
       "**Returns:** Up to 3 opportunity code blocks (interactive cards) with counterpart name, match reasoning, confidence score, " +
@@ -849,6 +851,10 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         .string()
         .optional()
         .describe("Index UUID to filter opportunities to a specific community. Get from read_networks. Defaults to the scoped index in index-scoped chats. Omit to see opportunities across all indexes."),
+      status: z
+        .string()
+        .optional()
+        .describe("Filter by status: 'draft', 'pending', 'accepted', 'rejected', 'expired', or 'all'. Defaults to showing draft + pending (actionable items). Pass 'all' to see every status."),
     }),
     handler: async ({ context, query }) => {
       // Strict scope enforcement: when chat is index-scoped, only allow that index
@@ -870,11 +876,21 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         return error("Invalid network ID format.");
       }
 
+      const DEFAULT_STATUSES: OpportunityStatus[] = ["draft", "pending"];
+      const requestedStatus = query.status?.trim().toLowerCase();
+      const statuses =
+        !requestedStatus || requestedStatus === ""
+          ? DEFAULT_STATUSES
+          : requestedStatus === "all"
+            ? undefined
+            : [requestedStatus as OpportunityStatus];
+
       // Get opportunities; use minimal card data (no LLM presenter) for fast chat response
       const opportunities = await database.getOpportunitiesForUser(
         context.userId,
         {
           networkId: effectiveIndexId,
+          ...(statuses ? { statuses } : {}),
           limit: CHAT_DISPLAY_LIMIT,
         },
       );
