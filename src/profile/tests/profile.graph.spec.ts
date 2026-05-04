@@ -41,13 +41,15 @@ describe('ProfileGraph', () => {
         id: userId,
         name: 'Test User',
         email: 'test@example.com',
-        socials: {}
+        socials: []
       })),
+      getUserSocials: mock(async () => []),
+      setUserSocials: mock(async () => {}),
       updateUser: mock(async (userId: string, data: any) => ({
         id: userId,
         name: data.name ?? 'Test User',
         email: 'test@example.com',
-        socials: data.socials ?? {},
+        socials: [],
         location: data.location ?? null,
       })),
       saveProfile: mock(async () => {}),
@@ -308,7 +310,7 @@ describe('ProfileGraph', () => {
         id: 'test-user-id',
         name: 'test@example.com', // Just email as name
         email: 'test@example.com',
-        socials: null // No socials
+        socials: [] // No socials
       });
 
       const graph = factory.createGraph();
@@ -337,10 +339,10 @@ describe('ProfileGraph', () => {
         id: 'test-user-id',
         name: 'Test',
         email: 'test@example.com',
-        socials: {
-          x: 'https://x.com/testuser',
-          linkedin: 'https://linkedin.com/in/testuser'
-        }
+        socials: [
+          { id: '1', userId: 'test-user-id', label: 'twitter', value: 'https://x.com/testuser' },
+          { id: '2', userId: 'test-user-id', label: 'linkedin', value: 'https://linkedin.com/in/testuser' },
+        ]
       });
 
       const graph = factory.createGraph();
@@ -363,7 +365,7 @@ describe('ProfileGraph', () => {
         id: 'test-user-id',
         name: 'John Doe', // Full name
         email: 'test@example.com',
-        socials: null,
+        socials: [],
         location: 'San Francisco, CA'
       });
 
@@ -387,7 +389,7 @@ describe('ProfileGraph', () => {
         id: 'test-user-id',
         name: 'Test',
         email: 'test@example.com',
-        socials: null
+        socials: []
       });
 
       const graph = factory.createGraph();
@@ -459,6 +461,8 @@ describe('ProfileGraph - Generate Mode', () => {
       getProfile: mock(async () => null),
       getProfileByUserId: mock(async () => null),
       getUser: mock(async () => null),
+      getUserSocials: mock(async () => []),
+      setUserSocials: mock(async () => {}),
       updateUser: mock(async (userId: string, data: any) => ({ id: userId, ...data })),
       saveProfile: mock(async (userId: string, profile: any) => {
         savedProfiles.set(userId, profile);
@@ -490,7 +494,7 @@ describe('ProfileGraph - Generate Mode', () => {
       id: 'user-enriched',
       name: 'Jane Doe',
       email: 'jane@example.com',
-      socials: { linkedin: 'janedoe' },
+      socials: [{ id: '1', userId: 'user-enriched', label: 'linkedin', value: 'janedoe' }],
       location: null,
       intro: null,
     };
@@ -529,7 +533,7 @@ describe('ProfileGraph - Generate Mode', () => {
         name: 'jane',
         email: 'jane@example.com',
         isGhost: true,
-        socials: null,
+        socials: [],
         location: null,
         intro: null,
       };
@@ -589,7 +593,7 @@ describe('ProfileGraph - Generate Mode', () => {
       id: 'user-fallback',
       name: 'John Smith',
       email: 'john@example.com',
-      socials: null,
+      socials: [],
       location: 'London',
       intro: null,
     };
@@ -616,7 +620,7 @@ describe('ProfileGraph - Generate Mode', () => {
       id: 'user-lowsignal',
       name: 'seren',
       email: 'seren@index.network',
-      socials: null,
+      socials: [],
       location: null,
       intro: null,
     };
@@ -627,7 +631,7 @@ describe('ProfileGraph - Generate Mode', () => {
         identity: { name: 'seren', bio: '', location: '' },
         narrative: { context: '' },
         attributes: { skills: [], interests: [] },
-        socials: {},
+        socials: [],
         confidentMatch: true,
         isHuman: true,
       });
@@ -650,7 +654,7 @@ describe('ProfileGraph - Generate Mode', () => {
       id: 'user-not-confident',
       name: 'Alex Unknown',
       email: 'alex@unknown.io',
-      socials: null,
+      socials: [],
       location: null,
       intro: null,
     };
@@ -661,7 +665,7 @@ describe('ProfileGraph - Generate Mode', () => {
         identity: { name: 'Alex Unknown', bio: 'Possibly a developer.', location: 'Remote' },
         narrative: { context: 'May work in tech.' },
         attributes: { skills: ['JavaScript'], interests: ['Web'] },
-        socials: {},
+        socials: [],
         confidentMatch: false,
         isHuman: true,
       });
@@ -688,7 +692,7 @@ describe('ProfileGraph - Generate Mode', () => {
       id: 'ghost-pipeline',
       name: 'seren',
       email: 'seren@index.network',
-      socials: null,
+      socials: [],
       location: null,
       intro: null,
     };
@@ -757,10 +761,12 @@ describe('ProfileGraph - Pre-Populated Profile Path', () => {
         id: 'ghost-sarah',
         name: 'Sarah Hoople Shere',
         email: 'sarah@example.com',
-        socials: null,
+        socials: [],
         location: null,
         intro: null,
       })),
+      getUserSocials: mock(async () => []),
+      setUserSocials: mock(async () => {}),
       updateUser: mock(async (userId: string, data: unknown) => ({ id: userId, ...data as object })),
       saveProfile: mock(async (userId: string, profile: unknown) => {
         savedProfiles.set(userId, profile);
@@ -840,7 +846,7 @@ describe('ProfileGraph - Pre-Populated Profile Path', () => {
       id: 'ghost-sarah',
       name: 'Sarah Hoople Shere',
       email: 'sarah@example.com',
-      socials: null,
+      socials: [],
       location: null,
       intro: null,
     });
