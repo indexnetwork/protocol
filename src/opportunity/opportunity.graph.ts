@@ -65,6 +65,7 @@ import type {
   ActiveIntent,
 } from '../shared/interfaces/database.interface.js';
 import { persistOpportunities } from './opportunity.persist.js';
+import { INTRODUCER_DISCOVERY_SOURCE } from './opportunity.introducer.js';
 import { negotiateCandidates, type NegotiationCandidate, type OnNegotiationResolved } from "../negotiation/negotiation.graph.js";
 import { AMBIENT_PARK_WINDOW_MS } from "../negotiation/negotiation.tools.js";
 import type { NegotiationGraphLike } from "../negotiation/negotiation.state.js";
@@ -2436,7 +2437,7 @@ export class OpportunityGraphFactory {
 
               data = {
                 detection: {
-                  source: 'manual',
+                  source: INTRODUCER_DISCOVERY_SOURCE,
                   createdBy: state.userId,
                   createdByName: introducerUserForOnBehalf?.name ?? undefined,
                   timestamp: now,
@@ -2449,7 +2450,7 @@ export class OpportunityGraphFactory {
                   signals: [{
                     type: 'curator_judgment',
                     weight: 1,
-                    detail: `Discovery on behalf of another user by ${introducerUserForOnBehalf?.name ?? 'a member'} via chat`,
+                    detail: `Introducer discovery for ${introducerUserForOnBehalf?.name ?? 'a member'} via background maintenance`,
                   }],
                 },
                 context: {

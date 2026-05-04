@@ -24,7 +24,7 @@ export interface UserSocials {
 
 /** Detection metadata recorded when an opportunity is created. */
 export interface OpportunityDetection {
-  source: 'opportunity_graph' | 'chat' | 'manual' | 'cron' | 'member_added' | 'enrichment';
+  source: 'opportunity_graph' | 'chat' | 'manual' | 'cron' | 'member_added' | 'enrichment' | 'introducer_discovery';
   createdBy?: Id<'users'> | string;
   createdByName?: string;
   triggeredBy?: Id<'intents'>;
