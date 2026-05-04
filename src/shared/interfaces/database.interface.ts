@@ -1137,7 +1137,8 @@ export interface Database {
    */
   updateOpportunityStatus(
     id: string,
-    status: OpportunityStatus
+    status: OpportunityStatus,
+    acceptedBy?: string,
   ): Promise<Opportunity | null>;
 
   /**
@@ -1486,7 +1487,7 @@ export interface UserDatabase {
   getOpportunity(id: string): Promise<Opportunity | null>;
 
   /** Update an opportunity's status (if user is an actor). */
-  updateOpportunityStatus(id: string, status: OpportunityStatus): Promise<Opportunity | null>;
+  updateOpportunityStatus(id: string, status: OpportunityStatus, acceptedBy?: string): Promise<Opportunity | null>;
 
   /** Get accepted opportunities between the authenticated user and another actor. */
   getAcceptedOpportunitiesBetweenActors(counterpartUserId: string): Promise<Opportunity[]>;
@@ -1609,7 +1610,7 @@ export interface SystemDatabase {
   getOpportunitiesForNetwork(networkId: string, options?: OpportunityQueryOptions): Promise<Opportunity[]>;
 
   /** Update an opportunity's status (system-level). */
-  updateOpportunityStatus(id: string, status: OpportunityStatus): Promise<Opportunity | null>;
+  updateOpportunityStatus(id: string, status: OpportunityStatus, acceptedBy?: string): Promise<Opportunity | null>;
 
   /** Check if opportunity exists between actors in an index. */
   opportunityExistsBetweenActors(actorIds: string[], networkId: string): Promise<boolean>;
