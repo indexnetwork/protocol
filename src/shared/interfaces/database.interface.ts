@@ -14,12 +14,12 @@ export interface OnboardingState {
   invitationCode?: string;
 }
 
-/** Social-media handles stored as JSON on the user record. */
-export interface UserSocials {
-  x?: string;
-  linkedin?: string;
-  github?: string;
-  websites?: string[];
+/** Single social-link row from the user_socials table. */
+export interface UserSocial {
+  id: string;
+  userId: string;
+  label: string;
+  value: string;
 }
 
 /** Detection metadata recorded when an opportunity is created. */
@@ -71,7 +71,7 @@ export interface UserRecord {
   intro?: string | null;
   avatar?: string | null;
   location?: string | null;
-  socials?: UserSocials | null;
+  socials: UserSocial[];
   onboarding?: OnboardingState | null;
   isGhost?: boolean;
   deletedAt?: Date | null;
@@ -469,7 +469,10 @@ export interface Database {
    * @param data - Partial user fields to update
    * @returns The updated user record or null if not found
    */
-  updateUser(userId: string, data: { name?: string; intro?: string; location?: string; socials?: UserSocials; onboarding?: OnboardingState }): Promise<UserRecord | null>;
+  updateUser(userId: string, data: { name?: string; intro?: string; location?: string; onboarding?: OnboardingState }): Promise<UserRecord | null>;
+
+  getUserSocials(userId: string): Promise<UserSocial[]>;
+  setUserSocials(userId: string, socials: { label: string; value: string }[]): Promise<void>;
 
   /**
    * Soft-delete a ghost user and all their contact memberships.
@@ -488,7 +491,7 @@ export interface Database {
    * @param socials - Enriched social handles to match against
    * @returns The matching user's id, or null if no match
    */
-  findDuplicateUser(userId: string, socials: UserSocials): Promise<{ id: string } | null>;
+  findDuplicateUser(userId: string, socials: UserSocial[]): Promise<{ id: string } | null>;
 
   /**
    * Merge a ghost user (source) into a target user.
@@ -1343,7 +1346,10 @@ export interface UserDatabase {
   getUser(): Promise<UserRecord | null>;
 
   /** Update the authenticated user's account fields. */
-  updateUser(data: { name?: string; intro?: string; location?: string; socials?: UserSocials; onboarding?: OnboardingState }): Promise<UserRecord | null>;
+  updateUser(data: { name?: string; intro?: string; location?: string; onboarding?: OnboardingState }): Promise<UserRecord | null>;
+
+  getUserSocials(): Promise<UserSocial[]>;
+  setUserSocials(socials: { label: string; value: string }[]): Promise<void>;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Intent Operations (own only, ALL intents - not index-scoped)
@@ -1669,7 +1675,7 @@ export interface SystemDatabase {
  */
 export type ProfileGraphDatabase = Pick<
   Database,
-  'getProfile' | 'getUser' | 'updateUser' | 'saveProfile' | 'getProfileByUserId' | 'getHydeDocument' | 'saveHydeDocument' | 'softDeleteGhost' | 'findDuplicateUser' | 'mergeGhostUser'
+  'getProfile' | 'getUser' | 'updateUser' | 'saveProfile' | 'getProfileByUserId' | 'getHydeDocument' | 'saveHydeDocument' | 'softDeleteGhost' | 'findDuplicateUser' | 'mergeGhostUser' | 'getUserSocials' | 'setUserSocials'
 >;
 
 /**
@@ -1690,6 +1696,8 @@ export type ChatGraphCompositeDatabase = Pick<
   // ProfileGraph subgraph requirements
   | 'getUser'
   | 'updateUser'
+  | 'getUserSocials'
+  | 'setUserSocials'
   | 'saveProfile'
   | 'softDeleteGhost'
   // IntentGraph subgraph requirements (getActiveIntents already included)
