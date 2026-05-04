@@ -185,7 +185,7 @@ export function createChatGraphMockDb(
   const isIndexOwner = config.isIndexOwner ?? (() => false);
   const getUser =
     config.getUser ??
-    ((userId: string): UserRecord => ({ id: userId, name: "Test User", email: "test@example.com" }));
+    ((userId: string): UserRecord => ({ id: userId, name: "Test User", email: "test@example.com", socials: [] }));
   const ownedIndexes = config.ownedIndexes ?? (() => []);
 
   return {
