@@ -389,6 +389,7 @@ export class ProfileGraphFactory {
             linkedin: enrichmentSocials.linkedin || undefined,
             twitter: enrichmentSocials.twitter || undefined,
             github: enrichmentSocials.github || undefined,
+            telegram: enrichmentSocials.telegram || undefined,
             websites: enrichmentSocials.websites?.length ? enrichmentSocials.websites : undefined,
           };
 
@@ -466,6 +467,7 @@ export class ProfileGraphFactory {
               if (enrichment!.socials.twitter) newSocials.push({ label: 'twitter', value: enrichment!.socials.twitter });
               if (enrichment!.socials.linkedin) newSocials.push({ label: 'linkedin', value: enrichment!.socials.linkedin });
               if (enrichment!.socials.github) newSocials.push({ label: 'github', value: enrichment!.socials.github });
+              if (enrichment!.socials.telegram) newSocials.push({ label: 'telegram', value: enrichment!.socials.telegram });
               if (enrichment!.socials.websites?.length) {
                 for (const w of enrichment!.socials.websites) newSocials.push({ label: 'custom', value: w });
               }

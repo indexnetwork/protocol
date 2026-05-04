@@ -32,6 +32,7 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
       linkedin: enrichmentSocials.linkedin || undefined,
       twitter: enrichmentSocials.twitter || undefined,
       github: enrichmentSocials.github || undefined,
+      telegram: enrichmentSocials.telegram || undefined,
       websites: enrichmentSocials.websites?.length ? enrichmentSocials.websites : undefined,
     });
   }
@@ -349,14 +350,25 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
               if (enrichment.identity.bio?.trim()) updatePayload.intro = enrichment.identity.bio.trim();
               if (enrichment.identity.location?.trim()) updatePayload.location = enrichment.identity.location.trim();
               if (Object.keys(updatePayload).length > 0) await userDb.updateUser(updatePayload);
-              const socials: { label: string; value: string }[] = [];
-              if (enrichment.socials.twitter) socials.push({ label: 'twitter', value: enrichment.socials.twitter });
-              if (enrichment.socials.linkedin) socials.push({ label: 'linkedin', value: enrichment.socials.linkedin });
-              if (enrichment.socials.github) socials.push({ label: 'github', value: enrichment.socials.github });
+              const enrichedSocials: { label: string; value: string }[] = [];
+              if (enrichment.socials.twitter) enrichedSocials.push({ label: 'twitter', value: enrichment.socials.twitter });
+              if (enrichment.socials.linkedin) enrichedSocials.push({ label: 'linkedin', value: enrichment.socials.linkedin });
+              if (enrichment.socials.github) enrichedSocials.push({ label: 'github', value: enrichment.socials.github });
+              if (enrichment.socials.telegram) enrichedSocials.push({ label: 'telegram', value: enrichment.socials.telegram });
               if (enrichment.socials.websites?.length) {
-                for (const w of enrichment.socials.websites) socials.push({ label: 'custom', value: w });
+                for (const w of enrichment.socials.websites) enrichedSocials.push({ label: 'custom', value: w });
               }
-              if (socials.length > 0) await userDb.setUserSocials(socials);
+              if (enrichedSocials.length > 0) {
+                const existingSocials = await userDb.getUserSocials();
+                const enrichedLabels = new Set(enrichedSocials.map(s => s.label));
+                const kept = existingSocials
+                  .filter(s => !enrichedLabels.has(s.label) || s.label === 'custom')
+                  .map(s => ({ label: s.label, value: s.value }));
+                const merged = enrichedLabels.has('custom')
+                  ? [...kept.filter(s => s.label !== 'custom'), ...enrichedSocials]
+                  : [...kept, ...enrichedSocials];
+                await userDb.setUserSocials(merged);
+              }
 
               return success({
                 preview: true,

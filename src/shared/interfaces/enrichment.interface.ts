@@ -5,6 +5,7 @@ export interface EnrichmentRequest {
   linkedin?: string;
   twitter?: string;
   github?: string;
+  telegram?: string;
   websites?: string[];
 }
 
@@ -26,6 +27,7 @@ export interface EnrichmentResult {
     linkedin?: string;
     twitter?: string;
     github?: string;
+    telegram?: string;
     websites?: string[];
   };
   confidentMatch: boolean;
