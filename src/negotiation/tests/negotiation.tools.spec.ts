@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { z } from "zod";
 import { createNegotiationTools } from "../negotiation.tools.js";
 import type { ToolDeps, ResolvedToolContext } from "../../shared/agent/tool.helpers.js";
 
@@ -13,8 +14,8 @@ function makeContext(userId = "user-src"): ResolvedToolContext {
 }
 
 function captureTool(name: string, deps: Partial<ToolDeps>) {
-  let captured: { handler: (i: { context: ResolvedToolContext; query: unknown }) => Promise<string> } | undefined;
-  const defineTool = (def: { name: string; handler: (...args: unknown[]) => unknown }) => {
+  let captured: { handler: (i: { context: ResolvedToolContext; query: unknown }) => Promise<string>; querySchema?: z.ZodType } | undefined;
+  const defineTool = (def: { name: string; handler: (...args: unknown[]) => unknown; querySchema?: z.ZodType }) => {
     if (def.name === name) captured = def as typeof captured;
     return def;
   };
@@ -33,9 +34,9 @@ function makeTask(state: string, sourceUserId: string, candidateUserId: string) 
   };
 }
 
-function makeMessage(action: string, reasoning: string, message: string | null) {
+function makeMessage(action: string, reasoning: string, message: string | null, suggestedRoles = { ownUser: "peer", otherUser: "peer" }) {
   return {
-    parts: [{ kind: "data", data: { action, assessment: { reasoning }, message } }],
+    parts: [{ kind: "data", data: { action, assessment: { reasoning, suggestedRoles }, message } }],
   };
 }
 
@@ -238,5 +239,203 @@ describe("get_negotiation — isUsersTurn", () => {
 
     expect(result.success).toBe(true);
     expect(result.data.isUsersTurn).toBe(false);
+  });
+});
+
+// ── respond_to_negotiation — schema validation ───────────────────────────────
+
+describe("respond_to_negotiation — schema validation", () => {
+  const tool = captureTool("respond_to_negotiation", {});
+  const schema = tool.querySchema! as z.ZodType;
+
+  const validQuery = {
+    negotiationId: "task-1",
+    action: "accept",
+    reasoning: "Good fit for collaboration",
+    suggestedRoles: { ownUser: "peer", otherUser: "peer" },
+  };
+
+  test("accepts valid input with all required fields", () => {
+    const result = schema.safeParse(validQuery);
+    expect(result.success).toBe(true);
+  });
+
+  test("accepts propose action", () => {
+    const result = schema.safeParse({ ...validQuery, action: "propose" });
+    expect(result.success).toBe(true);
+  });
+
+  test("accepts optional message field", () => {
+    const result = schema.safeParse({ ...validQuery, action: "counter", message: "I'd like to adjust scope" });
+    expect(result.success).toBe(true);
+  });
+
+  test("rejects missing reasoning", () => {
+    const { reasoning: _, ...without } = validQuery;
+    const result = schema.safeParse(without);
+    expect(result.success).toBe(false);
+  });
+
+  test("rejects missing suggestedRoles", () => {
+    const { suggestedRoles: _, ...without } = validQuery;
+    const result = schema.safeParse(without);
+    expect(result.success).toBe(false);
+  });
+
+  test("rejects invalid role value", () => {
+    const result = schema.safeParse({
+      ...validQuery,
+      suggestedRoles: { ownUser: "leader", otherUser: "peer" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test("rejects invalid action", () => {
+    const result = schema.safeParse({ ...validQuery, action: "negotiate" });
+    expect(result.success).toBe(false);
+  });
+
+  test("accepts all valid role combinations", () => {
+    for (const ownUser of ["agent", "patient", "peer"]) {
+      for (const otherUser of ["agent", "patient", "peer"]) {
+        const result = schema.safeParse({ ...validQuery, suggestedRoles: { ownUser, otherUser } });
+        expect(result.success).toBe(true);
+      }
+    }
+  });
+});
+
+// ── respond_to_negotiation — turn data and success messages ──────────────────
+
+describe("respond_to_negotiation — handler", () => {
+  function makeRespondDeps(turnCount: number, opts?: { dispatchResult?: unknown }) {
+    const createdMessages: unknown[] = [];
+    return {
+      deps: {
+        negotiationDatabase: {
+          getTask: async () => makeTask("waiting_for_agent", "user-src", "user-cand"),
+          getMessagesForConversation: async () => Array(turnCount).fill(makeMessage("counter", "r", "m")),
+          createMessage: async (msg: unknown) => { createdMessages.push(msg); return { id: "msg-1", senderId: "s", role: "agent", parts: [], createdAt: new Date() }; },
+          updateTaskState: async () => {},
+          createArtifact: async () => {},
+        },
+        negotiationTimeoutQueue: { cancelTimeout: async () => {}, enqueueTimeout: async () => {} },
+        agentDispatcher: { dispatch: async () => opts?.dispatchResult ?? { handled: false, reason: "waiting" } },
+      } as Partial<ToolDeps>,
+      createdMessages,
+    };
+  }
+
+  test("turn data uses query.reasoning and query.suggestedRoles", async () => {
+    const { deps, createdMessages } = makeRespondDeps(0);
+    const tool = captureTool("respond_to_negotiation", deps);
+
+    await tool.handler({
+      context: makeContext("user-src"),
+      query: {
+        negotiationId: "task-1",
+        action: "propose",
+        reasoning: "Strong synergy",
+        suggestedRoles: { ownUser: "agent", otherUser: "patient" },
+      },
+    });
+
+    const msg = createdMessages[0] as { parts: Array<{ data: { assessment: { reasoning: string; suggestedRoles: { ownUser: string; otherUser: string } } } }> };
+    const turnData = msg.parts[0].data;
+    expect(turnData.assessment.reasoning).toBe("Strong synergy");
+    expect(turnData.assessment.suggestedRoles).toEqual({ ownUser: "agent", otherUser: "patient" });
+  });
+
+  test("accept finalizes with correct success message", async () => {
+    const { deps } = makeRespondDeps(2);
+    const tool = captureTool("respond_to_negotiation", deps);
+
+    const raw = await tool.handler({
+      context: makeContext("user-src"),
+      query: {
+        negotiationId: "task-1",
+        action: "accept",
+        reasoning: "Looks good",
+        suggestedRoles: { ownUser: "peer", otherUser: "peer" },
+      },
+    });
+
+    const result = JSON.parse(raw);
+    expect(result.data.message).toBe("Negotiation accepted. An opportunity has been created.");
+  });
+
+  test("reject finalizes with correct success message", async () => {
+    const { deps } = makeRespondDeps(2);
+    const tool = captureTool("respond_to_negotiation", deps);
+
+    const raw = await tool.handler({
+      context: makeContext("user-src"),
+      query: {
+        negotiationId: "task-1",
+        action: "reject",
+        reasoning: "Not a fit",
+        suggestedRoles: { ownUser: "peer", otherUser: "peer" },
+      },
+    });
+
+    const result = JSON.parse(raw);
+    expect(result.data.message).toBe("Negotiation rejected.");
+  });
+
+  test("propose waiting uses 'Proposal' label, not 'Counter-proposal'", async () => {
+    const { deps } = makeRespondDeps(0);
+    const tool = captureTool("respond_to_negotiation", deps);
+
+    const raw = await tool.handler({
+      context: makeContext("user-src"),
+      query: {
+        negotiationId: "task-1",
+        action: "propose",
+        reasoning: "Let's explore",
+        suggestedRoles: { ownUser: "peer", otherUser: "peer" },
+      },
+    });
+
+    const result = JSON.parse(raw);
+    expect(result.data.message).toContain("Proposal submitted");
+    expect(result.data.message).not.toContain("Counter");
+  });
+
+  test("counter waiting uses 'Counter-proposal' label", async () => {
+    const { deps } = makeRespondDeps(2);
+    const tool = captureTool("respond_to_negotiation", deps);
+
+    const raw = await tool.handler({
+      context: makeContext("user-src"),
+      query: {
+        negotiationId: "task-1",
+        action: "counter",
+        reasoning: "Need to adjust",
+        suggestedRoles: { ownUser: "peer", otherUser: "peer" },
+        message: "Adjusting scope",
+      },
+    });
+
+    const result = JSON.parse(raw);
+    expect(result.data.message).toContain("Counter-proposal submitted");
+  });
+
+  test("question waiting uses 'Question' label", async () => {
+    const { deps } = makeRespondDeps(2);
+    const tool = captureTool("respond_to_negotiation", deps);
+
+    const raw = await tool.handler({
+      context: makeContext("user-src"),
+      query: {
+        negotiationId: "task-1",
+        action: "question",
+        reasoning: "Need more info",
+        suggestedRoles: { ownUser: "peer", otherUser: "peer" },
+        message: "What's the timeline?",
+      },
+    });
+
+    const result = JSON.parse(raw);
+    expect(result.data.message).toContain("Question submitted");
   });
 });
