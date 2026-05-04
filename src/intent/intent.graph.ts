@@ -551,6 +551,7 @@ export class IntentGraphFactory {
                   null,
                 felicityAuthority: matchedVerifiedIntent?.verification?.felicity_scores.authority ?? null,
                 felicitySincerity: matchedVerifiedIntent?.verification?.felicity_scores.sincerity ?? null,
+                felicityClarity: matchedVerifiedIntent?.verification?.felicity_scores.clarity ?? null,
                 intentMode: createAction.intentMode ?? null,
                 speechActType: toSpeechActType(matchedVerifiedIntent?.verification?.classification),
               });
@@ -598,6 +599,7 @@ export class IntentGraphFactory {
                   null,
                 felicityAuthority: matchedVerifiedIntent?.verification?.felicity_scores.authority ?? null,
                 felicitySincerity: matchedVerifiedIntent?.verification?.felicity_scores.sincerity ?? null,
+                felicityClarity: matchedVerifiedIntent?.verification?.felicity_scores.clarity ?? null,
                 intentMode: updateAction.intentMode ?? null,
                 speechActType: toSpeechActType(matchedVerifiedIntent?.verification?.classification),
               });
