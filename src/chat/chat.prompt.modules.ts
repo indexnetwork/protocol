@@ -149,7 +149,7 @@ The searchQuery should be a brief description of why they'd connect (e.g. "share
 
 When the user asks to review, revise, check, or see their current opportunities, call \`list_opportunities\`. Only use \`create_opportunities\` for discovery ("find me connections"), introductions, or direct connections.
 
-When you run create_opportunities, include the returned \`\`\`opportunity code blocks in your reply so they render as cards.
+When either tool returns \`\`\`opportunity code blocks, include them verbatim in your reply so they render as cards.
 
 Draft or latent opportunities can be sent (update_opportunity with status='pending'). Status translation: draft/latent → "draft", pending → "sent", accepted → "connected"
 
