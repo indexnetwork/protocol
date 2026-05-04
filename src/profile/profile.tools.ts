@@ -6,6 +6,7 @@ import type { DefineTool, ToolDeps } from "../shared/agent/tool.helpers.js";
 import { success, error, needsClarification, UUID_REGEX } from "../shared/agent/tool.helpers.js";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import type { EnrichmentResult, ProfileEnricher } from "../shared/interfaces/enrichment.interface.js";
+import { socialsToEnrichmentRequest, detectSocialLabel } from "../shared/utils/social-label.js";
 
 const logger = protocolLogger("ChatTools:Profile");
 
@@ -23,14 +24,16 @@ function isMeaningfulEnrichment(enrichment: EnrichmentResult | null): enrichment
 export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
   const { userDb, systemDb, database, graphs, enricher, grantDefaultSystemPermissions } = deps;
 
-  async function enrichFromUserRecord(user: { name?: string | null; email?: string | null; socials?: { linkedin?: string; x?: string; github?: string; websites?: string[] } | null }) {
+  async function enrichFromUserRecord(user: { name?: string | null; email?: string | null; socials: Array<{ id: string; userId: string; label: string; value: string }> }) {
+    const enrichmentSocials = socialsToEnrichmentRequest(user.socials);
     return enricher.enrichUserProfile({
       name: user.name || undefined,
       email: user.email || undefined,
-      linkedin: user.socials?.linkedin || undefined,
-      twitter: user.socials?.x || undefined,
-      github: user.socials?.github || undefined,
-      websites: user.socials?.websites?.length ? user.socials.websites : undefined,
+      linkedin: enrichmentSocials.linkedin || undefined,
+      twitter: enrichmentSocials.twitter || undefined,
+      github: enrichmentSocials.github || undefined,
+      telegram: enrichmentSocials.telegram || undefined,
+      websites: enrichmentSocials.websites?.length ? enrichmentSocials.websites : undefined,
     });
   }
 
@@ -285,19 +288,31 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
       const twitterUrl = query.twitterUrl?.trim();
       const websites = query.websites?.map((url) => url.trim()).filter(Boolean);
       const hasSocialsFromQuery = Boolean(linkedinUrl || githubUrl || twitterUrl || websites?.length);
-      if (name || location || hasSocialsFromQuery) {
-        const socialsUpdate: { linkedin?: string; github?: string; x?: string; websites?: string[] } = {};
-        if (linkedinUrl) socialsUpdate.linkedin = linkedinUrl;
-        if (githubUrl) socialsUpdate.github = githubUrl;
-        if (twitterUrl) socialsUpdate.x = twitterUrl;
-        if (websites?.length) socialsUpdate.websites = websites;
+      if (name || location) {
         await userDb.updateUser({
           ...(name ? { name } : {}),
           ...(location ? { location } : {}),
-          ...(hasSocialsFromQuery ? { socials: socialsUpdate } : {}),
         });
-        logger.verbose("Persisted user-info fields to user record", { userId: context.userId });
       }
+      if (hasSocialsFromQuery) {
+        const existingSocials = await userDb.getUserSocials();
+        const newSocials: { label: string; value: string }[] = [];
+        if (linkedinUrl) newSocials.push({ label: 'linkedin', value: linkedinUrl });
+        if (githubUrl) newSocials.push({ label: 'github', value: githubUrl });
+        if (twitterUrl) newSocials.push({ label: 'twitter', value: twitterUrl });
+        if (websites?.length) {
+          for (const w of websites) newSocials.push({ label: detectSocialLabel(w) === 'custom' ? 'custom' : detectSocialLabel(w), value: w });
+        }
+        const newLabels = new Set(newSocials.map(s => s.label));
+        const kept = existingSocials
+          .filter(s => !newLabels.has(s.label) || s.label === 'custom')
+          .map(s => ({ label: s.label, value: s.value }));
+        const merged = newLabels.has('custom')
+          ? [...kept.filter(s => s.label !== 'custom'), ...newSocials]
+          : [...kept, ...newSocials];
+        await userDb.setUserSocials(merged);
+      }
+      logger.verbose("Persisted user-info fields to user record", { userId: context.userId });
 
       const isOnboarding = !(context.user.onboarding?.completedAt);
       if (isOnboarding) {
@@ -328,22 +343,32 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
                 name?: string;
                 intro?: string;
                 location?: string;
-                socials?: { x?: string; linkedin?: string; github?: string; websites?: string[] };
               } = {};
-              // No ghost guard needed: onboarding users are active (non-ghost) and
-              // haven't confirmed a name yet — the enriched name is a preview they accept or edit.
               if (enrichment.identity.name?.trim()) {
                 updatePayload.name = enrichment.identity.name.trim();
               }
               if (enrichment.identity.bio?.trim()) updatePayload.intro = enrichment.identity.bio.trim();
               if (enrichment.identity.location?.trim()) updatePayload.location = enrichment.identity.location.trim();
-              const socials: { x?: string; linkedin?: string; github?: string; websites?: string[] } = {};
-              if (enrichment.socials.twitter) socials.x = enrichment.socials.twitter;
-              if (enrichment.socials.linkedin) socials.linkedin = enrichment.socials.linkedin;
-              if (enrichment.socials.github) socials.github = enrichment.socials.github;
-              if (enrichment.socials.websites?.length) socials.websites = enrichment.socials.websites;
-              if (Object.keys(socials).length > 0) updatePayload.socials = socials;
               if (Object.keys(updatePayload).length > 0) await userDb.updateUser(updatePayload);
+              const enrichedSocials: { label: string; value: string }[] = [];
+              if (enrichment.socials.twitter) enrichedSocials.push({ label: 'twitter', value: enrichment.socials.twitter });
+              if (enrichment.socials.linkedin) enrichedSocials.push({ label: 'linkedin', value: enrichment.socials.linkedin });
+              if (enrichment.socials.github) enrichedSocials.push({ label: 'github', value: enrichment.socials.github });
+              if (enrichment.socials.telegram) enrichedSocials.push({ label: 'telegram', value: enrichment.socials.telegram });
+              if (enrichment.socials.websites?.length) {
+                for (const w of enrichment.socials.websites) enrichedSocials.push({ label: 'custom', value: w });
+              }
+              if (enrichedSocials.length > 0) {
+                const existingSocials = await userDb.getUserSocials();
+                const enrichedLabels = new Set(enrichedSocials.map(s => s.label));
+                const kept = existingSocials
+                  .filter(s => !enrichedLabels.has(s.label) || s.label === 'custom')
+                  .map(s => ({ label: s.label, value: s.value }));
+                const merged = enrichedLabels.has('custom')
+                  ? [...kept.filter(s => s.label !== 'custom'), ...enrichedSocials]
+                  : [...kept, ...enrichedSocials];
+                await userDb.setUserSocials(merged);
+              }
 
               return success({
                 preview: true,

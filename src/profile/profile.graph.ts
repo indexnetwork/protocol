@@ -7,6 +7,7 @@ import { Embedder } from "../shared/interfaces/embedder.interface.js";
 import { Scraper } from "../shared/interfaces/scraper.interface.js";
 import type { ProfileEnricher } from "../shared/interfaces/enrichment.interface.js";
 import { shouldEnrichGhostDisplayNameFromParallel, isEnrichedNameMeaningful } from "./profile.enricher.js";
+import { socialsToEnrichmentRequest } from "../shared/utils/social-label.js";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import { timed } from "../shared/observability/performance.js";
 import { requestContext } from "../shared/observability/request-context.js";
@@ -187,12 +188,8 @@ export class ProfileGraphFactory {
             // Required fields: email, name (always present)
             // Optional fields: intro, avatar, location, socials
 
-            const hasSocials = !!(user.socials && (
-              user.socials.x ||
-              user.socials.linkedin ||
-              user.socials.github ||
-              (user.socials.websites && user.socials.websites.length > 0)
-            ));
+            const socials = await this.database.getUserSocials(state.userId);
+            const hasSocials = socials.length > 0;
 
             // Check if name is a full name (not just email username)
             // For scraping to work well, we need first + last name
@@ -306,12 +303,14 @@ export class ProfileGraphFactory {
           // Build scraping objective from available user information
           // Priority: social links (most reliable) > name + location > email
           const socialParts: string[] = [];
-          if (user.socials) {
-            if (user.socials.x) socialParts.push(`X/Twitter: ${user.socials.x}`);
-            if (user.socials.linkedin) socialParts.push(`LinkedIn: ${user.socials.linkedin}`);
-            if (user.socials.github) socialParts.push(`GitHub: ${user.socials.github}`);
-            if (user.socials.websites && user.socials.websites.length > 0) {
-              user.socials.websites.forEach((url: string) => socialParts.push(`Website: ${url}`));
+          const socials = await this.database.getUserSocials(state.userId);
+          for (const s of socials) {
+            switch (s.label) {
+              case 'twitter': socialParts.push(`X/Twitter: ${s.value}`); break;
+              case 'linkedin': socialParts.push(`LinkedIn: ${s.value}`); break;
+              case 'github': socialParts.push(`GitHub: ${s.value}`); break;
+              case 'telegram': socialParts.push(`Telegram: ${s.value}`); break;
+              default: socialParts.push(`Website: ${s.value}`); break;
             }
           }
 
@@ -382,13 +381,16 @@ export class ProfileGraphFactory {
             return { error: `User not found: ${state.userId}` };
           }
 
+          const socials = await this.database.getUserSocials(state.userId);
+          const enrichmentSocials = socialsToEnrichmentRequest(socials);
           const request = {
             name: user.name || undefined,
             email: user.email || undefined,
-            linkedin: user.socials?.linkedin || undefined,
-            twitter: user.socials?.x || undefined,
-            github: user.socials?.github || undefined,
-            websites: user.socials?.websites?.length ? user.socials.websites : undefined,
+            linkedin: enrichmentSocials.linkedin || undefined,
+            twitter: enrichmentSocials.twitter || undefined,
+            github: enrichmentSocials.github || undefined,
+            telegram: enrichmentSocials.telegram || undefined,
+            websites: enrichmentSocials.websites?.length ? enrichmentSocials.websites : undefined,
           };
 
           const buildBasicInfo = () => {
@@ -447,7 +449,6 @@ export class ProfileGraphFactory {
                 name?: string;
                 intro?: string;
                 location?: string;
-                socials?: { x?: string; linkedin?: string; github?: string; websites?: string[] };
               } = {};
               const enrichedName = enrichment!.identity.name?.trim();
               if (
@@ -462,12 +463,15 @@ export class ProfileGraphFactory {
               if (enrichment!.identity.bio?.trim()) updatePayload.intro = enrichment!.identity.bio.trim();
               if (enrichment!.identity.location?.trim()) updatePayload.location = enrichment!.identity.location.trim();
 
-              const socials: { x?: string; linkedin?: string; github?: string; websites?: string[] } = {};
-              if (enrichment!.socials.twitter) socials.x = enrichment!.socials.twitter;
-              if (enrichment!.socials.linkedin) socials.linkedin = enrichment!.socials.linkedin;
-              if (enrichment!.socials.github) socials.github = enrichment!.socials.github;
-              if (enrichment!.socials.websites?.length) socials.websites = enrichment!.socials.websites;
-              if (Object.keys(socials).length > 0) updatePayload.socials = socials;
+              const newSocials: { label: string; value: string }[] = [];
+              if (enrichment!.socials.twitter) newSocials.push({ label: 'twitter', value: enrichment!.socials.twitter });
+              if (enrichment!.socials.linkedin) newSocials.push({ label: 'linkedin', value: enrichment!.socials.linkedin });
+              if (enrichment!.socials.github) newSocials.push({ label: 'github', value: enrichment!.socials.github });
+              if (enrichment!.socials.telegram) newSocials.push({ label: 'telegram', value: enrichment!.socials.telegram });
+              if (enrichment!.socials.websites?.length) {
+                for (const w of enrichment!.socials.websites) newSocials.push({ label: 'custom', value: w });
+              }
+              if (newSocials.length > 0) await this.database.setUserSocials(state.userId, newSocials);
 
               if (Object.keys(updatePayload).length > 0) {
                 await this.database.updateUser(state.userId, updatePayload);
@@ -475,7 +479,8 @@ export class ProfileGraphFactory {
 
               // Post-enrichment dedup: check if this ghost matches an existing user
               if (user.isGhost) {
-                const duplicate = await this.database.findDuplicateUser(state.userId, socials);
+                const currentSocials = await this.database.getUserSocials(state.userId);
+                const duplicate = await this.database.findDuplicateUser(state.userId, currentSocials);
                 if (duplicate) {
                   logger.info("Post-enrichment dedup: merging ghost into existing user", {
                     ghostId: state.userId,
