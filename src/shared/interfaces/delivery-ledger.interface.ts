@@ -10,12 +10,13 @@ export interface DeliveryLedger {
    *
    * @param trigger - Which dispatch path produced this delivery: 'ambient' for
    *                  real-time critical alerts (≤3/day target), 'digest' for the
-   *                  daily sweep of everything ambient passed on.
+   *                  daily sweep of everything ambient passed on, 'accepted' for
+   *                  accepted-opportunity notifications to the counterparty.
    */
   confirmOpportunityDelivery(params: {
     opportunityId: string;
     userId: string;
     agentId: string | null;
-    trigger: 'ambient' | 'digest';
+    trigger: 'ambient' | 'digest' | 'accepted';
   }): Promise<'confirmed' | 'already_delivered'>;
 }

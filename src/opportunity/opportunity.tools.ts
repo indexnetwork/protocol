@@ -1151,16 +1151,17 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       "Marks an opportunity as delivered to the user via the OpenClaw channel. " +
       "Call this for each opportunity you decide to surface, BEFORE including it in your delivery message. " +
       "The 'trigger' argument records which dispatch path produced this delivery: " +
-      "'ambient' for real-time critical alerts (target ≤3/day), 'digest' for the daily sweep. " +
+      "'ambient' for real-time critical alerts (target ≤3/day), 'digest' for the daily sweep, " +
+      "'accepted' for accepted-opportunity notifications to the counterparty. " +
       "Idempotent — safe to call even if the opportunity was already confirmed.",
     querySchema: z.object({
       opportunityId: z
         .string()
         .describe("The UUID of the opportunity to mark as delivered."),
       trigger: z
-        .enum(['ambient', 'digest'])
+        .enum(['ambient', 'digest', 'accepted'])
         .describe(
-          "Which dispatch path produced this delivery. Use 'ambient' if the dispatch prompt says you are in the ambient pass; use 'digest' if it says you are in the daily digest.",
+          "Which dispatch path produced this delivery. Use 'ambient' if the dispatch prompt says you are in the ambient pass; use 'digest' if it says you are in the daily digest; use 'accepted' for accepted-opportunity notifications to the counterparty.",
         ),
     }),
     handler: async ({ context, query }) => {
