@@ -478,7 +478,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           }
 
           return success({
-            message: `${query.action === 'question' ? 'Question' : 'Counter-proposal'} submitted. Waiting for counterparty response.`,
+            message: `${query.action === 'question' ? 'Question' : query.action === 'propose' ? 'Proposal' : 'Counter-proposal'} submitted. Waiting for counterparty response.`,
             negotiationId: task.id,
             action: query.action,
             turnNumber: newTurnCount,
@@ -532,7 +532,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           });
 
           return success({
-            message: `${query.action === 'question' ? 'Question' : 'Counter'} submitted. Counterparty responded with ${aiTurn.action}.`,
+            message: `${query.action === 'question' ? 'Question' : query.action === 'propose' ? 'Proposal' : 'Counter'} submitted. Counterparty responded with ${aiTurn.action}.`,
             negotiationId: task.id,
             action: query.action,
             turnNumber: newTurnCount,
