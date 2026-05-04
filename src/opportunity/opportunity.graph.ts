@@ -2840,7 +2840,8 @@ export class OpportunityGraphFactory {
 
           await this.database.updateOpportunityStatus(
             state.opportunityId,
-            state.newStatus as 'accepted' | 'rejected' | 'expired'
+            state.newStatus as 'accepted' | 'rejected' | 'expired',
+            state.newStatus === 'accepted' ? state.userId : undefined,
           );
 
           return {
