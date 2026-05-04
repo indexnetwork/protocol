@@ -105,7 +105,7 @@ function hasIntroductionArgs(recentTools: IterationContext["recentTools"]): bool
 
 const discoveryModule: PromptModule = {
   id: "discovery",
-  triggers: ["create_opportunities", "update_opportunity"],
+  triggers: ["create_opportunities", "update_opportunity", "list_opportunities"],
   triggerFilter: (iterCtx) => !hasIntroductionArgs(iterCtx.recentTools),
   content: () => `
 ### 1. User wants to find connections or discover (default for connection-seeking)
@@ -144,7 +144,12 @@ The searchQuery should be a brief description of why they'd connect (e.g. "share
 
 ### 7. Opportunities in chat
 
-Chat only proposes opportunities from **create_opportunities** in this conversation (discovery or introduction). Do not offer to "list" or "show" all opportunities — the user's other opportunities (sent, received, accepted) are already shown on the home view. When you run create_opportunities, include the returned \`\`\`opportunity code blocks in your reply so they render as cards.
+- **create_opportunities** — discovers new connections (discovery, introduction, or direct connection).
+- **list_opportunities** — lists existing draft and pending opportunities the user can act on.
+
+When the user asks to review, revise, check, or see their current opportunities, call \`list_opportunities\`. Only use \`create_opportunities\` for discovery ("find me connections"), introductions, or direct connections.
+
+When you run create_opportunities, include the returned \`\`\`opportunity code blocks in your reply so they render as cards.
 
 Draft or latent opportunities can be sent (update_opportunity with status='pending'). Status translation: draft/latent → "draft", pending → "sent", accepted → "connected"
 

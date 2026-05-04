@@ -357,11 +357,11 @@ describe("createChatTools", () => {
     expect(tools.find((t: { name: string }) => t.name === "read_network_memberships")).toBeDefined();
   });
 
-  test("does not include list_opportunities (chat only proposes opportunities from create_opportunities; home shows the rest)", async () => {
+  test("includes list_opportunities alongside create_opportunities and update_opportunity", async () => {
     const mockDb = createMockDatabase(async () => []);
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    expect(tools.find((t: { name: string }) => t.name === "list_opportunities")).toBeUndefined();
+    expect(tools.find((t: { name: string }) => t.name === "list_opportunities")).toBeDefined();
     expect(tools.find((t: { name: string }) => t.name === "create_opportunities")).toBeDefined();
     expect(tools.find((t: { name: string }) => t.name === "update_opportunity")).toBeDefined();
   });

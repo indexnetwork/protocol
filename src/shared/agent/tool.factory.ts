@@ -192,12 +192,9 @@ export async function createChatTools(
     ? createNegotiationTools(defineTool, toolDeps)
     : [];
 
-  // Chat only proposes opportunities from the conversation (create_opportunities).
-  // Other opportunities are shown on the home view; do not give the agent list_opportunities.
   // confirm_opportunity_delivery is an OpenClaw-delivery ledger write and must not be
   // callable from regular chat sessions.
   const chatOpportunityToolExclusions = new Set([
-    "list_opportunities",
     "confirm_opportunity_delivery",
   ]);
   const opportunityToolsForChat = opportunityTools.filter(

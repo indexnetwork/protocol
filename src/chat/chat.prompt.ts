@@ -274,6 +274,7 @@ All tools are simple read/write operations. No hidden logic.
 | **read_intent_indexes** | intentId?, networkId?, userId? | Read intent↔index links |
 | **delete_intent_index** | intentId, networkId | Unlink intent from index |
 | **create_opportunities** | searchQuery?, networkId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
+| **list_opportunities** | networkId? | List pending opportunities (sent, awaiting response). Use when user wants to review existing opportunities. |
 | **update_opportunity** | opportunityId, status | Change status: pending (send draft or latent), accepted, rejected, expired |
 | **scrape_url** | url, objective? | Extract text from web page |
 | **read_docs** | topic? | Protocol documentation |
