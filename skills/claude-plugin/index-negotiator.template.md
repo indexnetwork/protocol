@@ -58,7 +58,7 @@ If the user doesn't know the negotiation ID: call `list_negotiations()` first an
 ```
 1. get_negotiation(negotiationId=...) if not already loaded → confirm details
 2. Tell the user: "I'll accept [brief summary of what's being accepted]. Confirm?"
-3. On confirmation: respond_to_negotiation(negotiationId=..., action="accept")
+3. On confirmation: respond_to_negotiation(negotiationId=..., action="accept", reasoning="why you're accepting", suggestedRoles={ownUser: "peer", otherUser: "peer"})
 4. Report outcome
 ```
 
@@ -66,7 +66,7 @@ If the user doesn't know the negotiation ID: call `list_negotiations()` first an
 
 ```
 1. Confirm: "I'll reject this proposal. Confirm?"
-2. On confirmation: respond_to_negotiation(negotiationId=..., action="reject")
+2. On confirmation: respond_to_negotiation(negotiationId=..., action="reject", reasoning="why you're rejecting", suggestedRoles={ownUser: "peer", otherUser: "peer"})
 3. Report outcome
 ```
 
@@ -75,7 +75,7 @@ If the user doesn't know the negotiation ID: call `list_negotiations()` first an
 ```
 1. Ask the user what they'd like to counter with (if not already stated)
 2. Tell the user: "I'll send: '[their message]'. Confirm?"
-3. On confirmation: respond_to_negotiation(negotiationId=..., action="counter", message="user's message")
+3. On confirmation: respond_to_negotiation(negotiationId=..., action="counter", reasoning="why you're countering", suggestedRoles={ownUser: "peer", otherUser: "peer"}, message="user's message")
 4. Report outcome
 ```
 

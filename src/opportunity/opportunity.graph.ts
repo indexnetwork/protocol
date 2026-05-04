@@ -2352,7 +2352,7 @@ export class OpportunityGraphFactory {
                 });
                 continue;
               }
-              // Introducer discovery path: manual detection, introducer is state.userId, target is onBehalfOfUserId.
+              // Introducer discovery path: introducer is state.userId, target is onBehalfOfUserId.
               const evaluatorActors: OpportunityActor[] = evaluated.actors.map((a: EvaluatedOpportunityActor) => ({
                 networkId: a.networkId ?? indexIdForActors,
                 userId: a.userId,
@@ -2739,6 +2739,7 @@ export class OpportunityGraphFactory {
             manual: 'Manual',
             cron: 'Scheduled',
             member_added: 'Member added',
+            introducer_discovery: 'Suggested by contact',
           };
 
           const enriched = await Promise.all(
