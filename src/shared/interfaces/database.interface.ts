@@ -1486,8 +1486,8 @@ export interface UserDatabase {
   /** Get a specific opportunity (if user is an actor). */
   getOpportunity(id: string): Promise<Opportunity | null>;
 
-  /** Update an opportunity's status (if user is an actor). */
-  updateOpportunityStatus(id: string, status: OpportunityStatus, acceptedBy?: string): Promise<Opportunity | null>;
+  /** Update an opportunity's status (if user is an actor). acceptedBy is derived from the auth context. */
+  updateOpportunityStatus(id: string, status: OpportunityStatus): Promise<Opportunity | null>;
 
   /** Get accepted opportunities between the authenticated user and another actor. */
   getAcceptedOpportunitiesBetweenActors(counterpartUserId: string): Promise<Opportunity[]>;
