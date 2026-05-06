@@ -146,7 +146,12 @@ export class NetworkGraphFactory {
           if (createdIndexId) {
             try { await this.database.softDeleteNetwork(createdIndexId); } catch {}
           }
-          return { mutationResult: { success: false, error: "Failed to create network." } };
+          return {
+            mutationResult: {
+              success: false,
+              error: err instanceof Error ? err.message : "Failed to create network.",
+            },
+          };
         }
       });
     };
