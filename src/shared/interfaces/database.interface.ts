@@ -1982,6 +1982,8 @@ export type OpportunityControllerDatabase = Pick<
   // owned by OpportunityService — services cannot import other services.
   | 'getOrCreateDM'
   | 'unhideConversation'
+  // Approve-introduction endpoint: flip introducer actor's approved flag.
+  | 'updateOpportunityActorApproval'
 >;
 
 /**
