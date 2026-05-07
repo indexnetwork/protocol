@@ -38,7 +38,14 @@ export class NetworkGraphFactory {
             this.database.getPublicIndexesNotJoined(state.userId),
           ]);
 
-          // If index-scoped and not showAll, return just that index (no public indexes in scoped view)
+          // If index-scoped and not showAll, return just that index plus the
+          // user's personal index (their contacts). The personal index is part
+          // of every scope — `computeAgentIndexScope` keeps it reachable for
+          // network-bound agents, and a user clicked into a community-scoped
+          // chat still owns their contact list — so surfacing it here keeps
+          // tools that operate on the personal index (add_contact, list_contacts,
+          // import_*_contacts) discoverable. Other community memberships are
+          // still hidden, and `publicNetworks` is omitted.
           const scopeToCurrentIndex = state.networkId && !state.showAll;
           if (scopeToCurrentIndex) {
             const networkId = state.networkId!;
@@ -52,24 +59,47 @@ export class NetworkGraphFactory {
                 },
               };
             }
-            const membership = allMemberships.find((m) => m.networkId === networkId);
-            const owned = ownedIndexes.find((o) => o.id === networkId);
+            const projectMembership = (m: typeof allMemberships[number]) => ({
+              networkId: m.networkId,
+              title: m.networkTitle,
+              prompt: m.indexPrompt,
+              autoAssign: m.autoAssign,
+              isPersonal: m.isPersonal,
+              joinedAt: m.joinedAt,
+            });
+            const projectOwned = (o: typeof ownedIndexes[number]) => ({
+              networkId: o.id,
+              title: o.title,
+              prompt: o.prompt,
+              memberCount: o.memberCount,
+              intentCount: o.intentCount,
+              joinPolicy: o.permissions.joinPolicy,
+            });
+            const scopedMembership = allMemberships.find((m) => m.networkId === networkId);
+            const personalMembership = scopedMembership?.isPersonal
+              ? undefined
+              : allMemberships.find((m) => m.isPersonal);
+            const scopedOwned = ownedIndexes.find((o) => o.id === networkId);
+            const personalOwned = personalMembership
+              ? ownedIndexes.find((o) => o.id === personalMembership.networkId)
+              : undefined;
+            const memberOf = [
+              ...(scopedMembership ? [projectMembership(scopedMembership)] : []),
+              ...(personalMembership ? [projectMembership(personalMembership)] : []),
+            ];
+            const owns = [
+              ...(scopedOwned ? [projectOwned(scopedOwned)] : []),
+              ...(personalOwned ? [projectOwned(personalOwned)] : []),
+            ];
             return {
               readResult: {
-                memberOf: membership
-                  ? [{
-                      networkId: membership.networkId,
-                      title: membership.networkTitle,
-                      prompt: membership.indexPrompt,
-                      autoAssign: membership.autoAssign,
-                      isPersonal: membership.isPersonal,
-                      joinedAt: membership.joinedAt,
-                    }]
-                  : [],
-                owns: owned
-                  ? [{ networkId: owned.id, title: owned.title, prompt: owned.prompt, memberCount: owned.memberCount, intentCount: owned.intentCount, joinPolicy: owned.permissions.joinPolicy }]
-                  : [],
-                stats: { memberOfCount: membership ? 1 : 0, ownsCount: owned ? 1 : 0, scopeNote: "Showing current index. Use showAll: true for all indexes." },
+                memberOf,
+                owns,
+                stats: {
+                  memberOfCount: memberOf.length,
+                  ownsCount: owns.length,
+                  scopeNote: "Showing current index and your personal index. Use showAll: true for all indexes.",
+                },
               },
             };
           }
