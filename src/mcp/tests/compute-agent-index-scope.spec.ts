@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { computeAgentIndexScope } from '../mcp.server';
+import { computeAgentIndexScope } from '../mcp.server.js';
 
 describe('computeAgentIndexScope', () => {
   const memberships = [
