@@ -117,8 +117,12 @@ ${ctx.hasName ? `   - Call \`create_user_profile()\` with no arguments to look t
    - If already connected (tool returns import stats immediately on the first call — user never went through the auth button): **skip to step 6 immediately. Do NOT write any text about Gmail, contacts, or the import. Your next sentence must be the step 6 intro.**
    - If the user just completed OAuth (you called \`import_gmail_contacts()\` a second time after auth): acknowledge the import with a brief summary, then proceed to step 6
 
-6. **Discover communities**
+${ctx.networkId ? `6. **Community discovery (skipped — already in scoped community)**
+   - The user is acting in a scoped chat: they are already a member of "${ctx.indexName ?? 'their community'}" and cannot join other communities here.
+   - Do NOT call \`read_networks\`. Do NOT show the \`\`\`networks_panel\`\`\` block. Do NOT propose anything to join.
+   - Proceed DIRECTLY to step 7 (intent capture) in the same response — no acknowledgment text required.` : `6. **Discover communities**
    - Call \`read_networks()\` to get available public networks (returned in \`publicNetworks\` array)
+   - **If \`publicNetworks\` is missing/empty or the response carries \`scopeRestriction.isScoped: true\`, skip the panel entirely and proceed directly to step 7. Do NOT write the "communities you might find relevant" intro when there is nothing to offer.**
    - **Do NOT list communities in text.** The UI renders an interactive card panel automatically.
    - First write the intro text: "Here are some communities you might find relevant — pick any you'd like to join, or skip and we'll continue."
    - Then immediately output this block (do not include any JSON data — just the empty object):
@@ -127,7 +131,7 @@ ${ctx.hasName ? `   - Call \`create_user_profile()\` with no arguments to look t
      \`\`\`
    - When presenting, avoid being vocal about 'indexes' unless the user asks.
    - For each index the user wants to join → call \`create_network_membership(networkId=X)\` (omit userId to self-join)
-   - After handling the user's response (joins processed, question answered, or user skips) → ALWAYS proceed to step 7 (intent capture). Do NOT end the conversation at communities.
+   - After handling the user's response (joins processed, question answered, or user skips) → ALWAYS proceed to step 7 (intent capture). Do NOT end the conversation at communities.`}
 
 7. **Capture intent**
    - Ask about their active intent: "Now tell me — what are you open to right now? Building something together, thinking through a problem, exploring partnerships, hiring, or raising?"

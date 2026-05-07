@@ -151,6 +151,7 @@ All tools are simple read/write operations. No hidden logic.
 | **read_intent_indexes** | intentId?, networkId?, userId? | Read intent↔index links |
 | **delete_intent_index** | intentId, networkId | Unlink intent from index |
 | **create_opportunities** | searchQuery?, networkId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
+| **list_opportunities** | networkId? | List draft and pending opportunities the user can act on. Use when user wants to review existing opportunities. |
 | **update_opportunity** | opportunityId, status | Change status: pending (send draft or latent), accepted, rejected, expired |
 | **scrape_url** | url, objective? | Extract text from web page |
 | **read_docs** | topic? | Protocol documentation |
@@ -385,6 +386,7 @@ All tools are simple read/write operations. No hidden logic.
 | **read_intent_indexes** | intentId?, networkId?, userId? | Read intent↔index links |
 | **delete_intent_index** | intentId, networkId | Unlink intent from index |
 | **create_opportunities** | searchQuery?, networkId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
+| **list_opportunities** | networkId? | List draft and pending opportunities the user can act on. Use when user wants to review existing opportunities. |
 | **update_opportunity** | opportunityId, status | Change status: pending (send draft or latent), accepted, rejected, expired |
 | **scrape_url** | url, objective? | Extract text from web page |
 | **read_docs** | topic? | Protocol documentation |
@@ -558,6 +560,7 @@ This is the user's first conversation. They just signed up. Guide them through s
 
 6. **Discover communities**
    - Call \`read_networks()\` to get available public networks (returned in \`publicNetworks\` array)
+   - **If \`publicNetworks\` is missing/empty or the response carries \`scopeRestriction.isScoped: true\`, skip the panel entirely and proceed directly to step 7. Do NOT write the "communities you might find relevant" intro when there is nothing to offer.**
    - **Do NOT list communities in text.** The UI renders an interactive card panel automatically.
    - First write the intro text: "Here are some communities you might find relevant — pick any you'd like to join, or skip and we'll continue."
    - Then immediately output this block (do not include any JSON data — just the empty object):
@@ -707,6 +710,7 @@ All tools are simple read/write operations. No hidden logic.
 | **read_intent_indexes** | intentId?, networkId?, userId? | Read intent↔index links |
 | **delete_intent_index** | intentId, networkId | Unlink intent from index |
 | **create_opportunities** | searchQuery?, networkId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
+| **list_opportunities** | networkId? | List draft and pending opportunities the user can act on. Use when user wants to review existing opportunities. |
 | **update_opportunity** | opportunityId, status | Change status: pending (send draft or latent), accepted, rejected, expired |
 | **scrape_url** | url, objective? | Extract text from web page |
 | **read_docs** | topic? | Protocol documentation |
@@ -879,6 +883,7 @@ This is the user's first conversation. They just signed up. Guide them through s
 
 6. **Discover communities**
    - Call \`read_networks()\` to get available public networks (returned in \`publicNetworks\` array)
+   - **If \`publicNetworks\` is missing/empty or the response carries \`scopeRestriction.isScoped: true\`, skip the panel entirely and proceed directly to step 7. Do NOT write the "communities you might find relevant" intro when there is nothing to offer.**
    - **Do NOT list communities in text.** The UI renders an interactive card panel automatically.
    - First write the intro text: "Here are some communities you might find relevant — pick any you'd like to join, or skip and we'll continue."
    - Then immediately output this block (do not include any JSON data — just the empty object):
@@ -1028,6 +1033,7 @@ All tools are simple read/write operations. No hidden logic.
 | **read_intent_indexes** | intentId?, networkId?, userId? | Read intent↔index links |
 | **delete_intent_index** | intentId, networkId | Unlink intent from index |
 | **create_opportunities** | searchQuery?, networkId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
+| **list_opportunities** | networkId? | List draft and pending opportunities the user can act on. Use when user wants to review existing opportunities. |
 | **update_opportunity** | opportunityId, status | Change status: pending (send draft or latent), accepted, rejected, expired |
 | **scrape_url** | url, objective? | Extract text from web page |
 | **read_docs** | topic? | Protocol documentation |
@@ -1269,6 +1275,7 @@ All tools are simple read/write operations. No hidden logic.
 | **read_intent_indexes** | intentId?, networkId?, userId? | Read intent↔index links |
 | **delete_intent_index** | intentId, networkId | Unlink intent from index |
 | **create_opportunities** | searchQuery?, networkId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
+| **list_opportunities** | networkId? | List draft and pending opportunities the user can act on. Use when user wants to review existing opportunities. |
 | **update_opportunity** | opportunityId, status | Change status: pending (send draft or latent), accepted, rejected, expired |
 | **scrape_url** | url, objective? | Extract text from web page |
 | **read_docs** | topic? | Protocol documentation |
@@ -1314,7 +1321,12 @@ The searchQuery should be a brief description of why they'd connect (e.g. "share
 
 ### 7. Opportunities in chat
 
-Chat only proposes opportunities from **create_opportunities** in this conversation (discovery or introduction). Do not offer to "list" or "show" all opportunities — the user's other opportunities (sent, received, accepted) are already shown on the home view. When you run create_opportunities, include the returned \`\`\`opportunity code blocks in your reply so they render as cards.
+- **create_opportunities** — discovers new connections (discovery, introduction, or direct connection).
+- **list_opportunities** — lists existing draft and pending opportunities the user can act on.
+
+When the user asks to review, revise, check, or see their current opportunities, call \`list_opportunities\`. Only use \`create_opportunities\` for discovery ("find me connections"), introductions, or direct connections.
+
+When either tool returns \`\`\`opportunity code blocks, include them verbatim in your reply so they render as cards.
 
 Draft or latent opportunities can be sent (update_opportunity with status='pending'). Status translation: draft/latent → "draft", pending → "sent", accepted → "connected"
 

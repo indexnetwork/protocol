@@ -444,6 +444,44 @@ describe("buildSystemContent snapshot identity", () => {
     expect(output).toMatchSnapshot();
   });
 
+  test("onboarding with networkId set rewrites step 6 to skip community discovery", () => {
+    // Network-scoped users (e.g. experiment-network CSV invitees) cannot join
+    // other communities — their key is bound to a single network. Step 6 must
+    // not propose anything to join, and must not run read_networks at all,
+    // otherwise the agent picks the bound network out of `memberOf` and
+    // re-presents it as a community to join.
+    const ctx = makeCtx({
+      isOnboarding: true,
+      hasName: true,
+      networkId: "idx-community",
+      indexName: "AI Builders",
+      scopedIndex: { id: "idx-community", title: "AI Builders", prompt: "AI enthusiasts" },
+      scopedMembershipRole: "member",
+    });
+    const output = buildSystemContent(ctx);
+
+    expect(output).toContain("Community discovery (skipped");
+    expect(output).toContain("AI Builders");
+    expect(output).toContain("Proceed DIRECTLY to step 7");
+    expect(output).not.toContain("communities you might find relevant");
+    // The skipped branch mentions `networks_panel` only as something to NOT show.
+    // The unscoped branch instructs to "Then immediately output this block" —
+    // that imperative is what should be absent.
+    expect(output).not.toContain("Then immediately output this block");
+  });
+
+  test("onboarding without networkId still renders the standard discover-communities step", () => {
+    // Sanity check: the conditional only kicks in when scoped — unscoped
+    // onboarding still presents the panel.
+    const ctx = makeCtx({ isOnboarding: true, hasName: true });
+    const output = buildSystemContent(ctx);
+
+    expect(output).toContain("**Discover communities**");
+    expect(output).toContain("communities you might find relevant");
+    expect(output).toContain("```networks_panel");
+    expect(output).not.toContain("Community discovery (skipped");
+  });
+
   test("without iterCtx, modules section is empty; with empty iterCtx, result matches", () => {
     const ctx = makeCtx();
     const withoutIter = buildSystemContent(ctx);
