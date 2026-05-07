@@ -10,7 +10,7 @@ import { McpServer, fromJsonSchema } from '@modelcontextprotocol/server';
 import type { ServerContext, JsonSchemaType } from '@modelcontextprotocol/server';
 
 import type { McpAuthResolver } from '../shared/interfaces/auth.interface.js';
-import type { ToolDeps } from '../shared/agent/tool.helpers.js';
+import type { ToolDeps, ResolvedToolContext } from '../shared/agent/tool.helpers.js';
 import { resolveChatContext } from '../shared/agent/tool.helpers.js';
 import { createToolRegistry } from '../shared/agent/tool.registry.js';
 import { protocolLogger } from '../shared/observability/protocol.logger.js';
@@ -154,6 +154,42 @@ export const computeAgentIndexScope = (
 };
 
 /**
+ * Promotes a network-scoped agent's bound network into the resolved tool
+ * context as the implicit chat scope. Every tool that branches on
+ * `context.networkId` (read_networks, read_intents, read_user_profiles,
+ * opportunity tools, etc.) then enforces scope automatically — without this
+ * step the DB-level `indexScope` clamp guards cross-user data but tools that
+ * shape their response off `context.networkId` (notably `read_networks`'
+ * `publicNetworks` branch) would still leak the global view.
+ *
+ * No-op when there is no scope, or when an explicit chat scope is already
+ * set (a user-driven index-scoped chat must keep precedence over the agent
+ * binding — which would be a strict subset anyway, since the API key cannot
+ * reach beyond its bound network).
+ */
+export const applyNetworkScopeToContext = (
+  context: ResolvedToolContext,
+  networkScopeId: string | null | undefined,
+): void => {
+  if (!networkScopeId) return;
+  if (context.networkId) return;
+
+  context.networkId = networkScopeId;
+  const bound = context.userNetworks.find((m) => m.networkId === networkScopeId);
+  if (!bound) return;
+
+  context.indexName = bound.networkTitle;
+  context.scopedIndex = {
+    id: bound.networkId,
+    title: bound.networkTitle,
+    prompt: bound.indexPrompt ?? null,
+  };
+  const isOwner = bound.permissions?.includes('owner') ?? false;
+  context.scopedMembershipRole = isOwner ? 'owner' : 'member';
+  context.isOwner = isOwner;
+};
+
+/**
  * Creates an MCP server with all protocol tools registered.
  * Tools resolve auth per-request via the HTTP request available in ServerContext.
  *
@@ -253,6 +289,13 @@ export function createMcpServer(
           if (agentId) {
             context.agentId = agentId;
           }
+
+          // Network-scoped agents inherit their bound network as the implicit chat
+          // scope. Every tool that branches on `context.networkId` then enforces
+          // the same boundary the DB-level `indexScope` clamp enforces below —
+          // most importantly `read_networks`, which would otherwise return the
+          // global `publicNetworks` catalog for unscoped contexts.
+          applyNetworkScopeToContext(context, networkScopeId);
 
           // Gate: API-key callers (background agents) must register before using most tools.
           // OAuth/JWT session callers (human MCP clients such as Claude Code) are exempt —

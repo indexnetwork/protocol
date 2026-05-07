@@ -1,0 +1,111 @@
+import { describe, expect, test } from 'bun:test';
+
+import { applyNetworkScopeToContext } from '../mcp.server.js';
+import type { ResolvedToolContext } from '../../shared/agent/tool.helpers.js';
+
+const memberships = [
+  {
+    networkId: 'personal-1',
+    networkTitle: 'Personal',
+    indexPrompt: null,
+    permissions: ['owner'],
+    memberPrompt: null,
+    autoAssign: true,
+    isPersonal: true,
+    joinedAt: new Date('2026-01-01'),
+  },
+  {
+    networkId: 'experiment-net',
+    networkTitle: 'Edge City',
+    indexPrompt: 'Builders shipping at the edge',
+    permissions: ['member'],
+    memberPrompt: null,
+    autoAssign: true,
+    isPersonal: false,
+    joinedAt: new Date('2026-01-02'),
+  },
+  {
+    networkId: 'community-B',
+    networkTitle: 'Other Community',
+    indexPrompt: 'Something else',
+    permissions: ['owner'],
+    memberPrompt: null,
+    autoAssign: true,
+    isPersonal: false,
+    joinedAt: new Date('2026-01-03'),
+  },
+];
+
+const baseContext = (): ResolvedToolContext => ({
+  userId: 'user-1',
+  userName: 'Alice',
+  userEmail: 'alice@test',
+  user: { id: 'user-1', name: 'Alice', email: 'alice@test' } as never,
+  userProfile: null as never,
+  userNetworks: memberships,
+  isOnboarding: false,
+  hasName: true,
+  isMcp: true,
+});
+
+describe('applyNetworkScopeToContext', () => {
+  test('no-op when scope is null', () => {
+    const ctx = baseContext();
+    applyNetworkScopeToContext(ctx, null);
+    expect(ctx.networkId).toBeUndefined();
+    expect(ctx.indexName).toBeUndefined();
+    expect(ctx.scopedIndex).toBeUndefined();
+    expect(ctx.scopedMembershipRole).toBeUndefined();
+    expect(ctx.isOwner).toBeUndefined();
+  });
+
+  test('no-op when scope is undefined', () => {
+    const ctx = baseContext();
+    applyNetworkScopeToContext(ctx, undefined);
+    expect(ctx.networkId).toBeUndefined();
+  });
+
+  test('preserves an explicit chat scope when one is already set', () => {
+    const ctx = baseContext();
+    ctx.networkId = 'community-B';
+    ctx.indexName = 'Other Community';
+    applyNetworkScopeToContext(ctx, 'experiment-net');
+    expect(ctx.networkId).toBe('community-B');
+    expect(ctx.indexName).toBe('Other Community');
+  });
+
+  test('promotes networkScopeId into context.networkId when bound network is in memberships', () => {
+    const ctx = baseContext();
+    applyNetworkScopeToContext(ctx, 'experiment-net');
+
+    expect(ctx.networkId).toBe('experiment-net');
+    expect(ctx.indexName).toBe('Edge City');
+    expect(ctx.scopedIndex).toEqual({
+      id: 'experiment-net',
+      title: 'Edge City',
+      prompt: 'Builders shipping at the edge',
+    });
+    expect(ctx.scopedMembershipRole).toBe('member');
+    expect(ctx.isOwner).toBe(false);
+  });
+
+  test('marks owner when permissions include owner', () => {
+    const ctx = baseContext();
+    applyNetworkScopeToContext(ctx, 'community-B');
+
+    expect(ctx.networkId).toBe('community-B');
+    expect(ctx.scopedMembershipRole).toBe('owner');
+    expect(ctx.isOwner).toBe(true);
+  });
+
+  test('promotes networkId even when bound network is not in memberships (defensive)', () => {
+    const ctx = baseContext();
+    applyNetworkScopeToContext(ctx, 'unknown-network');
+
+    // We still apply the network scope so downstream tools refuse cross-scope access.
+    // indexName/scopedIndex remain unset because we have no authoritative title/prompt.
+    expect(ctx.networkId).toBe('unknown-network');
+    expect(ctx.indexName).toBeUndefined();
+    expect(ctx.scopedIndex).toBeUndefined();
+  });
+});

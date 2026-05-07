@@ -55,6 +55,10 @@ export class NegotiationGraphFactory {
           type: "negotiation",
           sourceUserId: state.sourceUser.id,
           candidateUserId: state.candidateUser.id,
+          // Denormalized so MCP scope checks (negotiation tools, list/get/respond)
+          // can filter by network without re-loading the parked turnContext or
+          // joining through the opportunity.
+          networkId: state.indexContext.networkId,
           ...(state.opportunityId && { opportunityId: state.opportunityId }),
           maxTurns,
         });

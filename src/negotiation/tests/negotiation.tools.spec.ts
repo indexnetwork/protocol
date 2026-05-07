@@ -3,13 +3,14 @@ import { z } from "zod";
 import { createNegotiationTools } from "../negotiation.tools.js";
 import type { ToolDeps, ResolvedToolContext } from "../../shared/agent/tool.helpers.js";
 
-function makeContext(userId = "user-src"): ResolvedToolContext {
+function makeContext(userId = "user-src", networkId?: string): ResolvedToolContext {
   return {
     userId,
     user: { id: userId, name: "Alice", email: "a@test" } as never,
     userProfile: null,
     userNetworks: [],
     isMcp: true,
+    ...(networkId ? { networkId } : {}),
   } as unknown as ResolvedToolContext;
 }
 
@@ -23,12 +24,23 @@ function captureTool(name: string, deps: Partial<ToolDeps>) {
   return captured!;
 }
 
-function makeTask(state: string, sourceUserId: string, candidateUserId: string) {
+function makeTask(
+  state: string,
+  sourceUserId: string,
+  candidateUserId: string,
+  options: { networkId?: string; id?: string } = {},
+) {
   return {
-    id: "task-1",
+    id: options.id ?? "task-1",
     conversationId: "conv-1",
     state,
-    metadata: { type: "negotiation", sourceUserId, candidateUserId, maxTurns: 6 },
+    metadata: {
+      type: "negotiation",
+      sourceUserId,
+      candidateUserId,
+      maxTurns: 6,
+      ...(options.networkId ? { networkId: options.networkId } : {}),
+    },
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-02"),
   };
@@ -437,5 +449,160 @@ describe("respond_to_negotiation — handler", () => {
 
     const result = JSON.parse(raw);
     expect(result.data.message).toContain("Question submitted");
+  });
+});
+
+// ── network-scope enforcement ─────────────────────────────────────────────────
+//
+// When `context.networkId` is set (i.e. the caller's API key carries a
+// network-scoped agent), every negotiation tool must refuse to surface or act
+// on tasks tied to a different network. Tasks created before this hardening
+// landed have no `networkId` in their metadata; for those legacy tasks we fall
+// back to the per-task `turnContext.indexContext.networkId` once it has been
+// persisted (after the first park).
+
+describe("list_negotiations — network scope", () => {
+  test("filters out tasks not in the caller's bound network when context.networkId is set", async () => {
+    const inScope = makeTask("working", "user-src", "user-cand", { id: "task-in", networkId: "net-A" });
+    const outOfScope = makeTask("working", "user-src", "user-cand", { id: "task-out", networkId: "net-B" });
+
+    const deps = {
+      negotiationDatabase: {
+        getTasksForUser: async () => [inScope, outOfScope],
+        getMessagesForConversation: async () => [],
+      },
+    };
+
+    const tool = captureTool("list_negotiations", deps);
+    const result = JSON.parse(
+      await tool.handler({ context: makeContext("user-src", "net-A"), query: {} })
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.negotiations).toHaveLength(1);
+    expect(result.data.negotiations[0].id).toBe("task-in");
+  });
+
+  test("returns all tasks when context.networkId is unset (global agent)", async () => {
+    const t1 = makeTask("working", "user-src", "user-cand", { id: "task-1", networkId: "net-A" });
+    const t2 = makeTask("working", "user-src", "user-cand", { id: "task-2", networkId: "net-B" });
+
+    const deps = {
+      negotiationDatabase: {
+        getTasksForUser: async () => [t1, t2],
+        getMessagesForConversation: async () => [],
+      },
+    };
+
+    const tool = captureTool("list_negotiations", deps);
+    const result = JSON.parse(
+      await tool.handler({ context: makeContext("user-src"), query: {} })
+    );
+
+    expect(result.data.negotiations).toHaveLength(2);
+  });
+
+  test("excludes legacy tasks (no networkId in metadata) when caller is scoped", async () => {
+    // Defense in depth: a network-bound agent must not see negotiations whose
+    // network we cannot prove. Legacy tasks created before this change have no
+    // `metadata.networkId` and no parked `turnContext` — we drop them rather
+    // than fall back to the global view.
+    const legacy = makeTask("working", "user-src", "user-cand", { id: "task-legacy" });
+
+    const deps = {
+      negotiationDatabase: {
+        getTasksForUser: async () => [legacy],
+        getMessagesForConversation: async () => [],
+      },
+    };
+
+    const tool = captureTool("list_negotiations", deps);
+    const result = JSON.parse(
+      await tool.handler({ context: makeContext("user-src", "net-A"), query: {} })
+    );
+
+    expect(result.data.negotiations).toHaveLength(0);
+  });
+});
+
+describe("get_negotiation — network scope", () => {
+  test("returns access denied when task is in a different network than caller's scope", async () => {
+    const task = makeTask("working", "user-src", "user-cand", { networkId: "net-B" });
+
+    const deps = {
+      negotiationDatabase: {
+        getTask: async () => task,
+        getMessagesForConversation: async () => [],
+        getArtifactsForTask: async () => [],
+      },
+    };
+
+    const tool = captureTool("get_negotiation", deps);
+    const result = JSON.parse(
+      await tool.handler({
+        context: makeContext("user-src", "net-A"),
+        query: { negotiationId: "task-1" },
+      })
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/network scope|not in your bound|not in scope/i);
+  });
+
+  test("returns the task when task's network matches caller's scope", async () => {
+    const task = makeTask("working", "user-src", "user-cand", { networkId: "net-A" });
+
+    const deps = {
+      negotiationDatabase: {
+        getTask: async () => task,
+        getMessagesForConversation: async () => [],
+        getArtifactsForTask: async () => [],
+      },
+    };
+
+    const tool = captureTool("get_negotiation", deps);
+    const result = JSON.parse(
+      await tool.handler({
+        context: makeContext("user-src", "net-A"),
+        query: { negotiationId: "task-1" },
+      })
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.id).toBe("task-1");
+  });
+});
+
+describe("respond_to_negotiation — network scope", () => {
+  test("refuses to respond on a task from a different network", async () => {
+    const outOfScope = {
+      ...makeTask("waiting_for_agent", "user-src", "user-cand", { networkId: "net-B" }),
+    };
+
+    const deps = {
+      negotiationDatabase: {
+        getTask: async () => outOfScope,
+        getMessagesForConversation: async () => [],
+        createMessage: async () => { throw new Error("must not be called"); },
+        updateTaskState: async () => { throw new Error("must not be called"); },
+        createArtifact: async () => { throw new Error("must not be called"); },
+      },
+      negotiationTimeoutQueue: { cancelTimeout: async () => {}, enqueueTimeout: async () => {} },
+    };
+
+    const tool = captureTool("respond_to_negotiation", deps);
+    const raw = await tool.handler({
+      context: makeContext("user-src", "net-A"),
+      query: {
+        negotiationId: "task-1",
+        action: "accept",
+        reasoning: "looks good",
+        suggestedRoles: { ownUser: "peer", otherUser: "peer" },
+      },
+    });
+
+    const result = JSON.parse(raw);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/network scope|not in your bound|not in scope/i);
   });
 });

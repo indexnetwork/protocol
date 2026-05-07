@@ -21,6 +21,27 @@ const logger = protocolLogger('NegotiationTools');
 export const AMBIENT_PARK_WINDOW_MS = 5 * 60 * 1000;
 
 /**
+ * Pulls the negotiation's network from task metadata. Tasks created after the
+ * scope hardening carry `metadata.networkId` directly; older tasks only have
+ * the network embedded in the parked `turnContext.indexContext.networkId`.
+ * Returns `null` for legacy tasks where neither field is present — callers
+ * scoped by `context.networkId` must reject these defensively rather than
+ * fall through to a global view.
+ */
+function readTaskNetworkId(meta: {
+  networkId?: string;
+  turnContext?: { indexContext?: { networkId?: string } };
+} | null): string | null {
+  if (!meta) return null;
+  if (typeof meta.networkId === 'string' && meta.networkId.trim()) return meta.networkId;
+  const fromTurnContext = meta.turnContext?.indexContext?.networkId;
+  if (typeof fromTurnContext === 'string' && fromTurnContext.trim()) return fromTurnContext;
+  return null;
+}
+
+const SCOPE_DENIAL = 'Access denied: this negotiation is not in your bound network scope.';
+
+/**
  * Creates negotiation MCP tools for external agent access.
  * Exposes negotiation state for listing, reading, and responding to bilateral negotiations.
  */
@@ -62,8 +83,23 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         const tasks = await negotiationDatabase.getTasksForUser(context.userId, dbState ? { state: dbState } : undefined);
 
         const negotiations = await Promise.all(tasks.map(async (task) => {
-          const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string; maxTurns?: number } | null;
+          const meta = task.metadata as {
+            sourceUserId?: string;
+            candidateUserId?: string;
+            type?: string;
+            maxTurns?: number;
+            networkId?: string;
+            turnContext?: { indexContext?: { networkId?: string } };
+          } | null;
           if (meta?.type !== 'negotiation') return null;
+
+          // Network-scope filter: when caller's API key carries a network-bound
+          // agent, drop tasks whose network differs (or whose network we cannot
+          // determine — defense in depth for legacy tasks).
+          if (context.networkId) {
+            const taskNetworkId = readTaskNetworkId(meta);
+            if (taskNetworkId !== context.networkId) return null;
+          }
 
           const isSource = meta.sourceUserId === context.userId;
           const counterpartyId = isSource ? meta.candidateUserId : meta.sourceUserId;
@@ -167,6 +203,7 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           type?: string;
           maxTurns?: number;
           opportunityId?: string;
+          networkId?: string;
           turnContext?: {
             sourceUser: UserNegotiationContext;
             candidateUser: UserNegotiationContext;
@@ -177,6 +214,16 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
         } | null;
         if (meta?.type !== 'negotiation') {
           return error('Negotiation not found.');
+        }
+
+        // Network-scope check: a network-bound agent must not read negotiations
+        // outside its bound network. Run before the participant check so we
+        // don't leak existence-vs-membership signal across scopes.
+        if (context.networkId) {
+          const taskNetworkId = readTaskNetworkId(meta);
+          if (taskNetworkId !== context.networkId) {
+            return error(SCOPE_DENIAL);
+          }
         }
 
         // Access control: user must be source or candidate
@@ -318,9 +365,25 @@ export function createNegotiationTools(defineTool: DefineTool, deps: ToolDeps) {
           return error('Negotiation not found.');
         }
 
-        const meta = task.metadata as { sourceUserId?: string; candidateUserId?: string; type?: string; maxTurns?: number } | null;
+        const meta = task.metadata as {
+          sourceUserId?: string;
+          candidateUserId?: string;
+          type?: string;
+          maxTurns?: number;
+          networkId?: string;
+          turnContext?: { indexContext?: { networkId?: string } };
+        } | null;
         if (meta?.type !== 'negotiation') {
           return error('Negotiation not found.');
+        }
+
+        // Network-scope check (mirrors get_negotiation): a network-bound agent
+        // must not act on negotiations outside its bound network.
+        if (context.networkId) {
+          const taskNetworkId = readTaskNetworkId(meta);
+          if (taskNetworkId !== context.networkId) {
+            return error(SCOPE_DENIAL);
+          }
         }
 
         // Validate negotiation is waiting for agent input (or claimed via polling)
