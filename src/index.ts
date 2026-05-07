@@ -129,7 +129,7 @@ export { AMBIENT_PARK_WINDOW_MS } from './negotiation/negotiation.tools.js';
 
 // ─── MCP ──────────────────────────────────────────────────────────────────────
 
-export { createMcpServer } from "./mcp/mcp.server.js";
+export { createMcpServer, computeAgentIndexScope } from "./mcp/mcp.server.js";
 export type { ScopedDepsFactory } from "./mcp/mcp.server.js";
 
 // ─── States (for advanced graph consumers) ────────────────────────────────────
