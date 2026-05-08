@@ -49,8 +49,11 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
       "- With `networkId` alone: returns profiles of ALL members in that index.\n" +
       "- No parameters: returns the current user's own profile.\n\n" +
       "**When to use:** Before creating introductions (need profiles of both parties), when the user asks about a person, " +
-      "or to check if a profile exists before suggesting create_user_profile.\n\n" +
-      "**Returns:** Profile objects with name, bio, location, skills[], interests[]. Use userId from results with other tools like read_intents(userId, networkId).",
+      "or to check if a profile exists before suggesting create_user_profile. " +
+      "MCP agents should call this with no arguments at session start to fetch the caller's profile AND onboarding status.\n\n" +
+      "**Returns:** Profile objects with name, bio, location, skills[], interests[]. Use userId from results with other tools like read_intents(userId, networkId). " +
+      "When called for the current user (no args, or userId=self), the response also includes `onboardingComplete: boolean` and `onboardingCompletedAt?: string` — " +
+      "use these as the source of truth for whether the user still needs onboarding (do not rely on local file state).",
     querySchema: z.object({
       userId: z.string().optional().describe("Fetch a specific user's profile by their user ID. Get user IDs from read_network_memberships or list_contacts."),
       networkId: z.string().optional().describe("Index UUID — fetch profiles of all members in this index, or narrow a name search to this index. Get from read_networks."),
@@ -229,8 +232,17 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
       const _readProfileGraphMs = Date.now() - _readProfileGraphStart;
       _readProfileTraceEmitter?.({ type: "graph_end", name: "profile", durationMs: _readProfileGraphMs });
 
+      // Self-lookup includes onboarding status so MCP agents (e.g. Edge Claw)
+      // can decide whether to run the onboarding flow without depending on
+      // local-only state like a workspace BOOTSTRAP.md file.
+      const onboardingCompletedAt = context.user.onboarding?.completedAt ?? null;
+      const onboardingFields = {
+        onboardingComplete: !!onboardingCompletedAt,
+        ...(onboardingCompletedAt ? { onboardingCompletedAt } : {}),
+      };
+
       if (result.readResult) {
-        return success({ ...result.readResult, _graphTimings: [{ name: 'profile', durationMs: _readProfileGraphMs, agents: result.agentTimings ?? [] }] });
+        return success({ ...result.readResult, ...onboardingFields, _graphTimings: [{ name: 'profile', durationMs: _readProfileGraphMs, agents: result.agentTimings ?? [] }] });
       }
       if (result.profile) {
         return success({
@@ -242,11 +254,13 @@ export function createProfileTools(defineTool: DefineTool, deps: ToolDeps) {
             skills: result.profile.attributes.skills,
             interests: result.profile.attributes.interests,
           },
+          ...onboardingFields,
           _graphTimings: [{ name: 'profile', durationMs: _readProfileGraphMs, agents: result.agentTimings ?? [] }],
         });
       }
       return success({
         hasProfile: false,
+        ...onboardingFields,
         message: "You don't have a profile yet. Would you like to create one? You can share your LinkedIn, GitHub, or X/Twitter profile, or just tell me about yourself.",
         _graphTimings: [{ name: 'profile', durationMs: _readProfileGraphMs, agents: result.agentTimings ?? [] }],
       });
