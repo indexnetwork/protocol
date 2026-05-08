@@ -8,6 +8,8 @@ export interface CachedDeliveryCard {
   personalizedSummary: string;
   suggestedAction: string;
   narratorRemark: string;
+  /** Empty string means presenter did not generate one (LLM error / fallback path). */
+  greeting: string;
 }
 
 export interface OpportunityWithContext {
@@ -67,6 +69,7 @@ export async function getOrCreateDeliveryCardBatch(
         personalizedSummary: presented.personalizedSummary,
         suggestedAction: presented.suggestedAction,
         narratorRemark: presented.narratorRemark,
+        greeting: presented.greeting ?? '',
       };
 
       result.set(opp.id, card);

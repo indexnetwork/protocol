@@ -35,6 +35,9 @@ const LLM_TIMEOUT_MS = 20_000;
 
 const model = createModel("opportunityPresenter");
 
+const GREETING_DESCRIPTION =
+  "A 2-4 sentence first-person message the viewer could send to the counterpart, in the viewer's voice, referencing what they have in common. Plain prose only — no markdown, no greeting prefix like 'Hey {Name},'. Example body: 'Saw we're both working on regenerative coordination tooling — your post on consent flows resonated. Would love to compare notes if you have time this week.'";
+
 // ──────────────────────────────────────────────────────────────
 // SCHEMA & TYPES
 // ──────────────────────────────────────────────────────────────
@@ -51,6 +54,7 @@ const PresentationSchema = z.object({
       "2-3 sentence explanation using 'you' language, explaining why this opportunity is specifically valuable for the viewer based on their intents and profile",
     ),
   suggestedAction: z.string().describe("Brief suggested next step"),
+  greeting: z.string().max(500).describe(GREETING_DESCRIPTION),
 });
 
 const responseFormat = z.object({
@@ -97,6 +101,7 @@ export const HomeCardLLMSchema = z.object({
     .describe(
       "Short line for the subtitle under the other party name (e.g. '3 mutual intents', 'Shared interests', 'Aligned goals'). NEVER output '0 mutual intents' — use a qualitative phrase like 'Shared interests' when no numeric count is available.",
     ),
+  greeting: z.string().max(500).describe(GREETING_DESCRIPTION),
 });
 
 /** LLM-generated result from presentHomeCard (callers append button labels from opportunity.constants). */
@@ -192,7 +197,8 @@ Given context about the viewer, the other person, and why they were matched, pro
 2. personalizedSummary: 2-3 sentences in "you" language (main body text).
 3. suggestedAction: one brief suggested next step.
 4. narratorRemark: one short sentence for the narrator chip (who is suggesting and why; max ~80 chars).
-5. mutualIntentsLabel: short subtitle under the other party's name. Examples: "3 mutual intents", "Shared interests", "Aligned goals" — keep it brief. NEVER output "0 mutual intents" or any zero-count label; use a qualitative phrase instead.
+5. greeting: a 2-4 sentence first-person message the viewer could send to the counterpart. Plain prose, no greeting prefix, no markdown.
+6. mutualIntentsLabel: short subtitle under the other party's name. Examples: "3 mutual intents", "Shared interests", "Aligned goals" — keep it brief. NEVER output "0 mutual intents" or any zero-count label; use a qualitative phrase instead.
 
 Rules:
 - Address the viewer with "you"/"your". Be concise and compelling.
@@ -319,7 +325,7 @@ ${introContext}
 COMMUNITY: ${input.indexName}
 Viewer's role in this opportunity: ${input.viewerRole}
 
-Produce headline, personalizedSummary (2-3 sentences in "you" language), and suggestedAction.
+Produce headline, personalizedSummary (2-3 sentences in "you" language), suggestedAction, and greeting.
 `;
 
     try {
@@ -345,6 +351,7 @@ Produce headline, personalizedSummary (2-3 sentences in "you" language), and sug
         headline: "A promising connection",
         personalizedSummary: stripUuids(input.matchReasoning.slice(0, 300)),
         suggestedAction: "Take a look and decide whether to reach out.",
+        greeting: "",
       };
     }
   }
@@ -398,7 +405,7 @@ COMMUNITY: ${input.indexName}
 Viewer's role in this opportunity: ${input.viewerRole}
 Opportunity status: ${input.opportunityStatus ?? "pending"}
 
-Produce headline, personalizedSummary, suggestedAction, narratorRemark, and mutualIntentsLabel.
+Produce headline, personalizedSummary, suggestedAction, narratorRemark, greeting, and mutualIntentsLabel.
 `;
 
     const isIntroducer = input.viewerRole === "introducer";
@@ -448,6 +455,7 @@ Produce headline, personalizedSummary, suggestedAction, narratorRemark, and mutu
           : input.mutualIntentCount != null && input.mutualIntentCount > 0
             ? `${input.mutualIntentCount} mutual intent${input.mutualIntentCount !== 1 ? "s" : ""}`
             : "Shared interests",
+        greeting: "",
       };
     }
   }
@@ -557,6 +565,7 @@ function buildNegotiatingChip(input: HomeCardPresenterInput): HomeCardLLMResult 
     mutualIntentsLabel: input.mutualIntentCount && input.mutualIntentCount > 0
       ? `${input.mutualIntentCount} mutual intent${input.mutualIntentCount !== 1 ? "s" : ""}`
       : "Shared interests",
+    greeting: "",
   };
 }
 

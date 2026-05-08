@@ -360,6 +360,7 @@ async function enrichOpportunities(
         primaryActionLabel: getPrimaryActionLabel(viewerIsIntroducer ? "introducer" : "party"),
         secondaryActionLabel: SECONDARY_ACTION_LABEL,
         mutualIntentsLabel: "Suggested connection",
+        greeting: "",
       };
     });
     presenterContexts = baseEnriched.map((item) => ({
