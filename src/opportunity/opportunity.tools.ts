@@ -1010,16 +1010,27 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
 
           // For MCP callers (e.g. Edge Claw), mint a connect token and attach
           // acceptUrl + profileUrl so the agent can embed actionable links.
+          // Prefer the counterpart's Telegram handle for the profile link
+          // (one click → DM draft) and fall back to the web profile URL only
+          // when no public Telegram handle is on file.
           if (context.isMcp && deps.mintConnectToken && deps.frontendUrl && deps.apiBaseUrl) {
             try {
               const token = await deps.mintConnectToken(context.userId, opp.id);
               const isIntroducer = cardData.viewerRole === "introducer";
               const feedCategory = isIntroducer ? "connector-flow" : "connection";
               const endpoint = isIntroducer ? "approve-introduction" : "connect";
+
+              const telegramSocial = counterpartUser?.socials?.find(
+                (s) => s.label?.toLowerCase() === "telegram",
+              );
+              const telegramHandle = telegramSocial?.value?.trim().replace(/^@/, "");
+              const profileUrl = telegramHandle
+                ? `https://t.me/${telegramHandle}`
+                : `${deps.frontendUrl}/u/${counterpartUserId}?link_preview=false`;
+
               (cardData as Record<string, unknown>).acceptUrl =
                 `${deps.apiBaseUrl}/api/opportunities/${opp.id}/${endpoint}?token=${token}&link_preview=false`;
-              (cardData as Record<string, unknown>).profileUrl =
-                `${deps.frontendUrl}/u/${counterpartUserId}?link_preview=false`;
+              (cardData as Record<string, unknown>).profileUrl = profileUrl;
               (cardData as Record<string, unknown>).feedCategory = feedCategory;
             } catch {
               // Non-fatal — card is still surfaced without links
