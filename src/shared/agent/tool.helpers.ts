@@ -22,6 +22,7 @@ import type { AgentDatabase } from "../interfaces/agent.interface.js";
 import type { NegotiationTimeoutQueue } from "../interfaces/negotiation-events.interface.js";
 import type { AgentDispatcher } from "../interfaces/agent-dispatcher.interface.js";
 import type { DeliveryLedger } from "../interfaces/delivery-ledger.interface.js";
+import type { MintConnectLink } from "../interfaces/connect-link.interface.js";
 
 /** Profile without embedding — used in resolved context to avoid bloating prompts and memory. */
 export type ProfileContext = Omit<ProfileDocument, "embedding"> | null;
@@ -143,6 +144,8 @@ export interface ToolContext {
   deliveryLedger?: DeliveryLedger;
   /** Mints a short-lived connect token for opportunity accept links (optional — absent in non-MCP contexts). */
   mintConnectToken?: (userId: string, opportunityId: string) => Promise<string>;
+  /** Mints (or reuses) a short connect link, snapshotting the greeting (optional — absent in non-MCP contexts). */
+  mintConnectLink?: MintConnectLink;
   /** Frontend base URL for building profile links (e.g. https://index.network, optional). */
   frontendUrl?: string;
   /** API base URL for building opportunity accept links (e.g. https://protocol.index.network, optional). */
@@ -350,6 +353,8 @@ export interface ToolDeps {
   deliveryLedger?: DeliveryLedger;
   /** Mints a short-lived connect token for opportunity accept links (optional — absent in non-MCP contexts). */
   mintConnectToken?: (userId: string, opportunityId: string) => Promise<string>;
+  /** Mints (or reuses) a short connect link, snapshotting the greeting (optional — absent in non-MCP contexts). */
+  mintConnectLink?: MintConnectLink;
   /** Frontend base URL for building profile links (e.g. https://index.network, optional). */
   frontendUrl?: string;
   /** API base URL for building opportunity accept links (e.g. https://protocol.index.network, optional). */

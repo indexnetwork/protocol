@@ -11,6 +11,7 @@ import { OpportunityPresenter } from "./opportunity.presenter.js";
 import type { EvaluatorEntity } from "./opportunity.evaluator.js";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import type { Opportunity, OpportunityStatus } from "../shared/interfaces/database.interface.js";
+import type { ConnectLinkKind } from "../shared/interfaces/connect-link.interface.js";
 
 const logger = protocolLogger("ChatTools:Opportunity");
 
@@ -192,7 +193,7 @@ function buildOpportunityPresentation(
       .join("\n\n");
     const hasLinks = cards.some((c) => c.acceptUrl);
     const linkInstructions = hasLinks
-      ? `Link each person's name to their profileUrl and embed acceptUrl on a short verb phrase (e.g. "message [Name]" for connection, "make intro" for connector-flow). For connection candidates, append &msg= with a URI-encoded 2–4 sentence greeting. Never render link strips or tables — weave URLs into prose. `
+      ? `Link each person's name to their profileUrl and embed acceptUrl on a short verb phrase (e.g. "message [Name]" for connection, "make intro" for connector-flow). The acceptUrl is opaque and self-contained — embed it verbatim. Do NOT append, encode, or modify any part of any URL. Never render link strips or tables — weave URLs into prose. `
       : "";
     return (
       `${opts.leadIn}\n\n${prose}\n\n` +
@@ -1013,12 +1014,28 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           // Prefer the counterpart's Telegram handle for the profile link
           // (one click → DM draft) and fall back to the web profile URL only
           // when no public Telegram handle is on file.
-          if (context.isMcp && deps.mintConnectToken && deps.frontendUrl && deps.apiBaseUrl) {
+          if (context.isMcp && deps.mintConnectLink) {
             try {
-              const token = await deps.mintConnectToken(context.userId, opp.id);
               const isIntroducer = cardData.viewerRole === "introducer";
+              const isAccepted = opp.status === "accepted";
               const feedCategory = isIntroducer ? "connector-flow" : "connection";
-              const endpoint = isIntroducer ? "approve-introduction" : "connect";
+              const kind: ConnectLinkKind = isAccepted
+                ? "outreach"
+                : isIntroducer
+                  ? "approve_introduction"
+                  : "connect";
+
+              // The list path uses minimal card data (no LLM presenter), so no
+              // greeting is available to snapshot here. The mint endpoint stores
+              // null and the redirect path falls back to the live presenter.
+              const greeting = null;
+
+              const { url } = await deps.mintConnectLink({
+                userId: context.userId,
+                opportunityId: opp.id,
+                kind,
+                greeting,
+              });
 
               const telegramSocial = counterpartUser?.socials?.find(
                 (s) => s.label?.toLowerCase() === "telegram",
@@ -1026,11 +1043,14 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
               const telegramHandle = telegramSocial?.value?.trim().replace(/^@/, "");
               const profileUrl = telegramHandle
                 ? `https://t.me/${telegramHandle}`
-                : `${deps.frontendUrl}/u/${counterpartUserId}?link_preview=false`;
+                : deps.frontendUrl
+                  ? `${deps.frontendUrl}/u/${counterpartUserId}?link_preview=false`
+                  : undefined;
 
-              (cardData as Record<string, unknown>).acceptUrl =
-                `${deps.apiBaseUrl}/api/opportunities/${opp.id}/${endpoint}?token=${token}&link_preview=false`;
-              (cardData as Record<string, unknown>).profileUrl = profileUrl;
+              (cardData as Record<string, unknown>).acceptUrl = url;
+              if (profileUrl) {
+                (cardData as Record<string, unknown>).profileUrl = profileUrl;
+              }
               (cardData as Record<string, unknown>).feedCategory = feedCategory;
             } catch (err) {
               logger.warn("Failed to mint MCP opportunity links — surfacing card without acceptUrl/profileUrl", {
