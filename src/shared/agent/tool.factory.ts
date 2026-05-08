@@ -169,6 +169,10 @@ export async function createChatTools(
     grantDefaultSystemPermissions: deps.grantDefaultSystemPermissions,
     agentDispatcher: deps.agentDispatcher,
     deliveryLedger: deps.deliveryLedger,
+    mintConnectToken: deps.mintConnectToken,
+    mintConnectLink: deps.mintConnectLink,
+    frontendUrl: deps.frontendUrl,
+    apiBaseUrl: deps.apiBaseUrl,
     graphs: {
       profile: profileGraph,
       intent: intentGraph,
