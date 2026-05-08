@@ -154,6 +154,9 @@ type OpportunityCardLike = Record<string, unknown> & {
   name?: string | undefined;
   mainText?: string | undefined;
   status?: string | undefined;
+  feedCategory?: string | undefined;
+  acceptUrl?: string | undefined;
+  profileUrl?: string | undefined;
 };
 
 /**
@@ -180,13 +183,21 @@ function buildOpportunityPresentation(
         const lines: string[] = [`${i + 1}. ${card.name ?? "Unknown"}`];
         if (card.mainText) lines.push(`   ${card.mainText}`);
         if (card.status) lines.push(`   status: ${card.status}`);
+        if (card.profileUrl) lines.push(`   profileUrl: ${card.profileUrl}`);
+        if (card.acceptUrl) lines.push(`   acceptUrl: ${card.acceptUrl}`);
+        if (card.feedCategory) lines.push(`   feedCategory: ${card.feedCategory}`);
         lines.push(`   opportunityId: ${card.opportunityId}`);
         return lines.join("\n");
       })
       .join("\n\n");
+    const hasLinks = cards.some((c) => c.acceptUrl);
+    const linkInstructions = hasLinks
+      ? `Link each person's name to their profileUrl and embed acceptUrl on a short verb phrase (e.g. "message [Name]" for connection, "make intro" for connector-flow). For connection candidates, append &msg= with a URI-encoded 2–4 sentence greeting. Never render link strips or tables — weave URLs into prose. `
+      : "";
     return (
       `${opts.leadIn}\n\n${prose}\n\n` +
       `Summarize these for the user in natural prose — mention first names and a brief match reason per connection. ` +
+      `${linkInstructions}` +
       `Do NOT print raw JSON, field labels, opportunityIds, or confidence scores. ` +
       `Use opportunityId values only when calling update_opportunity (send/accept/reject).`
     );
@@ -996,6 +1007,24 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
             secondPartyUser?.avatar ?? null,
             secondPartyActorForHeadline?.userId,
           );
+
+          // For MCP callers (e.g. Edge Claw), mint a connect token and attach
+          // acceptUrl + profileUrl so the agent can embed actionable links.
+          if (context.isMcp && deps.mintConnectToken && deps.frontendUrl && deps.apiBaseUrl) {
+            try {
+              const token = await deps.mintConnectToken(context.userId, opp.id);
+              const isIntroducer = cardData.viewerRole === "introducer";
+              const feedCategory = isIntroducer ? "connector-flow" : "connection";
+              const endpoint = isIntroducer ? "approve-introduction" : "connect";
+              (cardData as Record<string, unknown>).acceptUrl =
+                `${deps.apiBaseUrl}/api/opportunities/${opp.id}/${endpoint}?token=${token}&link_preview=false`;
+              (cardData as Record<string, unknown>).profileUrl =
+                `${deps.frontendUrl}/u/${counterpartUserId}?link_preview=false`;
+              (cardData as Record<string, unknown>).feedCategory = feedCategory;
+            } catch {
+              // Non-fatal — card is still surfaced without links
+            }
+          }
 
           cardDataList.push(cardData);
         } catch (err) {

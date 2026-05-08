@@ -141,6 +141,12 @@ export interface ToolContext {
   queueNegotiateExisting?: (opportunityId: string, userId: string) => Promise<void>;
   /** Delivery ledger for committing opportunity delivery rows (optional — absent in chat context). */
   deliveryLedger?: DeliveryLedger;
+  /** Mints a short-lived connect token for opportunity accept links (optional — absent in non-MCP contexts). */
+  mintConnectToken?: (userId: string, opportunityId: string) => Promise<string>;
+  /** Frontend base URL for building profile links (e.g. https://index.network, optional). */
+  frontendUrl?: string;
+  /** API base URL for building opportunity accept links (e.g. https://protocol.index.network, optional). */
+  apiBaseUrl?: string;
 }
 
 /**
@@ -342,6 +348,12 @@ export interface ToolDeps {
   agentDispatcher?: AgentDispatcher;
   /** Delivery ledger for committing opportunity delivery rows (optional — absent in chat context). */
   deliveryLedger?: DeliveryLedger;
+  /** Mints a short-lived connect token for opportunity accept links (optional — absent in non-MCP contexts). */
+  mintConnectToken?: (userId: string, opportunityId: string) => Promise<string>;
+  /** Frontend base URL for building profile links (e.g. https://index.network, optional). */
+  frontendUrl?: string;
+  /** API base URL for building opportunity accept links (e.g. https://protocol.index.network, optional). */
+  apiBaseUrl?: string;
   graphs: {
     profile: CompiledGraph;
     intent: CompiledGraph;
