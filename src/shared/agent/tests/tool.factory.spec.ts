@@ -1931,4 +1931,143 @@ describe("list_opportunities tool (CHAT_DISPLAY_LIMIT cap)", () => {
   });
 });
 
+// ═════════════════════════════════════════════════════════════════════════════
+// Regression: tool.factory must forward connect-link deps into toolDeps so the
+// MCP list_opportunities short-URL block actually mints. All four fields
+// (mintConnectToken, mintConnectLink, frontendUrl, apiBaseUrl) are optional
+// on ToolDeps, so a missing forward fails silently — only a behavioral test
+// catches it.
+// ═════════════════════════════════════════════════════════════════════════════
+describe("createChatTools — MCP connect-link wiring", () => {
+  const VIEWER_ID = "viewer-mcp-mint";
+  const COUNTERPART_ID = "counterpart-mcp-mint";
+  const OPP_ID = "opp-mcp-mint-1";
+  const FAKE_URL = "https://api.test.local/c/AbCdEf1234";
+  const API_BASE_URL = "https://api.test.local";
+  const FRONTEND_URL = "https://app.test.local";
+
+  function buildOpp(): Opportunity {
+    return {
+      id: OPP_ID,
+      status: "pending",
+      interpretation: { reasoning: "Both work on protocol design.", confidence: 0.9 },
+      actors: [
+        { userId: VIEWER_ID, role: "party" },
+        { userId: COUNTERPART_ID, role: "party" },
+      ],
+      detection: { source: "discovery", createdByName: null },
+      context: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      expiresAt: null,
+    } as unknown as Opportunity;
+  }
+
+  function buildMcpDb(): ChatGraphCompositeDatabase {
+    return createMockDatabase(async () => [], {
+      getOpportunitiesForUser: async () => [buildOpp()],
+      getUser: async (uid: string) => {
+        if (uid === VIEWER_ID) return { id: uid, name: "Viewer" };
+        if (uid === COUNTERPART_ID) return { id: uid, name: "Counterpart" };
+        return null;
+      },
+      getProfile: async (uid: string) => {
+        if (uid === COUNTERPART_ID) {
+          return {
+            userId: uid,
+            identity: { name: "Counterpart" },
+            socials: [],
+          } as unknown as Awaited<ReturnType<ChatGraphCompositeDatabase["getProfile"]>>;
+        }
+        return null;
+      },
+    } as unknown as MockOverrides);
+  }
+
+  // Match the ResolvedToolContext shape that MCP callers construct (since
+  // resolveChatContext does not set isMcp; the MCP entry point passes it via
+  // preResolvedContext).
+  function buildMcpResolvedContext(): import("../tool.helpers").ResolvedToolContext {
+    return {
+      userId: VIEWER_ID,
+      userName: "Viewer",
+      userEmail: "viewer@test",
+      user: { id: VIEWER_ID, name: "Viewer", email: "viewer@test" } as unknown as import("../tool.helpers").ResolvedToolContext["user"],
+      userProfile: null,
+      userNetworks: [],
+      isOnboarding: false,
+      hasName: true,
+      isMcp: true,
+    };
+  }
+
+  test("invokes deps.mintConnectLink and surfaces the returned URL as acceptUrl", async () => {
+    const mintCalls: Array<{ userId: string; opportunityId: string; kind: string; greeting: string | null | undefined }> = [];
+    const mintConnectLink = async (args: { userId: string; opportunityId: string; kind: string; greeting?: string | null }) => {
+      mintCalls.push({ userId: args.userId, opportunityId: args.opportunityId, kind: args.kind, greeting: args.greeting ?? null });
+      return { url: FAKE_URL };
+    };
+
+    const context: ToolContext = {
+      userId: VIEWER_ID,
+      database: buildMcpDb(),
+      embedder: mockEmbedder,
+      scraper: mockScraper,
+      ...mockProtocolDeps,
+      mintConnectLink,
+      apiBaseUrl: API_BASE_URL,
+      frontendUrl: FRONTEND_URL,
+    } as ToolContext;
+
+    const tools = await createChatTools(context, buildMcpResolvedContext());
+    const listTool = tools.find((t: { name: string }) => t.name === "list_opportunities") as { invoke: (args: unknown) => Promise<string> };
+    expect(listTool).toBeDefined();
+
+    const raw = await listTool.invoke({});
+    const parsed = JSON.parse(raw);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data.found).toBe(true);
+
+    // Adapter was invoked exactly once with the expected shape.
+    expect(mintCalls.length).toBe(1);
+    expect(mintCalls[0]).toMatchObject({
+      userId: VIEWER_ID,
+      opportunityId: OPP_ID,
+      kind: "connect",
+      greeting: null,
+    });
+
+    // The MCP output (prose, not JSON) embeds the minted URL as acceptUrl.
+    expect(parsed.data.message).toContain(`acceptUrl: ${FAKE_URL}`);
+
+    // profileUrl falls back to ${frontendUrl}/u/<id> when the counterpart has
+    // no Telegram handle. Catches frontendUrl-forwarding regressions.
+    expect(parsed.data.message).toContain(`profileUrl: ${FRONTEND_URL}/u/${COUNTERPART_ID}`);
+  });
+
+  test("skips minting silently when deps.mintConnectLink is not provided", async () => {
+    const context: ToolContext = {
+      userId: VIEWER_ID,
+      database: buildMcpDb(),
+      embedder: mockEmbedder,
+      scraper: mockScraper,
+      ...mockProtocolDeps,
+      // mintConnectLink intentionally omitted
+      apiBaseUrl: API_BASE_URL,
+      frontendUrl: FRONTEND_URL,
+    } as ToolContext;
+
+    const tools = await createChatTools(context, buildMcpResolvedContext());
+    const listTool = tools.find((t: { name: string }) => t.name === "list_opportunities") as { invoke: (args: unknown) => Promise<string> };
+    const raw = await listTool.invoke({});
+    const parsed = JSON.parse(raw);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data.found).toBe(true);
+    // No acceptUrl line in the MCP prose when no adapter is wired.
+    expect(parsed.data.message).not.toContain("acceptUrl:");
+  });
+});
+
 afterAll(() => mock.restore());
