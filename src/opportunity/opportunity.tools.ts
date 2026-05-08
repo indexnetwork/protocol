@@ -1032,8 +1032,11 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
                 `${deps.apiBaseUrl}/api/opportunities/${opp.id}/${endpoint}?token=${token}&link_preview=false`;
               (cardData as Record<string, unknown>).profileUrl = profileUrl;
               (cardData as Record<string, unknown>).feedCategory = feedCategory;
-            } catch {
-              // Non-fatal — card is still surfaced without links
+            } catch (err) {
+              logger.warn("Failed to mint MCP opportunity links — surfacing card without acceptUrl/profileUrl", {
+                opportunityId: opp.id,
+                error: err instanceof Error ? err.message : String(err),
+              });
             }
           }
 
