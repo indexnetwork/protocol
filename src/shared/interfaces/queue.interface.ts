@@ -7,6 +7,6 @@
  * Implemented by the intent queue; protocol layer depends only on this interface.
  */
 export interface IntentGraphQueue {
-  addGenerateHydeJob(data: { intentId: string; userId: string }): Promise<unknown>;
+  addGenerateHydeJob(data: { intentId: string; userId: string; networkScopeId?: string }): Promise<unknown>;
   addDeleteHydeJob(data: { intentId: string }): Promise<unknown>;
 }

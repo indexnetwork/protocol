@@ -559,7 +559,11 @@ export class IntentGraphFactory {
               results.push({ actionType: 'create', success: true, intentId: created.id, payload: sanitizedPayload });
               logger.verbose(`Created intent: ${created.id}`);
 
-              this.intentQueue?.addGenerateHydeJob({ intentId: created.id, userId: state.userId }).catch((err) =>
+              this.intentQueue?.addGenerateHydeJob({
+                intentId: created.id,
+                userId: state.userId,
+                ...(state.networkId ? { networkScopeId: state.networkId } : {}),
+              }).catch((err) =>
                 logger.error('Failed to enqueue intent HyDE job', { intentId: created.id, error: err })
               );
 
@@ -612,7 +616,11 @@ export class IntentGraphFactory {
               });
               logger.verbose(`Updated intent: ${updateAction.id}`);
               if (updated) {
-                this.intentQueue?.addGenerateHydeJob({ intentId: updateAction.id, userId: state.userId }).catch((err) =>
+                this.intentQueue?.addGenerateHydeJob({
+                  intentId: updateAction.id,
+                  userId: state.userId,
+                  ...(state.networkId ? { networkScopeId: state.networkId } : {}),
+                }).catch((err) =>
                   logger.error('Failed to enqueue intent HyDE job', { intentId: updateAction.id, error: err })
                 );
               }
