@@ -12,6 +12,7 @@ import type { EvaluatorEntity } from "./opportunity.evaluator.js";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import type { Opportunity, OpportunityStatus } from "../shared/interfaces/database.interface.js";
 import type { ConnectLinkKind } from "../shared/interfaces/connect-link.interface.js";
+import { selectByComposition } from "./opportunity.utils.js";
 
 const logger = protocolLogger("ChatTools:Opportunity");
 
@@ -25,8 +26,18 @@ const UPDATE_OPPORTUNITY_BLOCKED_STATUSES = new Set<OpportunityStatus>([
   "expired",
 ]);
 
-/** Maximum number of opportunity cards to show per chat response. */
-const CHAT_DISPLAY_LIMIT = 3;
+/**
+ * Maximum number of opportunity cards to show per chat response.
+ * Sized for `selectByComposition` to fill both feed buckets — up to 3
+ * connection + 3 connector-flow per the digest/ambient prompt rules.
+ */
+const CHAT_DISPLAY_LIMIT = 6;
+
+/**
+ * Wider fetch budget so `selectByComposition` has both buckets to balance
+ * across, even when one category dominates the natural sort order.
+ */
+const CHAT_FETCH_LIMIT = 30;
 
 /** Markdown code fence (three backticks). Avoids embedding ``` in string literals so TS parser stays in sync. */
 const CODE_FENCE = String.fromCharCode(96, 96, 96);
@@ -883,19 +894,41 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         return error("Invalid network ID format.");
       }
 
-      // The MCP/chat surface only ever exposes actionable opportunities.
-      // Other statuses are reachable via the home view / REST API, not here.
-      const statuses: OpportunityStatus[] = ["draft", "pending"];
+      // The MCP/chat surface exposes actionable opportunities.
+      // `latent` is included so the introducer-as-viewer can see their unapproved
+      // connector-flow cards ("do you know someone for X?"). Other latent visibility
+      // rules from isActionableForViewer (latent + no introducer; latent + approved=true
+      // mid-negotiation) are correct at the ACL layer but should not flow through the
+      // chat tool — patient/peer wait for the negotiation to land them in `pending`.
+      const statuses: OpportunityStatus[] = ["draft", "pending", "latent"];
 
-      // Get opportunities; use minimal card data (no LLM presenter) for fast chat response
-      const opportunities = await database.getOpportunitiesForUser(
+      // Fetch wider than CHAT_DISPLAY_LIMIT so selectByComposition has both
+      // buckets to balance — otherwise a category that dominates the natural
+      // sort order can fill the whole window and starve the other section.
+      const fetched = await database.getOpportunitiesForUser(
         context.userId,
         {
           networkId: effectiveIndexId,
           statuses,
-          limit: CHAT_DISPLAY_LIMIT,
+          limit: CHAT_FETCH_LIMIT,
         },
       );
+
+      // Latent rows in chat are introducer-as-viewer only. The ACL layer
+      // (isActionableForViewer) returns true for several other latent cases —
+      // those belong to the home feed, not the digest/ambient surface.
+      const visible = fetched.filter((opp) => {
+        if (opp.status !== "latent") return true;
+        const me = opp.actors.find((a) => a.userId === context.userId);
+        return me?.role === "introducer";
+      });
+
+      // Compose-balance across feed categories so the digest/ambient prompt
+      // can fill both Section A (connection) and Section B (connector-flow).
+      // Falls back to the unbalanced view when the helper has nothing to do.
+      const opportunities = visible.length > 0
+        ? selectByComposition(visible, context.userId)
+        : visible;
 
       if (!opportunities || opportunities.length === 0) {
         return success({
