@@ -54,6 +54,84 @@ export function resolveActionableLinkKind(input: {
 }
 
 /**
+ * Build the agent-facing profile link for a counterpart. Telegram DM if a
+ * public handle is on file, otherwise the web profile URL. Returns `undefined`
+ * only if no fallback is possible (no Telegram AND no frontendUrl configured).
+ */
+export function buildProfileUrl(
+  counterpartUser:
+    | { socials?: Array<{ label?: string | null; value?: string | null }> | null }
+    | null
+    | undefined,
+  counterpartUserId: string,
+  frontendUrl: string | undefined,
+): string | undefined {
+  const telegramSocial = counterpartUser?.socials?.find(
+    (s) => s.label?.toLowerCase() === "telegram",
+  );
+  const telegramHandle = telegramSocial?.value?.trim().replace(/^@/, "");
+  if (telegramHandle) return `https://t.me/${telegramHandle}`;
+  if (frontendUrl) return `${frontendUrl}/u/${counterpartUserId}?link_preview=false`;
+  return undefined;
+}
+
+/**
+ * Mint a short-link for `card` if the (status, viewerRole, viewerApproved)
+ * combination is actionable; mutate the card in place with `acceptUrl`,
+ * `profileUrl`, and `feedCategory`. No-op (and no DB call) if not actionable.
+ *
+ * Swallows mint errors after logging — the card is still returned without an
+ * `acceptUrl`, matching the prior `list_opportunities` resilience behavior.
+ */
+export async function attachActionableLinks(
+  card: Record<string, unknown> & {
+    opportunityId: string;
+    viewerRole: string;
+    status: string;
+  },
+  opts: {
+    viewerId: string;
+    viewerApproved?: boolean;
+    counterpartUser:
+      | { socials?: Array<{ label?: string | null; value?: string | null }> | null }
+      | null
+      | undefined;
+    counterpartUserId: string;
+    mintConnectLink: NonNullable<ToolDeps["mintConnectLink"]>;
+    frontendUrl: string | undefined;
+  },
+): Promise<void> {
+  const kind = resolveActionableLinkKind({
+    status: card.status,
+    viewerRole: card.viewerRole,
+    viewerApproved: opts.viewerApproved,
+  });
+  if (kind === null) return;
+
+  try {
+    const { url } = await opts.mintConnectLink({
+      userId: opts.viewerId,
+      opportunityId: card.opportunityId,
+      kind,
+      greeting: null,
+    });
+    card.acceptUrl = url;
+    card.feedCategory = card.viewerRole === "introducer" ? "connector-flow" : "connection";
+    const profileUrl = buildProfileUrl(opts.counterpartUser, opts.counterpartUserId, opts.frontendUrl);
+    if (profileUrl) card.profileUrl = profileUrl;
+  } catch (err) {
+    logger.warn(
+      "Failed to mint MCP opportunity link — surfacing card without acceptUrl/profileUrl",
+      {
+        opportunityId: card.opportunityId,
+        kind,
+        error: err instanceof Error ? err.message : String(err),
+      },
+    );
+  }
+}
+
+/**
  * Statuses for which `update_opportunity` must refuse mutations.
  * - `accepted` / `rejected` / `expired`: terminal outcomes.
  */
