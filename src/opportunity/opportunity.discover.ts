@@ -9,7 +9,7 @@
  * Used by the discover_opportunities chat tool.
  */
 
-import type { Opportunity, ChatGraphCompositeDatabase } from "../shared/interfaces/database.interface.js";
+import type { Opportunity, ChatGraphCompositeDatabase, UserRecord } from "../shared/interfaces/database.interface.js";
 import type { Cache } from "../shared/interfaces/cache.interface.js";
 import type { OpportunityGraphOptions, CandidateMatch } from "./opportunity.state.js";
 import {
@@ -104,6 +104,10 @@ export interface FormattedDiscoveryCandidate {
   homeCardPresentation?: HomeCardPresentationResult;
   /** Viewer's role in this opportunity. */
   viewerRole?: string;
+  /** Whether the viewer (as introducer) has approved the introduction. */
+  viewerApproved?: boolean;
+  /** Full user record for the candidate (needed for socials / Telegram fallback). */
+  candidateUser?: UserRecord | null;
   /** Whether the counterpart is a ghost (not yet onboarded) user. */
   isGhost?: boolean;
   /** Narrator chip for home card display (name + remark, with optional avatar/userId for introducer). */
@@ -240,6 +244,8 @@ async function enrichOpportunities(
         opportunity: opp,
         candidateUserId,
         viewerRole: viewerActor?.role ?? "party",
+        viewerApproved: viewerActor?.approved === true,
+        candidateUser,
         profile,
         confidence,
       };
@@ -499,6 +505,8 @@ async function enrichOpportunities(
         score: item.confidence,
         status: chatSessionId && !existingOpportunityIds?.has(item.opportunity.id) ? "draft" : item.opportunity.status,
         viewerRole: item.viewerRole,
+        viewerApproved: item.viewerApproved,
+        candidateUser: item.candidateUser,
         isGhost,
         ...(presentations?.[idx] && { presentation: presentations[idx] }),
         ...(homeCard && {

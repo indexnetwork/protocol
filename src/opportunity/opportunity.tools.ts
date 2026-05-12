@@ -937,6 +937,27 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       const displayedCards = allCardData.slice(0, CHAT_DISPLAY_LIMIT);
       const extraFromCap = allCardData.length - displayedCards.length;
 
+      if (context.isMcp && deps.mintConnectLink) {
+        const mintConnectLink = deps.mintConnectLink;
+        await Promise.all(
+          displayedCards.map(async (card, idx) => {
+            const source = result.opportunities?.[idx];
+            await attachActionableLinks(card as Record<string, unknown> & {
+              opportunityId: string;
+              viewerRole: string;
+              status: string;
+            }, {
+              viewerId: context.userId,
+              viewerApproved: source?.viewerApproved,
+              counterpartUser: source?.candidateUser ?? null,
+              counterpartUserId: card.userId ?? "",
+              mintConnectLink,
+              frontendUrl: deps.frontendUrl,
+            });
+          }),
+        );
+      }
+
       let message = buildOpportunityPresentation(displayedCards, {
         isMcp: context.isMcp ?? false,
         leadIn: `Found ${displayedCards.length} potential connection(s).`,
