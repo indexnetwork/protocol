@@ -2941,7 +2941,11 @@ export class OpportunityGraphFactory {
             return { mutationResult: { success: false, error: 'You cannot send this opportunity.' } };
           }
 
-          await this.database.updateOpportunityStatus(state.opportunityId, 'pending');
+          await this.database.stampOpportunityActorAction(
+            state.opportunityId,
+            state.userId,
+            'pending',
+          );
 
           // Notify only the role that becomes visible at the next tier
           let recipients: OpportunityActor[];
