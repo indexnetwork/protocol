@@ -1757,6 +1757,7 @@ export type ChatGraphCompositeDatabase = Pick<
   | 'getOpportunitiesForUser'
   | 'updateOpportunityStatus'
   | 'updateOpportunityActorApproval'
+  | 'stampOpportunityActorAction'
   | 'getOrCreateDM'
   // HyDE graph (used by OpportunityGraph)
   | 'getHydeDocument'
