@@ -25,8 +25,12 @@ const logger = protocolLogger("ChatTools:Opportunity");
  *
  * - `connect` — pending opp where viewer is a non-introducer party. Clicking
  *   flips the opp to accepted and opens the chat with the counterpart.
- * - `approve_introduction` — draft opp where viewer is an unapproved
- *   introducer. Clicking flips approved=true and triggers negotiation.
+ * - `approve_introduction` — draft or latent opp where viewer is an unapproved
+ *   introducer. Clicking flips approved=true and triggers negotiation. The
+ *   `draft` case comes from `create_opportunities` intro mode; the `latent`
+ *   case comes from background-discovered connector-flow cards surfaced in
+ *   `list_opportunities`. In both, status remains pre-send and the `/c/<code>`
+ *   link is the only MCP path to approve.
  * - `outreach` — accepted opp where viewer is a non-introducer party.
  *   Clicking opens the existing chat (no state change).
  *
@@ -47,7 +51,7 @@ export function resolveActionableLinkKind(input: {
   if (status === "pending") {
     return isIntroducer ? null : "connect";
   }
-  if (status === "draft") {
+  if (status === "draft" || status === "latent") {
     if (!isIntroducer) return null;
     return viewerApproved === true ? null : "approve_introduction";
   }
@@ -965,7 +969,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
               viewerId: context.userId,
               viewerApproved: source?.viewerApproved,
               counterpartUser: source?.candidateUser ?? null,
-              counterpartUserId: card.userId ?? "",
+              counterpartUserId: source?.userId ?? card.userId,
               mintConnectLink,
               frontendUrl: deps.frontendUrl,
             });

@@ -220,8 +220,29 @@ describe("resolveActionableLinkKind — actionability matrix", () => {
 
   test("terminal / unknown statuses → null", () => {
     expect(resolveActionableLinkKind({ status: "rejected", viewerRole: "party" })).toBeNull();
-    expect(resolveActionableLinkKind({ status: "latent", viewerRole: "party" })).toBeNull();
     expect(resolveActionableLinkKind({ status: "expired", viewerRole: "introducer", viewerApproved: false })).toBeNull();
+  });
+
+  test("latent + introducer + unapproved → approve_introduction (connector-flow before approval)", () => {
+    expect(
+      resolveActionableLinkKind({ status: "latent", viewerRole: "introducer", viewerApproved: false }),
+    ).toBe("approve_introduction");
+    // undefined defaults match "unapproved" — same as draft.
+    expect(
+      resolveActionableLinkKind({ status: "latent", viewerRole: "introducer" }),
+    ).toBe("approve_introduction");
+  });
+
+  test("latent + introducer + approved → null (negotiation in flight)", () => {
+    expect(
+      resolveActionableLinkKind({ status: "latent", viewerRole: "introducer", viewerApproved: true }),
+    ).toBeNull();
+  });
+
+  test("latent + non-introducer → null (chat surface filters this case out anyway)", () => {
+    expect(resolveActionableLinkKind({ status: "latent", viewerRole: "party" })).toBeNull();
+    expect(resolveActionableLinkKind({ status: "latent", viewerRole: "agent" })).toBeNull();
+    expect(resolveActionableLinkKind({ status: "latent", viewerRole: "patient" })).toBeNull();
   });
 });
 

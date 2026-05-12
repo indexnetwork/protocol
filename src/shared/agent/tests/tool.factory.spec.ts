@@ -2195,6 +2195,57 @@ describe("createChatTools — MCP connect-link wiring", () => {
     expect(parsed.data.message).not.toContain("acceptUrl:");
   });
 
+  test("list_opportunities mints approve_introduction for latent + introducer (unapproved)", async () => {
+    const mintCalls: Array<{ opportunityId: string; kind: string }> = [];
+    const mintConnectLink = async (args: { userId: string; opportunityId: string; kind: string; greeting?: string | null }) => {
+      mintCalls.push({ opportunityId: args.opportunityId, kind: args.kind });
+      return { url: FAKE_URL };
+    };
+
+    const latentDb: ChatGraphCompositeDatabase = createMockDatabase(async () => [], {
+      getOpportunitiesForUser: async () => [
+        {
+          ...buildOpp(),
+          id: "opp-latent-intro",
+          status: "latent",
+          actors: [
+            { userId: VIEWER_ID, role: "introducer", approved: false },
+            { userId: COUNTERPART_ID, role: "patient" },
+            { userId: "third-party", role: "agent" },
+          ],
+        },
+      ],
+      getUser: async (uid: string) => {
+        if (uid === VIEWER_ID) return { id: uid, name: "Viewer" };
+        if (uid === COUNTERPART_ID) return { id: uid, name: "Counterpart" };
+        if (uid === "third-party") return { id: uid, name: "Third" };
+        return null;
+      },
+      getProfile: async () => null,
+    } as unknown as MockOverrides);
+
+    const context: ToolContext = {
+      userId: VIEWER_ID,
+      database: latentDb,
+      embedder: mockEmbedder,
+      scraper: mockScraper,
+      ...mockProtocolDeps,
+      mintConnectLink,
+      apiBaseUrl: API_BASE_URL,
+      frontendUrl: FRONTEND_URL,
+    } as ToolContext;
+
+    const tools = await createChatTools(context, buildMcpResolvedContext());
+    const listTool = tools.find((t: { name: string }) => t.name === "list_opportunities") as { invoke: (args: unknown) => Promise<string> };
+    const raw = await listTool.invoke({});
+    const parsed = JSON.parse(raw);
+
+    expect(parsed.success).toBe(true);
+    expect(mintCalls.length).toBe(1);
+    expect(mintCalls[0]).toMatchObject({ opportunityId: "opp-latent-intro", kind: "approve_introduction" });
+    expect(parsed.data.message).toContain(`acceptUrl: ${FAKE_URL}`);
+  });
+
   test("create_opportunities intro mode mints approve_introduction for the introducer", async () => {
     const mintCalls: Array<{ opportunityId: string; kind: string }> = [];
     const mintConnectLink = async (args: { userId: string; opportunityId: string; kind: string; greeting?: string | null }) => {
