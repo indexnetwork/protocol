@@ -201,7 +201,7 @@ describe("resolveActionableLinkKind — actionability matrix", () => {
     expect(
       resolveActionableLinkKind({ status: "draft", viewerRole: "introducer", viewerApproved: false }),
     ).toBe("approve_introduction");
-    // undefined defaults to "unapproved" for fresh drafts coming from create_opportunities
+    // undefined defaults to "unapproved" for fresh drafts coming from discover_opportunities
     expect(
       resolveActionableLinkKind({ status: "draft", viewerRole: "introducer" }),
     ).toBe("approve_introduction");

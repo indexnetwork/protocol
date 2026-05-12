@@ -2207,7 +2207,7 @@ describe("createChatTools — MCP connect-link wiring", () => {
     expect(parsed.data.message).toContain(`acceptUrl: ${FAKE_URL}`);
   });
 
-  test("create_opportunities intro mode mints approve_introduction for the introducer", async () => {
+  test("discover_opportunities intro mode mints approve_introduction for the introducer", async () => {
     const mintCalls: Array<{ opportunityId: string; kind: string }> = [];
     const mintConnectLink = async (args: { userId: string; opportunityId: string; kind: string; greeting?: string | null }) => {
       mintCalls.push({ opportunityId: args.opportunityId, kind: args.kind });
@@ -2252,7 +2252,7 @@ describe("createChatTools — MCP connect-link wiring", () => {
     } as ToolContext;
 
     const tools = await createChatTools(context, buildMcpResolvedContext());
-    const createTool = tools.find((t: { name: string }) => t.name === "create_opportunities") as { invoke: (args: unknown) => Promise<string> };
+    const createTool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as { invoke: (args: unknown) => Promise<string> };
 
     const raw = await createTool.invoke({
       partyUserIds: ["party-a", "party-b"],

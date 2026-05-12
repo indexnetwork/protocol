@@ -27,7 +27,7 @@ const logger = protocolLogger("ChatTools:Opportunity");
  *   flips the opp to accepted and opens the chat with the counterpart.
  * - `approve_introduction` — draft or latent opp where viewer is an unapproved
  *   introducer. Clicking flips approved=true and triggers negotiation. The
- *   `draft` case comes from `create_opportunities` intro mode; the `latent`
+ *   `draft` case comes from `discover_opportunities` intro mode; the `latent`
  *   case comes from background-discovered connector-flow cards surfaced in
  *   `list_opportunities`. In both, status remains pre-send and the `/c/<code>`
  *   link is the only MCP path to approve.
@@ -35,7 +35,7 @@ const logger = protocolLogger("ChatTools:Opportunity");
  *   Clicking opens the existing chat (no state change).
  *
  * Callers that pass `viewerApproved: undefined` for a fresh draft (e.g.
- * `create_opportunities` paths that just inserted the row with approved=false)
+ * `discover_opportunities` paths that just inserted the row with approved=false)
  * get `approve_introduction` — the default matches the just-created state.
  */
 export function resolveActionableLinkKind(input: {
