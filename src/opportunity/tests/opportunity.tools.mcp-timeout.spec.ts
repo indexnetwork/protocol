@@ -9,7 +9,6 @@ import type { DiscoverResult, FormattedDiscoveryCandidate } from '../opportunity
 
 type DiscoverInvocation = {
   negotiateTimeoutMs?: number;
-  isMcpContext: boolean;
 };
 let discoverCalls: DiscoverInvocation[] = [];
 let discoverResult: DiscoverResult = { found: false, count: 0, message: 'no results' };
@@ -18,7 +17,6 @@ mock.module('../opportunity.discover.js', () => ({
   runDiscoverFromQuery: async (args: Record<string, unknown>) => {
     discoverCalls.push({
       negotiateTimeoutMs: args?.negotiateTimeoutMs as number | undefined,
-      isMcpContext: true,
     });
     return discoverResult;
   },
