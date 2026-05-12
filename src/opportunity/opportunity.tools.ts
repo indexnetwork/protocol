@@ -1357,12 +1357,16 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         return error(`This opportunity is already ${opportunity.status} and cannot be updated.`);
       }
 
-      // Strict scope enforcement: when chat is index-scoped, verify opportunity is in that index
+      // Strict scope enforcement: when chat is index-scoped, the caller's own
+      // actor entry on this opportunity must be anchored on the bound network.
+      // Mirrors the per-actor filter in getOpportunitiesForUser — relying on
+      // `context.networkId` or any-actor matches would let a counterpart's
+      // network presence shadow a viewer whose own actor is elsewhere.
       if (context.networkId) {
-        const opportunityIndexId =
-          opportunity.context?.networkId ??
-          opportunity.actors?.find((a) => a.networkId === context.networkId)?.networkId;
-        if (!opportunityIndexId || opportunityIndexId !== context.networkId) {
+        const callerOnBoundNetwork = opportunity.actors?.some(
+          (a) => a.userId === context.userId && a.networkId === context.networkId,
+        );
+        if (!callerOnBoundNetwork) {
           return error("Opportunity not found.");
         }
       }
