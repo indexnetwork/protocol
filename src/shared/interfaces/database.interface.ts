@@ -1105,6 +1105,17 @@ export interface Database {
   getOpportunity(id: string): Promise<Opportunity | null>;
 
   /**
+   * Get multiple opportunities by ID in a single batched query.
+   *
+   * Returns rows in arbitrary order; callers should index by `id`.
+   * Missing IDs are silently dropped (no error).
+   *
+   * @param ids - Opportunity IDs (deduplicated by the caller is fine but not required)
+   * @returns Opportunities found
+   */
+  getOpportunitiesByIds(ids: string[]): Promise<Opportunity[]>;
+
+  /**
    * Resolve an opportunity identifier (full UUID or short prefix) to a full UUID.
    * @param idOrPrefix - Full UUID or short hex prefix
    * @param userId - The user ID (for visibility scoping)
@@ -1750,6 +1761,7 @@ export type ChatGraphCompositeDatabase = Pick<
   // OpportunityGraph subgraph requirements (getProfile already included)
   | 'createOpportunity'
   | 'getOpportunity'
+  | 'getOpportunitiesByIds'
   | 'opportunityExistsBetweenActors'
   | 'getOpportunityBetweenActors'
   | 'findOverlappingOpportunities'
@@ -1998,6 +2010,7 @@ export interface NegotiationDatabase {
 export type OpportunityControllerDatabase = Pick<
   Database,
   | 'getOpportunity'
+  | 'getOpportunitiesByIds'
   | 'getOpportunitiesForUser'
   | 'getOpportunitiesForNetwork'
   | 'resolveOpportunityId'
