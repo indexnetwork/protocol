@@ -1647,6 +1647,7 @@ export class OpportunityGraphFactory {
      *   timeout/turn_cap → 'stalled'
      * Status updates land in the DB; in-memory state.opportunities is not mutated.
      */
+    const NEGOTIATE_TIMER_SENTINEL = Symbol('negotiate-timer-sentinel');
     const negotiateNode = async (state: typeof OpportunityGraphState.State) => {
       if (!this.negotiationGraph) return {};
       if (!state.opportunities || state.opportunities.length === 0) return {};
@@ -1877,7 +1878,7 @@ export class OpportunityGraphFactory {
             }
           : undefined;
 
-        const acceptedResults = await negotiateCandidates(
+        const negotiationWork = negotiateCandidates(
           this.negotiationGraph, sourceUser, candidates,
           { networkId: '', prompt: '' }, // base context, overridden per-candidate below
           { maxTurns, traceEmitter: traceEmitter ?? undefined,
@@ -1886,6 +1887,50 @@ export class OpportunityGraphFactory {
             trigger: state.trigger === 'orchestrator' ? 'orchestrator' : 'ambient',
             ...(onCandidateResolved && { onCandidateResolved }) },
         );
+
+        // MCP-only: race the whole negotiate phase against a budget. When the
+        // timer wins we return early with a `timed_out` trace; the unresolved
+        // promise keeps running in the Bun event loop and each candidate's
+        // finalize node updates its opp status in the DB. We deliberately do
+        // NOT await it, NOT abort it, and NOT mutate state.opportunities —
+        // the MCP tool handler refreshes statuses from the DB before
+        // responding. Bounded blast radius: at most ~20 s of background work
+        // per request; orphans heal via maintenance scripts or IND-279 when
+        // it lands.
+        const budgetMs = state.options.negotiateTimeoutMs;
+        let acceptedResults: Awaited<typeof negotiationWork>;
+        if (budgetMs !== undefined) {
+          const timerWork = new Promise<typeof NEGOTIATE_TIMER_SENTINEL>((resolve) =>
+            setTimeout(() => resolve(NEGOTIATE_TIMER_SENTINEL), budgetMs),
+          );
+          const raced = await Promise.race([negotiationWork, timerWork]);
+          if (raced === NEGOTIATE_TIMER_SENTINEL) {
+            // Floating promise is intentional — see comment above.
+            void negotiationWork.catch((err) => {
+              logger.warn('[Graph:Negotiate] background negotiation failed after timer fired', { error: err });
+            });
+            logger.warn('[Graph:Negotiate] timed out — returning partial results to caller', {
+              discoveryUserId,
+              candidateCount: candidates.length,
+              negotiateTimeoutMs: budgetMs,
+            });
+            traceEmitter?.({ type: "graph_end", name: "Negotiation graph", durationMs: Date.now() - graphStart });
+            return {
+              trace: [{
+                node: 'negotiate',
+                detail: 'timed_out',
+                data: {
+                  negotiateTimeoutMs: budgetMs,
+                  candidateCount: candidates.length,
+                  durationMs: Date.now() - graphStart,
+                },
+              }],
+            };
+          }
+          acceptedResults = raced;
+        } else {
+          acceptedResults = await negotiationWork;
+        }
 
         // No filtering: every candidate's outcome (accept/reject/stalled) was applied to its
         // opportunity row by the negotiation graph's finalize node via the opportunityId we
