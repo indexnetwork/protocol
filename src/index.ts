@@ -127,6 +127,7 @@ export {
 export { createToolRegistry } from "./shared/agent/tool.registry.js";
 export { createAgentTools } from './agent/agent.tools.js';
 export { AMBIENT_PARK_WINDOW_MS } from './negotiation/negotiation.tools.js';
+export { normalizeTelegramHandle } from './shared/utils/telegram-handle.js';
 
 // ─── MCP ──────────────────────────────────────────────────────────────────────
 

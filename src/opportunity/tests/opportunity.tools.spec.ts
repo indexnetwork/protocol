@@ -426,12 +426,12 @@ describe("attachActionableLinks — mutation and resilience", () => {
     const { mintConnectLink } = makeMintSpy();
     await attachActionableLinks(card, {
       viewerId: "user-12",
-      counterpartUser: { socials: [{ label: "telegram", value: "@bob" }] },
+      counterpartUser: { socials: [{ label: "telegram", value: "@bobby" }] },
       counterpartUserId: "counterpart-12",
       mintConnectLink,
       frontendUrl: "https://app.test",
     });
-    expect(card.profileUrl).toBe("https://t.me/bob");
+    expect(card.profileUrl).toBe("https://t.me/bobby");
   });
 
   test("Telegram label match is case-insensitive", async () => {
@@ -455,11 +455,11 @@ describe("attachActionableLinks — mutation and resilience", () => {
 describe("buildProfileUrl — edge cases", () => {
   test("whitespace in Telegram value is trimmed", () => {
     const result = buildProfileUrl(
-      { socials: [{ label: "telegram", value: "  dan  " }] },
+      { socials: [{ label: "telegram", value: "  danny  " }] },
       "user-dan",
       "https://app.test",
     );
-    expect(result).toBe("https://t.me/dan");
+    expect(result).toBe("https://t.me/danny");
   });
 
   test("socials is null → falls through to frontendUrl", () => {
@@ -488,6 +488,39 @@ describe("buildProfileUrl — edge cases", () => {
       "https://app.test",
     );
     expect(result).toBe("https://app.test/u/user-empty?link_preview=false");
+  });
+
+  test("URL-like Telegram value is safely normalized (strips URL prefix + query params)", () => {
+    // normalizeTelegramHandle strips the t.me/ prefix and query params, leaving
+    // the bare handle. This is safer than the old code that interpolated the raw value.
+    expect(
+      buildProfileUrl(
+        { socials: [{ label: "telegram", value: "t.me/alice?evil=1" }] },
+        "user-z",
+        "https://app.test",
+      ),
+    ).toBe("https://t.me/alice");
+  });
+
+  test("invalid Telegram handle (newline injected) falls back to frontend URL", () => {
+    // Newlines break the regex validation — result is null, falls back to web URL.
+    expect(
+      buildProfileUrl(
+        { socials: [{ label: "telegram", value: "alice\nevil" }] },
+        "user-z",
+        "https://app.test",
+      ),
+    ).toBe("https://app.test/u/user-z?link_preview=false");
+  });
+
+  test("Telegram handle below 5 chars falls back to frontend URL", () => {
+    expect(
+      buildProfileUrl(
+        { socials: [{ label: "telegram", value: "bob" }] },
+        "user-y",
+        "https://app.test",
+      ),
+    ).toBe("https://app.test/u/user-y?link_preview=false");
   });
 });
 

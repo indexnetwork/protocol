@@ -13,6 +13,7 @@ import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import type { Opportunity, OpportunityStatus } from "../shared/interfaces/database.interface.js";
 import type { ConnectLinkKind } from "../shared/interfaces/connect-link.interface.js";
 import { selectByComposition } from "./opportunity.utils.js";
+import { normalizeTelegramHandle } from "../shared/utils/telegram-handle.js";
 
 const logger = protocolLogger("ChatTools:Opportunity");
 
@@ -57,6 +58,11 @@ export function resolveActionableLinkKind(input: {
  * Build the agent-facing profile link for a counterpart. Telegram DM if a
  * public handle is on file, otherwise the web profile URL. Returns `undefined`
  * only if no fallback is possible (no Telegram AND no frontendUrl configured).
+ *
+ * Telegram handles are validated via `normalizeTelegramHandle` — values that
+ * look like URLs (e.g. `"t.me/alice?evil=1"`), contain special characters, or
+ * are shorter than 5 chars are treated as invalid and fall through to the web
+ * profile URL rather than producing a malformed `t.me` link.
  */
 export function buildProfileUrl(
   counterpartUser:
@@ -69,7 +75,7 @@ export function buildProfileUrl(
   const telegramSocial = counterpartUser?.socials?.find(
     (s) => s.label?.toLowerCase() === "telegram",
   );
-  const telegramHandle = telegramSocial?.value?.trim().replace(/^@/, "");
+  const telegramHandle = normalizeTelegramHandle(telegramSocial?.value);
   if (telegramHandle) return `https://t.me/${telegramHandle}`;
   if (frontendUrl) return `${frontendUrl}/u/${counterpartUserId}?link_preview=false`;
   return undefined;
@@ -325,7 +331,7 @@ export function buildOpportunityPresentation(
     const hasLinks = cards.some((c) => c.acceptUrl);
     const hasOpportunityIds = cards.some((c) => !c.acceptUrl);
     const linkInstructions = hasLinks
-      ? `Link each person's name to their profileUrl and embed acceptUrl on a short verb phrase (e.g. "message [Name]" for connection, "make intro" for connector-flow). The acceptUrl is opaque and self-contained — embed it verbatim. Do NOT append, encode, or modify any part of any URL. Never render link strips or tables — weave URLs into prose. `
+      ? `For each card that has an acceptUrl, embed it on a short verb phrase (e.g. "message [Name]" for connection, "make intro" for connector-flow). For each card that has a profileUrl, link the person's name to it. Some cards may have neither — render those as plain text and never fabricate URLs for them. The acceptUrl is opaque and self-contained — embed it verbatim. Do NOT append, encode, or modify any part of any URL. Never render link strips or tables — weave URLs into prose. `
       : "";
     const idInstructions = hasOpportunityIds
       ? `Use opportunityId values only when calling update_opportunity (send/accept/reject).`
