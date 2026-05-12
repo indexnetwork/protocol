@@ -70,6 +70,13 @@ export interface DiscoverInput {
    * accepted-pair lookup surfaces existing connections.
    */
   trigger?: 'ambient' | 'orchestrator';
+  /**
+   * MCP-only. When set, the opportunity graph's negotiate phase is capped at
+   * this many milliseconds; on timeout the caller gets whichever candidates
+   * finished, the rest stay in `negotiating` and finalize in the background.
+   * Chat, ambient queue, and all other callers omit this — existing behavior.
+   */
+  negotiateTimeoutMs?: number;
 }
 
 /** Context used by the minimal (no-LLM) path; only introducerName is needed for narrator chip. */
@@ -561,6 +568,7 @@ export async function runDiscoverFromQuery(
     onBehalfOfUserId,
     chatSessionId,
     trigger,
+    negotiateTimeoutMs,
   } = input;
 
   if (indexScope.length === 0) {
@@ -587,6 +595,7 @@ export async function runDiscoverFromQuery(
     limit,
     ...(!isOrchestrator && { initialStatus: chatSessionId ? "draft" : "latent" }),
     ...(chatSessionId ? { conversationId: chatSessionId } : {}),
+    ...(negotiateTimeoutMs !== undefined && { negotiateTimeoutMs }),
   };
 
   return withCallLogging(
