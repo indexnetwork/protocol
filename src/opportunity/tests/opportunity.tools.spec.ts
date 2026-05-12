@@ -173,7 +173,7 @@ describe('buildMinimalOpportunityCard - introducer discovery (IND-140)', () => {
   });
 });
 
-import { resolveActionableLinkKind } from "../opportunity.tools.js";
+import { resolveActionableLinkKind, buildOpportunityPresentation } from "../opportunity.tools.js";
 
 describe("resolveActionableLinkKind — actionability matrix", () => {
   test("accepted + non-introducer → outreach", () => {
@@ -222,5 +222,55 @@ describe("resolveActionableLinkKind — actionability matrix", () => {
     expect(resolveActionableLinkKind({ status: "rejected", viewerRole: "party" })).toBeNull();
     expect(resolveActionableLinkKind({ status: "latent", viewerRole: "party" })).toBeNull();
     expect(resolveActionableLinkKind({ status: "expired", viewerRole: "introducer", viewerApproved: false })).toBeNull();
+  });
+});
+
+describe("buildOpportunityPresentation — MCP opportunityId omission", () => {
+  test("omits opportunityId line when card has an acceptUrl", () => {
+    const out = buildOpportunityPresentation(
+      [{
+        opportunityId: "opp-actionable-1",
+        name: "Alice",
+        mainText: "Both work on protocol design.",
+        status: "pending",
+        acceptUrl: "https://api.test/c/Abc1234567",
+        profileUrl: "https://t.me/alice",
+        feedCategory: "connection",
+      }],
+      { isMcp: true, leadIn: "Found 1 connection." },
+    );
+
+    expect(out).not.toContain("opportunityId: opp-actionable-1");
+    expect(out).toContain("acceptUrl: https://api.test/c/Abc1234567");
+    expect(out).not.toContain("Use opportunityId values only when calling update_opportunity");
+  });
+
+  test("keeps opportunityId line when card has NO acceptUrl (draft sender etc.)", () => {
+    const out = buildOpportunityPresentation(
+      [{
+        opportunityId: "opp-draft-sender-1",
+        name: "Bob",
+        mainText: "You can offer DevOps mentorship.",
+        status: "draft",
+      }],
+      { isMcp: true, leadIn: "Found 1 draft." },
+    );
+
+    expect(out).toContain("opportunityId: opp-draft-sender-1");
+    expect(out).toContain("Use opportunityId values only when calling update_opportunity");
+  });
+
+  test("mixed actionability: keeps id only for non-actionable cards, keeps instruction", () => {
+    const out = buildOpportunityPresentation(
+      [
+        { opportunityId: "opp-actionable", name: "Alice", status: "pending", acceptUrl: "https://api.test/c/Abc1234567" },
+        { opportunityId: "opp-draft-sender", name: "Bob", status: "draft" },
+      ],
+      { isMcp: true, leadIn: "Found 2." },
+    );
+
+    expect(out).not.toContain("opportunityId: opp-actionable");
+    expect(out).toContain("opportunityId: opp-draft-sender");
+    expect(out).toContain("Use opportunityId values only when calling update_opportunity");
   });
 });

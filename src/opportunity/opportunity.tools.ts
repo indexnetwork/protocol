@@ -298,7 +298,7 @@ type OpportunityCardLike = Record<string, unknown> & {
  * dump raw fields or IDs. MCP clients have no card renderer, so code fences
  * would surface as raw JSON to end users.
  */
-function buildOpportunityPresentation(
+export function buildOpportunityPresentation(
   cards: OpportunityCardLike[],
   opts: { isMcp: boolean; leadIn: string; label?: "opportunity" | "opportunities" },
 ): string {
@@ -313,20 +313,29 @@ function buildOpportunityPresentation(
         if (card.profileUrl) lines.push(`   profileUrl: ${card.profileUrl}`);
         if (card.acceptUrl) lines.push(`   acceptUrl: ${card.acceptUrl}`);
         if (card.feedCategory) lines.push(`   feedCategory: ${card.feedCategory}`);
-        lines.push(`   opportunityId: ${card.opportunityId}`);
+        // Only surface opportunityId when there's no acceptUrl. Exposing the
+        // UUID alongside an actionable link gives the LLM a foothold to
+        // hallucinate bare `/api/opportunities/<id>/connect` URLs.
+        if (!card.acceptUrl) {
+          lines.push(`   opportunityId: ${card.opportunityId}`);
+        }
         return lines.join("\n");
       })
       .join("\n\n");
     const hasLinks = cards.some((c) => c.acceptUrl);
+    const hasOpportunityIds = cards.some((c) => !c.acceptUrl);
     const linkInstructions = hasLinks
       ? `Link each person's name to their profileUrl and embed acceptUrl on a short verb phrase (e.g. "message [Name]" for connection, "make intro" for connector-flow). The acceptUrl is opaque and self-contained — embed it verbatim. Do NOT append, encode, or modify any part of any URL. Never render link strips or tables — weave URLs into prose. `
+      : "";
+    const idInstructions = hasOpportunityIds
+      ? `Use opportunityId values only when calling update_opportunity (send/accept/reject).`
       : "";
     return (
       `${opts.leadIn}\n\n${prose}\n\n` +
       `Summarize these for the user in natural prose — mention first names and a brief match reason per connection. ` +
       `${linkInstructions}` +
       `Do NOT print raw JSON, field labels, opportunityIds, or confidence scores. ` +
-      `Use opportunityId values only when calling update_opportunity (send/accept/reject).`
+      `${idInstructions}`
     );
   }
 
