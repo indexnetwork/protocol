@@ -1150,6 +1150,28 @@ export interface Database {
   ): Promise<Opportunity | null>;
 
   /**
+   * Stamp `actedAt` on the actor matching `actorUserId` and update the
+   * opportunity's status atomically (row-lock + JSONB merge in one txn).
+   *
+   * Used by `sendNode` (status → 'pending') and `updateNode` (status →
+   * 'accepted'). The self-accept guard is enforced in the caller, not here —
+   * this method blindly stamps. Callers must pre-check `actor.actedAt` before
+   * invocation when the semantics require it (i.e. accepting).
+   *
+   * @param id - Opportunity ID
+   * @param actorUserId - The user whose actor entry should be stamped
+   * @param status - New opportunity status
+   * @param acceptedBy - Required when `status === 'accepted'`
+   * @returns The updated opportunity, or null if not found
+   */
+  stampOpportunityActorAction(
+    id: string,
+    actorUserId: string,
+    status: OpportunityStatus,
+    acceptedBy?: string,
+  ): Promise<Opportunity | null>;
+
+  /**
    * Update the `approved` field on an opportunity's introducer actor.
    * Fetches the opportunity, patches the matching actor in JS, and writes
    * the updated actors JSONB back. Returns the updated opportunity or null.
@@ -1619,6 +1641,14 @@ export interface SystemDatabase {
 
   /** Update an opportunity's status (system-level). */
   updateOpportunityStatus(id: string, status: OpportunityStatus, acceptedBy?: string): Promise<Opportunity | null>;
+
+  /** Stamp actor `actedAt` + update status atomically (system-level). */
+  stampOpportunityActorAction(
+    id: string,
+    actorUserId: string,
+    status: OpportunityStatus,
+    acceptedBy?: string,
+  ): Promise<Opportunity | null>;
 
   /** Check if opportunity exists between actors in an index. */
   opportunityExistsBetweenActors(actorIds: string[], networkId: string): Promise<boolean>;
