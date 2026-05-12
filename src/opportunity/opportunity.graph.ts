@@ -2801,6 +2801,10 @@ export class OpportunityGraphFactory {
 
     /**
      * Update Node: Change opportunity status (accept, reject, etc.).
+     * For 'accepted', enforces the self-accept guard: the caller's actor entry
+     * must not already have `actedAt` set — i.e. the caller has not yet been
+     * the one to advance this opportunity's state. Stamps `actedAt` on accept
+     * atomically with the status change via `stampOpportunityActorAction`.
      */
     const updateNode = async (state: typeof OpportunityGraphState.State) => {
       return timed("OpportunityGraph.update", async () => {
@@ -2822,9 +2826,20 @@ export class OpportunityGraphFactory {
           if (!opp) {
             return { mutationResult: { success: false, error: 'Opportunity not found.' } };
           }
-          const isActor = opp.actors.some((a: OpportunityActor) => a.userId === state.userId);
-          if (!isActor) {
+          const callerActor = opp.actors.find((a: OpportunityActor) => a.userId === state.userId);
+          if (!callerActor) {
             return { mutationResult: { success: false, error: 'You are not part of this opportunity.' } };
+          }
+
+          // Self-accept guard: only applies to the 'accepted' transition. Reject/expire
+          // remain available to all actors regardless of prior actedAt.
+          if (state.newStatus === 'accepted' && callerActor.actedAt) {
+            return {
+              mutationResult: {
+                success: false,
+                error: 'You have already acted on this opportunity. The other party must accept.',
+              },
+            };
           }
 
           let conversationId: string | undefined;
@@ -2838,11 +2853,21 @@ export class OpportunityGraphFactory {
             }
           }
 
-          await this.database.updateOpportunityStatus(
-            state.opportunityId,
-            state.newStatus as 'accepted' | 'rejected' | 'expired',
-            state.newStatus === 'accepted' ? state.userId : undefined,
-          );
+          if (state.newStatus === 'accepted') {
+            await this.database.stampOpportunityActorAction(
+              state.opportunityId,
+              state.userId,
+              'accepted',
+              state.userId,
+            );
+          } else {
+            // Reject/expire do not stamp actedAt on the caller; they are
+            // terminal flips, not commit signals. Keep the legacy path.
+            await this.database.updateOpportunityStatus(
+              state.opportunityId,
+              state.newStatus as 'rejected' | 'expired',
+            );
+          }
 
           return {
             mutationResult: {
