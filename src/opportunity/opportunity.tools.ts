@@ -718,6 +718,22 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
               }
             : {}),
         };
+
+        if (context.isMcp && deps.mintConnectLink) {
+          await attachActionableLinks(cardData as Record<string, unknown> & {
+            opportunityId: string;
+            viewerRole: string;
+            status: string;
+          }, {
+            viewerId: context.userId,
+            viewerApproved: false,
+            counterpartUser,
+            counterpartUserId: firstPartyId,
+            mintConnectLink: deps.mintConnectLink,
+            frontendUrl: deps.frontendUrl,
+          });
+        }
+
         return success({
           found: true,
           count: 1,
