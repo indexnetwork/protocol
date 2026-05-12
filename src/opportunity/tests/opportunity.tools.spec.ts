@@ -173,7 +173,7 @@ describe('buildMinimalOpportunityCard - introducer discovery (IND-140)', () => {
   });
 });
 
-import { resolveActionableLinkKind, buildOpportunityPresentation } from "../opportunity.tools.js";
+import { resolveActionableLinkKind, buildOpportunityPresentation, attachActionableLinks, buildProfileUrl } from "../opportunity.tools.js";
 
 describe("resolveActionableLinkKind — actionability matrix", () => {
   test("accepted + non-introducer → outreach", () => {
@@ -222,6 +222,272 @@ describe("resolveActionableLinkKind — actionability matrix", () => {
     expect(resolveActionableLinkKind({ status: "rejected", viewerRole: "party" })).toBeNull();
     expect(resolveActionableLinkKind({ status: "latent", viewerRole: "party" })).toBeNull();
     expect(resolveActionableLinkKind({ status: "expired", viewerRole: "introducer", viewerApproved: false })).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// attachActionableLinks — mutation and resilience
+// ---------------------------------------------------------------------------
+
+type TestCard = Record<string, unknown> & {
+  opportunityId: string;
+  viewerRole: string;
+  status: string;
+};
+
+function makeCard(
+  overrides: Partial<TestCard> & { opportunityId: string; viewerRole: string; status: string },
+): TestCard {
+  return { name: "Counterpart", ...overrides };
+}
+
+function makeMintSpy(url = "https://api.test/c/AAAAAAAAAA") {
+  const calls: Array<{ userId: string; opportunityId: string; kind: string; greeting?: string | null }> = [];
+  const mintConnectLink = async (args: { userId: string; opportunityId: string; kind: string; greeting?: string | null }) => {
+    calls.push(args);
+    return { url };
+  };
+  return { mintConnectLink, calls };
+}
+
+describe("attachActionableLinks — mutation and resilience", () => {
+  test("pending + party → mints connect, attaches all fields", async () => {
+    const card = makeCard({ opportunityId: "opp-1", viewerRole: "party", status: "pending" });
+    const { mintConnectLink, calls } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-1",
+      counterpartUser: { socials: [{ label: "telegram", value: "alice" }] },
+      counterpartUserId: "counterpart-1",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(calls.length).toBe(1);
+    expect(calls[0]).toMatchObject({ userId: "user-1", opportunityId: "opp-1", kind: "connect", greeting: null });
+    expect(card.acceptUrl).toBe("https://api.test/c/AAAAAAAAAA");
+    expect(card.profileUrl).toBe("https://t.me/alice");
+    expect(card.feedCategory).toBe("connection");
+  });
+
+  test("accepted + party → mints outreach, feedCategory=connection", async () => {
+    const card = makeCard({ opportunityId: "opp-2", viewerRole: "party", status: "accepted" });
+    const { mintConnectLink, calls } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-2",
+      counterpartUser: null,
+      counterpartUserId: "counterpart-2",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(calls.length).toBe(1);
+    expect(calls[0].kind).toBe("outreach");
+    expect(card.feedCategory).toBe("connection");
+  });
+
+  test("draft + introducer + viewerApproved=false → mints approve_introduction, feedCategory=connector-flow", async () => {
+    const card = makeCard({ opportunityId: "opp-3", viewerRole: "introducer", status: "draft" });
+    const { mintConnectLink, calls } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-3",
+      viewerApproved: false,
+      counterpartUser: null,
+      counterpartUserId: "counterpart-3",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(calls.length).toBe(1);
+    expect(calls[0].kind).toBe("approve_introduction");
+    expect(card.feedCategory).toBe("connector-flow");
+  });
+
+  test("draft + introducer + viewerApproved=true → no mint, card unchanged", async () => {
+    const card = makeCard({ opportunityId: "opp-4", viewerRole: "introducer", status: "draft" });
+    const { mintConnectLink, calls } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-4",
+      viewerApproved: true,
+      counterpartUser: null,
+      counterpartUserId: "counterpart-4",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(calls.length).toBe(0);
+    expect(card.acceptUrl).toBeUndefined();
+    expect(card.profileUrl).toBeUndefined();
+    expect(card.feedCategory).toBeUndefined();
+  });
+
+  test("draft + party (sender) → no mint, card unchanged", async () => {
+    const card = makeCard({ opportunityId: "opp-5", viewerRole: "party", status: "draft" });
+    const { mintConnectLink, calls } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-5",
+      counterpartUser: null,
+      counterpartUserId: "counterpart-5",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(calls.length).toBe(0);
+    expect(card.acceptUrl).toBeUndefined();
+    expect(card.profileUrl).toBeUndefined();
+    expect(card.feedCategory).toBeUndefined();
+  });
+
+  test("pending + introducer → no mint, card unchanged", async () => {
+    const card = makeCard({ opportunityId: "opp-6", viewerRole: "introducer", status: "pending" });
+    const { mintConnectLink, calls } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-6",
+      counterpartUser: null,
+      counterpartUserId: "counterpart-6",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(calls.length).toBe(0);
+    expect(card.acceptUrl).toBeUndefined();
+  });
+
+  test("accepted + introducer → no mint, card unchanged", async () => {
+    const card = makeCard({ opportunityId: "opp-7", viewerRole: "introducer", status: "accepted" });
+    const { mintConnectLink, calls } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-7",
+      counterpartUser: null,
+      counterpartUserId: "counterpart-7",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(calls.length).toBe(0);
+    expect(card.acceptUrl).toBeUndefined();
+  });
+
+  test("rejected (any role) → no mint, card unchanged", async () => {
+    const card = makeCard({ opportunityId: "opp-8", viewerRole: "party", status: "rejected" });
+    const { mintConnectLink, calls } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-8",
+      counterpartUser: null,
+      counterpartUserId: "counterpart-8",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(calls.length).toBe(0);
+    expect(card.acceptUrl).toBeUndefined();
+  });
+
+  test("profileUrl falls back to web URL when no Telegram social", async () => {
+    const card = makeCard({ opportunityId: "opp-9", viewerRole: "party", status: "pending" });
+    const { mintConnectLink } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-9",
+      counterpartUser: { socials: [] },
+      counterpartUserId: "counterpart-9",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(card.profileUrl).toBe(`https://app.test/u/counterpart-9?link_preview=false`);
+  });
+
+  test("profileUrl is undefined when no Telegram AND no frontendUrl", async () => {
+    const card = makeCard({ opportunityId: "opp-10", viewerRole: "party", status: "pending" });
+    const { mintConnectLink } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-10",
+      counterpartUser: { socials: [] },
+      counterpartUserId: "counterpart-10",
+      mintConnectLink,
+      frontendUrl: undefined,
+    });
+    expect("profileUrl" in card).toBe(false);
+    expect(card.acceptUrl).toBe("https://api.test/c/AAAAAAAAAA");
+    expect(card.feedCategory).toBe("connection");
+  });
+
+  test("mint error is swallowed; card has no acceptUrl/profileUrl/feedCategory", async () => {
+    const card = makeCard({ opportunityId: "opp-11", viewerRole: "party", status: "pending" });
+    const mintConnectLink = async (_args: { userId: string; opportunityId: string; kind: string; greeting?: string | null }) => {
+      throw new Error("DB down");
+    };
+    await expect(
+      attachActionableLinks(card, {
+        viewerId: "user-11",
+        counterpartUser: null,
+        counterpartUserId: "counterpart-11",
+        mintConnectLink,
+        frontendUrl: "https://app.test",
+      }),
+    ).resolves.toBeUndefined();
+    expect(card.acceptUrl).toBeUndefined();
+    expect(card.profileUrl).toBeUndefined();
+    expect(card.feedCategory).toBeUndefined();
+  });
+
+  test("Telegram handle strips leading @", async () => {
+    const card = makeCard({ opportunityId: "opp-12", viewerRole: "party", status: "pending" });
+    const { mintConnectLink } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-12",
+      counterpartUser: { socials: [{ label: "telegram", value: "@bob" }] },
+      counterpartUserId: "counterpart-12",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(card.profileUrl).toBe("https://t.me/bob");
+  });
+
+  test("Telegram label match is case-insensitive", async () => {
+    const card = makeCard({ opportunityId: "opp-13", viewerRole: "party", status: "pending" });
+    const { mintConnectLink } = makeMintSpy();
+    await attachActionableLinks(card, {
+      viewerId: "user-13",
+      counterpartUser: { socials: [{ label: "Telegram", value: "carol" }] },
+      counterpartUserId: "counterpart-13",
+      mintConnectLink,
+      frontendUrl: "https://app.test",
+    });
+    expect(card.profileUrl).toBe("https://t.me/carol");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildProfileUrl — edge cases
+// ---------------------------------------------------------------------------
+
+describe("buildProfileUrl — edge cases", () => {
+  test("whitespace in Telegram value is trimmed", () => {
+    const result = buildProfileUrl(
+      { socials: [{ label: "telegram", value: "  dan  " }] },
+      "user-dan",
+      "https://app.test",
+    );
+    expect(result).toBe("https://t.me/dan");
+  });
+
+  test("socials is null → falls through to frontendUrl", () => {
+    const result = buildProfileUrl(
+      { socials: null },
+      "user-null",
+      "https://app.test",
+    );
+    expect(result).toBe("https://app.test/u/user-null?link_preview=false");
+  });
+
+  test("counterpartUser itself is null → falls through to frontendUrl", () => {
+    const result = buildProfileUrl(null, "user-none", "https://app.test");
+    expect(result).toBe("https://app.test/u/user-none?link_preview=false");
+  });
+
+  test("no Telegram and no frontendUrl → returns undefined", () => {
+    const result = buildProfileUrl({ socials: [] }, "user-undef", undefined);
+    expect(result).toBeUndefined();
+  });
+
+  test("Telegram value is empty string → falls through to frontendUrl", () => {
+    const result = buildProfileUrl(
+      { socials: [{ label: "telegram", value: "" }] },
+      "user-empty",
+      "https://app.test",
+    );
+    expect(result).toBe("https://app.test/u/user-empty?link_preview=false");
   });
 });
 
