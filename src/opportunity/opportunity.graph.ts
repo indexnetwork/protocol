@@ -1904,7 +1904,16 @@ export class OpportunityGraphFactory {
           const timerWork = new Promise<typeof NEGOTIATE_TIMER_SENTINEL>((resolve) => {
             timerId = setTimeout(() => resolve(NEGOTIATE_TIMER_SENTINEL), budgetMs);
           });
-          const raced = await Promise.race([negotiationWork, timerWork]);
+          // try/finally ensures the timer is cleared on every exit path —
+          // sentinel-win, work-win, AND `negotiationWork` rejection. Without
+          // this, a rejected negotiation would leave the timer pending and
+          // keep the event loop alive until `budgetMs` elapses.
+          let raced: typeof NEGOTIATE_TIMER_SENTINEL | Awaited<typeof negotiationWork>;
+          try {
+            raced = await Promise.race([negotiationWork, timerWork]);
+          } finally {
+            if (timerId !== undefined) clearTimeout(timerId);
+          }
           if (raced === NEGOTIATE_TIMER_SENTINEL) {
             // Floating promise is intentional — see comment above.
             void negotiationWork.catch((err) => {
@@ -1928,7 +1937,6 @@ export class OpportunityGraphFactory {
               }],
             };
           }
-          if (timerId !== undefined) clearTimeout(timerId);
           acceptedResults = raced;
         } else {
           acceptedResults = await negotiationWork;
