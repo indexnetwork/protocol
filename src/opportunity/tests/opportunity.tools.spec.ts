@@ -543,6 +543,25 @@ describe("buildProfileUrl — edge cases", () => {
       ),
     ).toBe("https://app.test/u/user-y?link_preview=false");
   });
+
+  test("strips trailing slash(es) from frontendUrl before concatenation", () => {
+    expect(
+      buildProfileUrl(
+        { socials: null },
+        "user-x",
+        "https://app.test/",
+      ),
+    ).toBe("https://app.test/u/user-x?link_preview=false");
+
+    // Multiple trailing slashes also collapse.
+    expect(
+      buildProfileUrl(
+        { socials: null },
+        "user-x",
+        "https://app.test///",
+      ),
+    ).toBe("https://app.test/u/user-x?link_preview=false");
+  });
 });
 
 describe("buildOpportunityPresentation — MCP opportunityId omission", () => {

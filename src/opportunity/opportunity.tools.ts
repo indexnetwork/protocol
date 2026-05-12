@@ -67,6 +67,8 @@ export function resolveActionableLinkKind(input: {
  * look like URLs (e.g. `"t.me/alice?evil=1"`), contain special characters, or
  * are shorter than 5 chars are treated as invalid and fall through to the web
  * profile URL rather than producing a malformed `t.me` link.
+ *
+ * Trailing slashes on frontendUrl are stripped before concatenation.
  */
 export function buildProfileUrl(
   counterpartUser:
@@ -81,7 +83,10 @@ export function buildProfileUrl(
   );
   const telegramHandle = normalizeTelegramHandle(telegramSocial?.value);
   if (telegramHandle) return `https://t.me/${telegramHandle}`;
-  if (frontendUrl) return `${frontendUrl}/u/${counterpartUserId}?link_preview=false`;
+  if (frontendUrl) {
+    const base = frontendUrl.replace(/\/+$/, "");
+    return `${base}/u/${counterpartUserId}?link_preview=false`;
+  }
   return undefined;
 }
 
@@ -303,10 +308,14 @@ type OpportunityCardLike = Record<string, unknown> & {
  * "include EXACTLY as-is" directive so the frontend card renderer can parse
  * and render interactive cards.
  *
- * MCP (`isMcp=true`): emits prose (name, reason, status, opportunityId per
- * card) with an explicit reminder to synthesize in natural language and not
- * dump raw fields or IDs. MCP clients have no card renderer, so code fences
- * would surface as raw JSON to end users.
+ * MCP (`isMcp=true`): emits prose (name, reason, status, profileUrl when
+ * present, acceptUrl when present, feedCategory when present) and includes
+ * `opportunityId` ONLY for cards without an `acceptUrl` — exposing the UUID
+ * alongside an actionable link gave LLMs a foothold to hallucinate bare
+ * `/api/opportunities/<id>/connect` URLs (see IND-271). The trailing
+ * instruction reminds the agent to synthesize in natural language and never
+ * fabricate URLs for cards that don't have them. MCP clients have no card
+ * renderer, so code fences would surface as raw JSON to end users.
  */
 export function buildOpportunityPresentation(
   cards: OpportunityCardLike[],

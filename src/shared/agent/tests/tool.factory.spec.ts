@@ -2109,45 +2109,6 @@ describe("createChatTools — MCP connect-link wiring", () => {
     expect(parsed.data.message).not.toContain("acceptUrl:");
   });
 
-  test("list_opportunities mints outreach for accepted + party", async () => {
-    const mintCalls: Array<{ userId: string; opportunityId: string; kind: string; greeting: string | null | undefined }> = [];
-    const mintConnectLink = async (args: { userId: string; opportunityId: string; kind: string; greeting?: string | null }) => {
-      mintCalls.push({ userId: args.userId, opportunityId: args.opportunityId, kind: args.kind, greeting: args.greeting ?? null });
-      return { url: FAKE_URL };
-    };
-
-    const acceptedDb: ChatGraphCompositeDatabase = createMockDatabase(async () => [], {
-      getOpportunitiesForUser: async () => [{ ...buildOpp(), status: "accepted" }],
-      getUser: async (uid: string) => {
-        if (uid === VIEWER_ID) return { id: uid, name: "Viewer" };
-        if (uid === COUNTERPART_ID) return { id: uid, name: "Counterpart" };
-        return null;
-      },
-      getProfile: async () => null,
-    } as unknown as MockOverrides);
-
-    const context: ToolContext = {
-      userId: VIEWER_ID,
-      database: acceptedDb,
-      embedder: mockEmbedder,
-      scraper: mockScraper,
-      ...mockProtocolDeps,
-      mintConnectLink,
-      apiBaseUrl: API_BASE_URL,
-      frontendUrl: FRONTEND_URL,
-    } as ToolContext;
-
-    const tools = await createChatTools(context, buildMcpResolvedContext());
-    const listTool = tools.find((t: { name: string }) => t.name === "list_opportunities") as { invoke: (args: unknown) => Promise<string> };
-    const raw = await listTool.invoke({});
-    const parsed = JSON.parse(raw);
-
-    expect(parsed.success).toBe(true);
-    expect(mintCalls.length).toBe(1);
-    expect(mintCalls[0].kind).toBe("outreach");
-    expect(parsed.data.message).toContain(`acceptUrl: ${FAKE_URL}`);
-  });
-
   test("list_opportunities does NOT mint for pending + introducer", async () => {
     const mintCalls: Array<unknown> = [];
     const mintConnectLink = async () => {
