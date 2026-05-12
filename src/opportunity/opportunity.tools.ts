@@ -1092,8 +1092,23 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         if (displayedCards.length > 0) {
           message += `\n\n${negotiatingCount} more opportunit${negotiatingCount === 1 ? 'y is' : 'ies are'} still being evaluated — check back via \`list_opportunities\` shortly.`;
         } else {
-          // No cards shown but the LLM should still know discovery did find candidates.
-          message = `Found candidates, but they're still being evaluated. Try \`list_opportunities\` in a minute — ${negotiatingCount} pending.`;
+          // No cards shown. Rebuild the message without the misleading
+          // "Found 0 potential connection(s)" lead-in but preserve the
+          // existing-connections mention and already-accepted-pairs note
+          // appended earlier — those are standalone facts independent of
+          // any draft cards. Pagination/intro/closing trailers are dropped
+          // intentionally (they only make sense when cards are shown).
+          let rebuilt = `Found candidates, but they're still being evaluated. Try \`list_opportunities\` in a minute — ${negotiatingCount} pending.`;
+          if (existingForMention.length > 0) {
+            rebuilt +=
+              "\n\nYou already have a connection with: " +
+              existingForMention.map((c) => c.name + (c.status ? " (" + c.status + ")" : "")).join(", ") +
+              ". View on your home page.";
+          }
+          if (result.alreadyAcceptedPairs && result.alreadyAcceptedPairs.length > 0) {
+            rebuilt += `\n\nYou already have ${result.alreadyAcceptedPairs.length} accepted opportunity(ies) with some of these candidates — open the existing chat with them rather than creating a new draft.`;
+          }
+          message = rebuilt;
         }
       }
 

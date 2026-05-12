@@ -192,6 +192,39 @@ describe('discover_opportunities — MCP timeout shape (IND-286)', () => {
     expect(message).toContain('2'); // count of pending
   });
 
+  test('preserves existing-connections mention when no draft cards survive', async () => {
+    discoverResult = {
+      found: true,
+      count: 1,
+      opportunities: [makeCard('opp-still-neg')],
+      existingConnections: [{
+        userId: 'cand-existing',
+        name: 'Existing Cand',
+        status: 'pending',
+        opportunityId: 'opp-existing',
+      }],
+      existingConnectionsForMention: [{
+        userId: 'cand-existing',
+        name: 'Existing Cand',
+        status: 'pending',
+        opportunityId: 'opp-existing',
+      }],
+    };
+    const deps = makeDeps({ 'opp-still-neg': 'negotiating' });
+    const tool = captureDiscoverTool(deps);
+
+    const raw = await tool.handler({ context: makeContext({ isMcp: true }), query: {} });
+    const parsed = parseToolResult(raw);
+    expect(parsed.success).toBe(true);
+    expect(parsed.data!.count).toBe(0);
+    const message = parsed.data!.message as string;
+    expect(message).toContain('still being evaluated'); // base trailer preserved
+    expect(message).toContain('1 pending');
+    expect(message).toContain('Existing Cand'); // existing-connections mention preserved
+    expect(message).toContain('pending'); // status from existing connection
+    expect(message).not.toContain('Found 0 potential'); // misleading lead-in dropped
+  });
+
   test('drops rejected and stalled opps entirely', async () => {
     discoverResult = {
       found: true,
