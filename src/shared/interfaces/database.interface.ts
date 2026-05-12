@@ -2024,6 +2024,8 @@ export type OpportunityControllerDatabase = Pick<
   | 'unhideConversation'
   // Approve-introduction endpoint: flip introducer actor's approved flag.
   | 'updateOpportunityActorApproval'
+  // Self-accept guard + actedAt stamping on service-layer status flips.
+  | 'stampOpportunityActorAction'
 >;
 
 /**
