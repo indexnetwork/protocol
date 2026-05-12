@@ -1900,9 +1900,10 @@ export class OpportunityGraphFactory {
         const budgetMs = state.options.negotiateTimeoutMs;
         let acceptedResults: Awaited<typeof negotiationWork>;
         if (budgetMs !== undefined) {
-          const timerWork = new Promise<typeof NEGOTIATE_TIMER_SENTINEL>((resolve) =>
-            setTimeout(() => resolve(NEGOTIATE_TIMER_SENTINEL), budgetMs),
-          );
+          let timerId: ReturnType<typeof setTimeout> | undefined;
+          const timerWork = new Promise<typeof NEGOTIATE_TIMER_SENTINEL>((resolve) => {
+            timerId = setTimeout(() => resolve(NEGOTIATE_TIMER_SENTINEL), budgetMs);
+          });
           const raced = await Promise.race([negotiationWork, timerWork]);
           if (raced === NEGOTIATE_TIMER_SENTINEL) {
             // Floating promise is intentional — see comment above.
@@ -1927,6 +1928,7 @@ export class OpportunityGraphFactory {
               }],
             };
           }
+          if (timerId !== undefined) clearTimeout(timerId);
           acceptedResults = raced;
         } else {
           acceptedResults = await negotiationWork;
