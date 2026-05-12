@@ -149,11 +149,14 @@ export async function attachActionableLinks(
 /**
  * Statuses for which `update_opportunity` must refuse mutations.
  * - `accepted` / `rejected` / `expired`: terminal outcomes.
+ * - `negotiating`: in-flight system-driven turn; user-driven mutations would
+ *   race the negotiation graph. The graph itself transitions out of this state.
  */
 const UPDATE_OPPORTUNITY_BLOCKED_STATUSES = new Set<OpportunityStatus>([
   "accepted",
   "rejected",
   "expired",
+  "negotiating",
 ]);
 
 /**
