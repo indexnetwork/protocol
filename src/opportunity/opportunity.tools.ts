@@ -1158,54 +1158,27 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           );
 
           // For MCP callers (e.g. Edge Claw), mint a connect token and attach
-          // acceptUrl + profileUrl so the agent can embed actionable links.
-          // Prefer the counterpart's Telegram handle for the profile link
-          // (one click → DM draft) and fall back to the web profile URL only
-          // when no public Telegram handle is on file.
+          // acceptUrl + profileUrl when the (status, viewerRole) is actionable
+          // for the viewer. Non-actionable combos (sender-on-draft,
+          // pending-on-introducer-waiting, rejected, etc.) deliberately get
+          // no link — the LLM would otherwise hallucinate `/api/.../connect`
+          // URLs from the exposed opportunityId.
           if (context.isMcp && deps.mintConnectLink) {
-            try {
-              const isIntroducer = cardData.viewerRole === "introducer";
-              const isAccepted = opp.status === "accepted";
-              const feedCategory = isIntroducer ? "connector-flow" : "connection";
-              const kind: ConnectLinkKind = isAccepted
-                ? "outreach"
-                : isIntroducer
-                  ? "approve_introduction"
-                  : "connect";
-
-              // The list path uses minimal card data (no LLM presenter), so no
-              // greeting is available to snapshot here. The mint endpoint stores
-              // null and the redirect path falls back to the live presenter.
-              const greeting = null;
-
-              const { url } = await deps.mintConnectLink({
-                userId: context.userId,
-                opportunityId: opp.id,
-                kind,
-                greeting,
-              });
-
-              const telegramSocial = counterpartUser?.socials?.find(
-                (s) => s.label?.toLowerCase() === "telegram",
-              );
-              const telegramHandle = telegramSocial?.value?.trim().replace(/^@/, "");
-              const profileUrl = telegramHandle
-                ? `https://t.me/${telegramHandle}`
-                : deps.frontendUrl
-                  ? `${deps.frontendUrl}/u/${counterpartUserId}?link_preview=false`
-                  : undefined;
-
-              (cardData as Record<string, unknown>).acceptUrl = url;
-              if (profileUrl) {
-                (cardData as Record<string, unknown>).profileUrl = profileUrl;
-              }
-              (cardData as Record<string, unknown>).feedCategory = feedCategory;
-            } catch (err) {
-              logger.warn("Failed to mint MCP opportunity links — surfacing card without acceptUrl/profileUrl", {
-                opportunityId: opp.id,
-                error: err instanceof Error ? err.message : String(err),
-              });
-            }
+            const viewerActor = opp.actors.find((a) => a.userId === context.userId);
+            const viewerApproved =
+              viewerActor?.role === "introducer" ? viewerActor.approved === true : undefined;
+            await attachActionableLinks(cardData as Record<string, unknown> & {
+              opportunityId: string;
+              viewerRole: string;
+              status: string;
+            }, {
+              viewerId: context.userId,
+              viewerApproved,
+              counterpartUser,
+              counterpartUserId,
+              mintConnectLink: deps.mintConnectLink,
+              frontendUrl: deps.frontendUrl,
+            });
           }
 
           cardDataList.push(cardData);

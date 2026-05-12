@@ -2068,6 +2068,46 @@ describe("createChatTools — MCP connect-link wiring", () => {
     // No acceptUrl line in the MCP prose when no adapter is wired.
     expect(parsed.data.message).not.toContain("acceptUrl:");
   });
+
+  test("does NOT mint when opp is non-actionable (draft + party = sender, no link)", async () => {
+    const mintCalls: Array<unknown> = [];
+    const mintConnectLink = async () => {
+      mintCalls.push(1);
+      return { url: FAKE_URL };
+    };
+
+    const draftDb: ChatGraphCompositeDatabase = createMockDatabase(async () => [], {
+      getOpportunitiesForUser: async () => [
+        { ...buildOpp(), status: "draft" },
+      ],
+      getUser: async (uid: string) => {
+        if (uid === VIEWER_ID) return { id: uid, name: "Viewer" };
+        if (uid === COUNTERPART_ID) return { id: uid, name: "Counterpart" };
+        return null;
+      },
+      getProfile: async () => null,
+    } as unknown as MockOverrides);
+
+    const context: ToolContext = {
+      userId: VIEWER_ID,
+      database: draftDb,
+      embedder: mockEmbedder,
+      scraper: mockScraper,
+      ...mockProtocolDeps,
+      mintConnectLink,
+      apiBaseUrl: API_BASE_URL,
+      frontendUrl: FRONTEND_URL,
+    } as ToolContext;
+
+    const tools = await createChatTools(context, buildMcpResolvedContext());
+    const listTool = tools.find((t: { name: string }) => t.name === "list_opportunities") as { invoke: (args: unknown) => Promise<string> };
+    const raw = await listTool.invoke({});
+    const parsed = JSON.parse(raw);
+
+    expect(parsed.success).toBe(true);
+    expect(mintCalls.length).toBe(0); // sender-on-draft must not mint
+    expect(parsed.data.message).not.toContain("acceptUrl:");
+  });
 });
 
 afterAll(() => mock.restore());
