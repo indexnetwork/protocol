@@ -77,7 +77,7 @@ packages/protocol/src/
 |------|-------|
 | `profile/profile.tools.ts` | `read_user_profiles`, `create_user_profile`, `update_user_profile`, `complete_onboarding` |
 | `intent/intent.tools.ts` | `read_intents`, `create_intent`, `update_intent`, `delete_intent`, `create_intent_index`, `read_intent_indexes`, `delete_intent_index` |
-| `network/network.tools.ts` | `read_indexes`, `read_index_memberships`, `create_index`, `update_index`, `delete_index`, `create_index_membership`, `delete_index_membership` |
+| `network/network.tools.ts` | `read_networks`, `read_network_memberships`, `create_network`, `update_network`, `delete_network`, `create_network_membership`, `delete_network_membership` |
 | `opportunity/opportunity.tools.ts` | `discover_opportunities`, `list_opportunities`, `update_opportunity` |
 | `contact/contact.tools.ts` | `import_contacts`, `list_contacts`, `add_contact`, `remove_contact` |
 | `integration/integration.tools.ts` | `import_gmail_contacts` |
