@@ -17,6 +17,43 @@ import { selectByComposition } from "./opportunity.utils.js";
 const logger = protocolLogger("ChatTools:Opportunity");
 
 /**
+ * Pure status × role → ConnectLinkKind matrix.
+ *
+ * Returns the kind of short-link the viewer can act on directly, or `null` if
+ * no direct link makes sense for this combination. Non-null kinds map to:
+ *
+ * - `connect` — pending opp where viewer is a non-introducer party. Clicking
+ *   flips the opp to accepted and opens the chat with the counterpart.
+ * - `approve_introduction` — draft opp where viewer is an unapproved
+ *   introducer. Clicking flips approved=true and triggers negotiation.
+ * - `outreach` — accepted opp where viewer is a non-introducer party.
+ *   Clicking opens the existing chat (no state change).
+ *
+ * Callers that pass `viewerApproved: undefined` for a fresh draft (e.g.
+ * `create_opportunities` paths that just inserted the row with approved=false)
+ * get `approve_introduction` — the default matches the just-created state.
+ */
+export function resolveActionableLinkKind(input: {
+  status: string;
+  viewerRole: string;
+  viewerApproved?: boolean;
+}): ConnectLinkKind | null {
+  const { status, viewerRole, viewerApproved } = input;
+  const isIntroducer = viewerRole === "introducer";
+  if (status === "accepted") {
+    return isIntroducer ? null : "outreach";
+  }
+  if (status === "pending") {
+    return isIntroducer ? null : "connect";
+  }
+  if (status === "draft") {
+    if (!isIntroducer) return null;
+    return viewerApproved === true ? null : "approve_introduction";
+  }
+  return null;
+}
+
+/**
  * Statuses for which `update_opportunity` must refuse mutations.
  * - `accepted` / `rejected` / `expired`: terminal outcomes.
  */

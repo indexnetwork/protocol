@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 config({ path: ".env.development", override: true });
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, test } from "bun:test";
 import type { Opportunity } from "../../shared/interfaces/database.interface.js";
 import { buildMinimalOpportunityCard } from "../opportunity.tools.js";
 
@@ -170,5 +170,57 @@ describe('buildMinimalOpportunityCard - introducer discovery (IND-140)', () => {
     expect(card.viewerRole).toBe('introducer');
     expect(card.primaryActionLabel).toBe('Good match');
     expect(card.headline).toBe('Target User → Bob');
+  });
+});
+
+import { resolveActionableLinkKind } from "../opportunity.tools.js";
+
+describe("resolveActionableLinkKind — actionability matrix", () => {
+  test("accepted + non-introducer → outreach", () => {
+    expect(resolveActionableLinkKind({ status: "accepted", viewerRole: "party" })).toBe("outreach");
+    expect(resolveActionableLinkKind({ status: "accepted", viewerRole: "agent" })).toBe("outreach");
+    expect(resolveActionableLinkKind({ status: "accepted", viewerRole: "patient" })).toBe("outreach");
+    expect(resolveActionableLinkKind({ status: "accepted", viewerRole: "peer" })).toBe("outreach");
+  });
+
+  test("accepted + introducer → null", () => {
+    expect(resolveActionableLinkKind({ status: "accepted", viewerRole: "introducer" })).toBeNull();
+  });
+
+  test("pending + non-introducer → connect", () => {
+    expect(resolveActionableLinkKind({ status: "pending", viewerRole: "party" })).toBe("connect");
+    expect(resolveActionableLinkKind({ status: "pending", viewerRole: "patient" })).toBe("connect");
+    expect(resolveActionableLinkKind({ status: "pending", viewerRole: "agent" })).toBe("connect");
+  });
+
+  test("pending + introducer → null", () => {
+    expect(resolveActionableLinkKind({ status: "pending", viewerRole: "introducer" })).toBeNull();
+  });
+
+  test("draft + introducer + unapproved → approve_introduction", () => {
+    expect(
+      resolveActionableLinkKind({ status: "draft", viewerRole: "introducer", viewerApproved: false }),
+    ).toBe("approve_introduction");
+    // undefined defaults to "unapproved" for fresh drafts coming from create_opportunities
+    expect(
+      resolveActionableLinkKind({ status: "draft", viewerRole: "introducer" }),
+    ).toBe("approve_introduction");
+  });
+
+  test("draft + introducer + approved → null", () => {
+    expect(
+      resolveActionableLinkKind({ status: "draft", viewerRole: "introducer", viewerApproved: true }),
+    ).toBeNull();
+  });
+
+  test("draft + non-introducer → null (sender needs update_opportunity)", () => {
+    expect(resolveActionableLinkKind({ status: "draft", viewerRole: "party" })).toBeNull();
+    expect(resolveActionableLinkKind({ status: "draft", viewerRole: "agent" })).toBeNull();
+  });
+
+  test("terminal / unknown statuses → null", () => {
+    expect(resolveActionableLinkKind({ status: "rejected", viewerRole: "party" })).toBeNull();
+    expect(resolveActionableLinkKind({ status: "latent", viewerRole: "party" })).toBeNull();
+    expect(resolveActionableLinkKind({ status: "expired", viewerRole: "introducer", viewerApproved: false })).toBeNull();
   });
 });
