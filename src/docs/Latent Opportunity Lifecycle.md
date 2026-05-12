@@ -208,13 +208,13 @@ graph LR
 
 | Tool | Behavior |
 |------|----------|
-| `create_opportunities` | Invokes opportunity graph; creates draft (latent) opportunities. Discovered opportunities may not all be visible to the user depending on their role in each match. |
+| `discover_opportunities` | Invokes opportunity graph; creates draft (latent) opportunities. Discovered opportunities may not all be visible to the user depending on their role in each match. |
 | `list_opportunities` | Returns opportunities the user is allowed to see (role + status). Filtered by visibility guard in `getOpportunitiesForUser`. |
 | `send_opportunity` | Promotes latent → pending. System notifies the appropriate next person by role (patient if sent by introducer, agent if sent by patient, other peer if sent by peer). |
 
 ## Data Flow (Discovery and Send)
 
-Discovery flow is unchanged: user or agent calls `create_opportunities` → graph runs Prep through Persist → opportunities created as latent. List and send use the same graph in read/send mode; `getOpportunitiesForUser` applies the role-based visibility guard so only allowed opportunities are returned. On send, only the next-tier role is notified.
+Discovery flow is unchanged: user or agent calls `discover_opportunities` → graph runs Prep through Persist → opportunities created as latent. List and send use the same graph in read/send mode; `getOpportunitiesForUser` applies the role-based visibility guard so only allowed opportunities are returned. On send, only the next-tier role is notified.
 
 ## Hyde Documents and Semantic Search
 

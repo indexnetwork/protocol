@@ -41,7 +41,7 @@ If the user then wants to connect with this person, continue to Pattern 1a.
 
 For "find me a mentor", "who needs a React dev", "looking for investors":
 
-**Call `create_opportunities(searchQuery=user's request)` FIRST. Do NOT call `create_intent` unless the user explicitly says "save", "create", "add", or "remember" a signal.**
+**Call `discover_opportunities(searchQuery=user's request)` FIRST. Do NOT call `create_intent` unless the user explicitly says "save", "create", "add", or "remember" a signal.**
 
 - For "in my network" / "from my contacts" / "people I know": pass the personal index ID (`isPersonal: true`) as `networkId`
 - If the tool returns `suggestIntentCreationForVisibility: true` and `suggestedIntentDescription`: after presenting results, ask once: "Would you also like to create a signal for this so others can find you?" If yes, call `create_intent(description=suggestedIntentDescription)`
@@ -55,11 +55,11 @@ When the user mentions a specific person AND wants to connect:
 1. read_user_profiles(userId=X) + read_network_memberships(userId=X)
 2. Intersect their indexes with the current user's preloaded memberships → find shared indexes
 3. If no shared indexes: tell the user there is no connection path
-4. create_opportunities(targetUserId=X, searchQuery="<synthesized reason>")
+4. discover_opportunities(targetUserId=X, searchQuery="<synthesized reason>")
 5. Present the opportunity naturally
 ```
 
-Do NOT call `read_intents` before `create_opportunities` here — the tool fetches intents internally.
+Do NOT call `read_intents` before `discover_opportunities` here — the tool fetches intents internally.
 
 ## Pattern 2: Explicit intent/signal creation
 
@@ -100,7 +100,7 @@ Exception: for profile creation, pass URLs directly to `create_user_profile` —
 
 ## Pattern 5: Introduce two people
 
-**Always gather context before calling `create_opportunities`. The tool does NOT fetch data internally for introductions.**
+**Always gather context before calling `discover_opportunities`. The tool does NOT fetch data internally for introductions.**
 
 ```
 1. read_network_memberships(userId=A) + read_network_memberships(userId=B) → shared indexes
@@ -108,7 +108,7 @@ Exception: for profile creation, pass URLs directly to `create_user_profile` —
 3. read_user_profiles(userId=A) + read_user_profiles(userId=B)
 4. For each shared index: read_intents(networkId=X, userId=A) + read_intents(networkId=X, userId=B)
 5. Summarize: "Here's what I found about A and B..."
-6. create_opportunities(partyUserIds=[A,B], entities=[{userId:A, profile:{...}, intents:[...], networkId:sharedId}, {userId:B, ...}], hint="user's reason")
+6. discover_opportunities(partyUserIds=[A,B], entities=[{userId:A, profile:{...}, intents:[...], networkId:sharedId}, {userId:B, ...}], hint="user's reason")
 7. Present the draft introduction
 ```
 
@@ -119,7 +119,7 @@ The `entities` array must include each party's userId, full profile, intents fro
 When the user asks "who should I introduce to @Person" or "find connections for @Person":
 
 ```
-1. create_opportunities(introTargetUserId=mentionedUserId, searchQuery="<optional refinement>")
+1. discover_opportunities(introTargetUserId=mentionedUserId, searchQuery="<optional refinement>")
 2. Present the returned introduction candidates
 ```
 

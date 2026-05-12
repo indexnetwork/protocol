@@ -78,7 +78,7 @@ packages/protocol/src/
 | `profile/profile.tools.ts` | `read_user_profiles`, `create_user_profile`, `update_user_profile`, `complete_onboarding` |
 | `intent/intent.tools.ts` | `read_intents`, `create_intent`, `update_intent`, `delete_intent`, `create_intent_index`, `read_intent_indexes`, `delete_intent_index` |
 | `network/network.tools.ts` | `read_indexes`, `read_index_memberships`, `create_index`, `update_index`, `delete_index`, `create_index_membership`, `delete_index_membership` |
-| `opportunity/opportunity.tools.ts` | `create_opportunities`, `list_opportunities`, `update_opportunity` |
+| `opportunity/opportunity.tools.ts` | `discover_opportunities`, `list_opportunities`, `update_opportunity` |
 | `contact/contact.tools.ts` | `import_contacts`, `list_contacts`, `add_contact`, `remove_contact` |
 | `integration/integration.tools.ts` | `import_gmail_contacts` |
 | `shared/agent/utility.tools.ts` | `scrape_url`, `read_docs` |
@@ -219,7 +219,7 @@ sequenceDiagram
     participant CI as create_intent
     participant IC as IntentClarifier
     participant IG as Intent Graph
-    participant CO as create_opportunities
+    participant CO as discover_opportunities
     participant OG as Opportunity Graph
     participant HG as HyDE Graph
 
