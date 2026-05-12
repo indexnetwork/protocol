@@ -1039,7 +1039,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         const mintConnectLink = deps.mintConnectLink;
         await Promise.all(
           displayedCards.map(async (card, idx) => {
-            const source = result.opportunities?.[idx];
+            const source = cards[idx];
             await attachActionableLinks(card as Record<string, unknown> & {
               opportunityId: string;
               viewerRole: string;
