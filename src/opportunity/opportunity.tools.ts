@@ -233,8 +233,8 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
   const discoverOpportunities = defineTool({
     name: "discover_opportunities",
     description:
-      "Creates opportunities — discovered connections between users based on complementary intents. Opportunities are the core output " +
-      "of the discovery engine, representing potential valuable connections between people.\n\n" +
+      "Discovers opportunities — connections between users based on complementary intents — and persists them as drafts. " +
+      "Opportunities are the core output of the discovery engine, representing potential valuable connections between people.\n\n" +
       "**NOT for person lookup** — use read_user_profiles(query=name) to find people by name.\n\n" +
       "**Four modes:**\n" +
       "1. **Discovery** (most common): pass `searchQuery` and/or `networkId`. The system finds other users in shared indexes " +

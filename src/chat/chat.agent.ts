@@ -508,7 +508,7 @@ export class ChatAgent {
     const hasSuccessfulCreateIntent = toolsUsed.some(
       (t) => t.name === "create_intent" && t.success,
     );
-    const hasSuccessfulCreateOpportunities = toolsUsed.some(
+    const hasSuccessfulDiscoverOpportunities = toolsUsed.some(
       (t) =>
         t.name === "discover_opportunities" &&
         t.success &&
@@ -525,7 +525,7 @@ export class ChatAgent {
     }
 
     // Check for hallucinated opportunity blocks
-    if (text.includes("```opportunity") && !hasSuccessfulCreateOpportunities) {
+    if (text.includes("```opportunity") && !hasSuccessfulDiscoverOpportunities) {
       // Use the user's original message as the search query — NOT fields from the
       // hallucinated JSON. The model fabricates person names and reasoning that have
       // nothing to do with the user's actual request, leading to wrong results and
@@ -554,7 +554,7 @@ export class ChatAgent {
     let result = text;
     let removedBlock = false;
 
-    const hasSuccessfulCreateOpportunities = toolsUsed.some(
+    const hasSuccessfulDiscoverOpportunities = toolsUsed.some(
       (t) =>
         t.name === "discover_opportunities" &&
         t.success &&
@@ -565,7 +565,7 @@ export class ChatAgent {
       (t) => t.name === "create_intent" && t.success,
     );
 
-    if (!hasSuccessfulCreateOpportunities && result.includes("```opportunity")) {
+    if (!hasSuccessfulDiscoverOpportunities && result.includes("```opportunity")) {
       const next = result.replace(/```opportunity\s*\n[\s\S]*?```/g, "");
       removedBlock ||= next !== result;
       result = next;
