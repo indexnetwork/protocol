@@ -853,7 +853,12 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       // each accepted draft streams via traceEmitter, and the persist step
       // surfaces already-accepted pairs. Other callers (maintenance, queue
       // workers) still get the 'ambient' default.
-      const runDiscoveryOrchestrator = !!context.sessionId;
+      // Orchestrator trigger fires for both web chat (has sessionId) and MCP
+      // (isMcp=true, no sessionId). Both are user-initiated discovery that
+      // should persist as `negotiating` and flip to `draft` post-finalize via
+      // onCandidateResolved. Ambient/cron paths leave both falsy and use the
+      // `pending` default.
+      const runDiscoveryOrchestrator = !!context.sessionId || !!context.isMcp;
       const result = await runDiscoverFromQuery({
         opportunityGraph: graphs.opportunity,
         database,
