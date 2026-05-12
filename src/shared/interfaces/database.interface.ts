@@ -1828,6 +1828,7 @@ export type OpportunityGraphDatabase = Pick<
   | 'getOpportunity'
   | 'getOpportunitiesForUser'
   | 'updateOpportunityStatus'
+  | 'stampOpportunityActorAction'
   | 'updateOpportunityActorApproval'
   | 'isNetworkMember'
   | 'isIndexOwner'
