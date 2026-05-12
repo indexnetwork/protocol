@@ -875,6 +875,12 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         targetUserId: query.targetUserId?.trim() || undefined,
         onBehalfOfUserId: query.introTargetUserId?.trim() || undefined,
         cache,
+        // MCP-only: cap the negotiate phase at 20 s so Railway's edge proxy
+        // (which 502s the client at ~57 s) never beats the response. The
+        // remainder finalizes in the background and is fetched on the
+        // user's next list_opportunities call. Removable when IND-274
+        // (negotiation conversation continuation) lands.
+        ...(context.isMcp ? { negotiateTimeoutMs: 20_000 } : {}),
         ...(context.sessionId ? { chatSessionId: context.sessionId } : {}),
         ...(runDiscoveryOrchestrator && { trigger: 'orchestrator' as const }),
       });
@@ -948,8 +954,64 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         });
       }
 
+      // MCP-only: refresh persisted opp statuses from the DB. The graph captures
+      // state.opportunities at persist time, but the negotiate phase mutates each
+      // opp's DB row independently. Without this refresh we'd render persist-time
+      // 'negotiating' as if it were 'draft'. Also drops rejected/stalled — they
+      // are not actionable post-negotiation. Existing-connection cards (cards
+      // whose opportunityId is in result.existingConnections) are preserved as-is
+      // per opportunity.discover.ts's EXISTING_CONNECTION_CARD_STATUSES contract.
+      const existingConnectionIds = new Set(
+        (result.existingConnections ?? [])
+          .map((c) => c.opportunityId)
+          .filter((id): id is string => typeof id === 'string'),
+      );
+      const candidatesArr = result.opportunities ?? [];
+      let negotiatingCount = 0;
+      let cards = candidatesArr;
+      if (context.isMcp && candidatesArr.length > 0) {
+        const newlyCreatedIds = candidatesArr
+          .filter((c) => !existingConnectionIds.has(c.opportunityId))
+          .map((c) => c.opportunityId);
+        const refreshed = newlyCreatedIds.length > 0
+          ? await database.getOpportunitiesByIds(newlyCreatedIds)
+          : [];
+        const statusById = new Map<string, OpportunityStatus>(
+          refreshed.map((o) => [o.id, o.status]),
+        );
+
+        const draftCards: typeof candidatesArr = [];
+        for (const card of candidatesArr) {
+          if (existingConnectionIds.has(card.opportunityId)) {
+            // Re-surfaced opp from a prior run — keep with its discover-time status.
+            draftCards.push(card);
+            continue;
+          }
+          const refreshedStatus = statusById.get(card.opportunityId);
+          if (refreshedStatus === 'draft') {
+            draftCards.push({ ...card, status: refreshedStatus });
+            continue;
+          }
+          if (refreshedStatus === 'negotiating') {
+            negotiatingCount += 1;
+            continue;
+          }
+          if (refreshedStatus === 'rejected' || refreshedStatus === 'stalled') {
+            continue; // drop
+          }
+          // 'pending' / 'latent' / unknown — not expected post-IND-287. Treat as
+          // negotiating (count only) and log so we can spot wiring regressions.
+          logger.warn('[discover_opportunities] unexpected refreshed status — counting as negotiating', {
+            opportunityId: card.opportunityId,
+            refreshedStatus,
+          });
+          negotiatingCount += 1;
+        }
+        cards = draftCards;
+      }
+
       // Build card data; cap at CHAT_DISPLAY_LIMIT (remaining feeds into pagination)
-      const allCardData = (result.opportunities ?? []).map((opp) => ({
+      const allCardData = cards.map((opp) => ({
         opportunityId: opp.opportunityId,
         userId: opp.userId,
         name: opp.name,
@@ -1021,6 +1083,18 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         message += `\n\nThese are all the introduction candidates I found for this person.`;
       } else {
         message += `\n\nThese are all the connections I found. If the user wants to attract more connections, suggest they create a signal — e.g. "Would you like to create a signal so others looking for someone like you can find you?" If they agree, call create_intent with a description based on what they were searching for.`;
+      }
+
+      // MCP-only: tell the LLM how many opps are still negotiating in the background
+      // and how to fetch them. This is the deferred-surfacing handshake — the user's
+      // next list_opportunities call will pick up the rest as they finalize.
+      if (context.isMcp && negotiatingCount > 0) {
+        if (displayedCards.length > 0) {
+          message += `\n\n${negotiatingCount} more opportunit${negotiatingCount === 1 ? 'y is' : 'ies are'} still being evaluated — check back via \`list_opportunities\` shortly.`;
+        } else {
+          // No cards shown but the LLM should still know discovery did find candidates.
+          message = `Found candidates, but they're still being evaluated. Try \`list_opportunities\` in a minute — ${negotiatingCount} pending.`;
+        }
       }
 
       return success({
