@@ -109,7 +109,7 @@ Intents are the core unit of discovery — they represent what users are seeking
 
 Opportunities represent discovered connections between users — potential matches worth pursuing.
 
-1. **Detection** (create_opportunities): The opportunity graph finds users whose intents semantically complement each other within shared indexes. Uses HyDE embeddings for retrieval and an LLM evaluator for scoring.
+1. **Detection** (discover_opportunities): The opportunity graph finds users whose intents semantically complement each other within shared indexes. Uses HyDE embeddings for retrieval and an LLM evaluator for scoring.
 2. **Roles**: Each opportunity assigns roles to actors:
    - **introducer**: The person who triggered the introduction (may be the system or another user)
    - **party**: The people being connected (typically 2)
@@ -120,13 +120,13 @@ Opportunities represent discovered connections between users — potential match
    - **rejected**: One party declined.
    - **expired**: Timed out without response.
 4. **Creation Modes**:
-   - **Discovery**: Automatic — system finds matches based on intent overlap (create_opportunities with searchQuery)
-   - **Introduction**: Manual — a user introduces two specific people (create_opportunities with partyUserIds + entities)
-   - **Direct**: One-to-one — connect with a specific person (create_opportunities with targetUserId)
+   - **Discovery**: Automatic — system finds matches based on intent overlap (discover_opportunities with searchQuery)
+   - **Introduction**: Manual — a user introduces two specific people (discover_opportunities with partyUserIds + entities)
+   - **Direct**: One-to-one — connect with a specific person (discover_opportunities with targetUserId)
 5. **Presentation**: Each opportunity includes personalized match reasoning, confidence score, and suggested next action.
 
 ### Opportunity Workflow
-1. create_opportunities(searchQuery="AI engineers") → returns draft opportunity cards
+1. discover_opportunities(searchQuery="AI engineers") → returns draft opportunity cards
 2. update_opportunity(opportunityId, status="pending") → sends to other party
 3. Other party sees opportunity → calls update_opportunity(status="accepted" or "rejected")`,
 
@@ -145,7 +145,7 @@ Indexes (also called "networks") are communities where members share what they'r
 1. create_network(title, prompt) → creates new community, you become owner
 2. create_network_membership(networkId, userId) → invite members
 3. Members create intents → auto-assigned to the index based on prompt
-4. create_opportunities(networkId) → discover matches within this community`,
+4. discover_opportunities(networkId) → discover matches within this community`,
 
         profiles: `## Profile System
 
@@ -172,13 +172,13 @@ Contacts are people in a user's personal network, stored as members of their per
 
 - **Adding contacts**: Via import_contacts (bulk), add_contact (single email), or import_gmail_contacts (Google integration).
 - **Ghost users**: When a contact email doesn't match an existing account, a ghost user is created. Ghost users are enriched with public profile data and participate in opportunity matching — they can be discovered even before joining the platform.
-- **Personal index scope**: Pass the personal index networkId to create_opportunities to scope discovery to just the user's contacts.
+- **Personal index scope**: Pass the personal index networkId to discover_opportunities to scope discovery to just the user's contacts.
 - **Contact data**: Each contact has userId, name, email, avatar, and isGhost flag.
 
 ### Contact Workflow
 1. import_contacts or import_gmail_contacts → bulk add to network
 2. list_contacts → view all contacts with userId
-3. create_opportunities(networkId=personalIndexId) → find matches among contacts
+3. discover_opportunities(networkId=personalIndexId) → find matches among contacts
 4. add_contact(email) → add individual contact
 5. remove_contact(contactUserId) → remove from network`,
 
@@ -187,7 +187,7 @@ Contacts are people in a user's personal network, stored as members of their per
 Discovery is the process of finding meaningful connections between users based on their intents and profiles.
 
 ### How Discovery Works
-1. **Trigger**: Runs automatically when an intent is created, or explicitly when create_opportunities is called.
+1. **Trigger**: Runs automatically when an intent is created, or explicitly when discover_opportunities is called.
 2. **Pipeline**: Preparation (gather user context) → Scope (determine which indexes to search) → Candidate retrieval (semantic matching via HyDE embeddings) → Evaluation (LLM scores relevance and complementarity) → Ranking → Persist as opportunities.
 3. **Semantic matching**: Uses HyDE (Hypothetical Document Embeddings) to find candidate intents that complement the source. This goes beyond keyword matching — it understands conceptual relationships.
 4. **Evaluation**: An LLM evaluator agent scores each candidate match on relevance, complementarity, and actionability. Low-scoring matches are filtered out.
@@ -209,29 +209,29 @@ Discovery is the process of finding meaningful connections between users based o
 3. read_networks() → see available communities
 4. create_network_membership(networkId) → join a community
 5. create_intent(description) → post what you're looking for
-6. create_opportunities(searchQuery) → find matches
+6. discover_opportunities(searchQuery) → find matches
 
 ### Finding Connections
 1. read_networks() → list user's communities (get networkId)
-2. create_opportunities(searchQuery, networkId) → discover matches
+2. discover_opportunities(searchQuery, networkId) → discover matches
 3. Review opportunity cards → update_opportunity(opportunityId, status="pending") to send
 
 ### Making an Introduction
 1. read_network_memberships(networkId) → find members in shared community
 2. read_user_profiles(userId) → get profiles of both parties
 3. read_intents(networkId, userId) → get intents of both parties
-4. create_opportunities(partyUserIds=[id1,id2], entities=[...], hint="reason") → create introduction
+4. discover_opportunities(partyUserIds=[id1,id2], entities=[...], hint="reason") → create introduction
 
 ### Managing Contacts
 1. import_gmail_contacts() or import_contacts([...]) → add contacts
 2. list_contacts() → view network
-3. create_opportunities(networkId=personalIndexId) → find matches among contacts
+3. discover_opportunities(networkId=personalIndexId) → find matches among contacts
 
 ### Creating a Community
 1. create_network(title, prompt) → create index
 2. create_network_membership(networkId, userId) → invite members
 3. Members create intents → auto-indexed
-4. create_opportunities(networkId) → discover connections within community`,
+4. discover_opportunities(networkId) → discover connections within community`,
 
         authentication: `## Authentication & API Access
 
@@ -269,7 +269,7 @@ Discovery is the process of finding meaningful connections between users based o
 - After creating intents, proactively suggest or run discovery to find matches.
 
 ### Discovery Workflow
-- After creating intents, proactively suggest running discovery: \`create_opportunities(searchQuery=...)\`
+- After creating intents, proactively suggest running discovery: \`discover_opportunities(searchQuery=...)\`
 - Present discovered opportunities in natural language with the counterpart's name, match reasoning, and suggested next steps.
 - Do not reference "cards", "panels", or any web UI elements.
 

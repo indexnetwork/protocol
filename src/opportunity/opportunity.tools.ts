@@ -230,8 +230,8 @@ function buildOpportunityPresentation(
 export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
   const { database, userDb, systemDb, graphs, embedder, cache } = deps;
 
-  const createOpportunities = defineTool({
-    name: "create_opportunities",
+  const discoverOpportunities = defineTool({
+    name: "discover_opportunities",
     description:
       "Creates opportunities — discovered connections between users based on complementary intents. Opportunities are the core output " +
       "of the discovery engine, representing potential valuable connections between people.\n\n" +
@@ -270,7 +270,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       continueFrom: z
         .string()
         .optional()
-        .describe("Pagination token: pass the discoveryId from a previous create_opportunities result to evaluate the next batch of candidates. Do not combine with other mode parameters."),
+        .describe("Pagination token: pass the discoveryId from a previous discover_opportunities result to evaluate the next batch of candidates. Do not combine with other mode parameters."),
       searchQuery: z
         .string()
         .optional()
@@ -332,7 +332,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         .describe(
           "Introduction mode: pre-gathered profile and intent data for each party being introduced. " +
           "Each entry needs userId, networkId (the shared index), and optionally profile (name, bio, skills, interests) and intents (intentId, payload). " +
-          "Gather this data by calling read_user_profiles and read_intents for each party BEFORE calling create_opportunities. " +
+          "Gather this data by calling read_user_profiles and read_intents for each party BEFORE calling discover_opportunities. " +
           "All entities must share the same networkId (the shared index where both parties are members).",
         ),
       hint: z
@@ -421,7 +421,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         const isIntroducerContinuation = !!query.introTargetUserId?.trim();
         const totalRemaining = (result.pagination?.remaining ?? 0) + extraFromCap;
         if (totalRemaining > 0 && result.pagination?.discoveryId) {
-          message += `\n\nThere are ${totalRemaining} more candidates. Ask if the user wants to see more — they can say "show me more" and you should call create_opportunities with continueFrom="${result.pagination.discoveryId}".`;
+          message += `\n\nThere are ${totalRemaining} more candidates. Ask if the user wants to see more — they can say "show me more" and you should call discover_opportunities with continueFrom="${result.pagination.discoveryId}".`;
         } else if (isIntroducerContinuation) {
           message += `\n\nThese are all the introduction candidates I found for this person.`;
         } else {
@@ -743,7 +743,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           createIntentSuggested: true,
           suggestedIntentDescription: result.suggestedIntentDescription,
           message:
-            "No matching opportunities found. Call create_intent with the suggested description, then create_opportunities again.",
+            "No matching opportunities found. Call create_intent with the suggested description, then discover_opportunities again.",
           summary: "No matches found",
           ...(result.pagination ? { pagination: result.pagination } : {}),
           debugSteps: allDebugSteps,
@@ -828,7 +828,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
 
       const totalRemaining = (result.pagination?.remaining ?? 0) + extraFromCap;
       if (totalRemaining > 0 && result.pagination?.discoveryId) {
-        message += `\n\nThere are ${totalRemaining} more candidates. Ask if the user wants to see more — they can say "show me more" and you should call create_opportunities with continueFrom="${result.pagination.discoveryId}".`;
+        message += `\n\nThere are ${totalRemaining} more candidates. Ask if the user wants to see more — they can say "show me more" and you should call discover_opportunities with continueFrom="${result.pagination.discoveryId}".`;
       } else if (isIntroducerFlow) {
         message += `\n\nThese are all the introduction candidates I found for this person.`;
       } else {
@@ -936,7 +936,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           count: 0,
           summary: "No opportunities yet",
           message:
-            "You have no opportunities yet. Use create_opportunities to find connections.",
+            "You have no opportunities yet. Use discover_opportunities to find connections.",
         });
       }
 
@@ -1133,7 +1133,7 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           count: 0,
           summary: "No opportunities yet",
           message:
-            "You have no opportunities yet. Use create_opportunities to find connections.",
+            "You have no opportunities yet. Use discover_opportunities to find connections.",
         });
       }
 
@@ -1156,17 +1156,17 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
       "Updates an opportunity's status, advancing it through the connection lifecycle.\n\n" +
       "**Status transitions:**\n" +
       "- `pending`: Sends a draft opportunity to the other party. They'll be notified and can accept or reject. " +
-      "This is the primary action after create_opportunities returns a draft.\n" +
+      "This is the primary action after discover_opportunities returns a draft.\n" +
       "- `accepted`: Accept a received opportunity — opens a direct conversation between both parties. Returns a conversationId to surface to the user.\n" +
       "- `rejected`: Decline a received opportunity.\n" +
       "- `expired`: Mark as expired (typically done by the system after timeout).\n\n" +
-      "**When to use:** After create_opportunities or list_opportunities returns opportunity cards. " +
+      "**When to use:** After discover_opportunities or list_opportunities returns opportunity cards. " +
       "The user clicks 'Send' (pending), 'Accept', or 'Reject' on the card, and the agent calls this tool.\n\n" +
       "**Returns:** Confirmation with the new status and notification details (who was notified).",
     querySchema: z.object({
       opportunityId: z
         .string()
-        .describe("The UUID of the opportunity to update. Get from create_opportunities or list_opportunities results."),
+        .describe("The UUID of the opportunity to update. Get from discover_opportunities or list_opportunities results."),
       status: z
         .enum(["pending", "accepted", "rejected", "expired"])
         .describe(
@@ -1287,5 +1287,5 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
     },
   });
 
-  return [createOpportunities, listOpportunities, updateOpportunity, confirmOpportunityDelivery] as const;
+  return [discoverOpportunities, listOpportunities, updateOpportunity, confirmOpportunityDelivery] as const;
 }

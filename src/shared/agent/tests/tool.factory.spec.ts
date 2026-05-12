@@ -1,5 +1,5 @@
 /**
- * Unit tests for chat tools (createChatTools, read_intents, read_indexes, read_users, create_opportunities, send_opportunity, etc.).
+ * Unit tests for chat tools (createChatTools, read_intents, read_indexes, read_users, discover_opportunities, send_opportunity, etc.).
  */
 /** Config */
 import { config } from "dotenv";
@@ -357,12 +357,12 @@ describe("createChatTools", () => {
     expect(tools.find((t: { name: string }) => t.name === "read_network_memberships")).toBeDefined();
   });
 
-  test("includes list_opportunities alongside create_opportunities and update_opportunity", async () => {
+  test("includes list_opportunities alongside discover_opportunities and update_opportunity", async () => {
     const mockDb = createMockDatabase(async () => []);
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
     expect(tools.find((t: { name: string }) => t.name === "list_opportunities")).toBeDefined();
-    expect(tools.find((t: { name: string }) => t.name === "create_opportunities")).toBeDefined();
+    expect(tools.find((t: { name: string }) => t.name === "discover_opportunities")).toBeDefined();
     expect(tools.find((t: { name: string }) => t.name === "update_opportunity")).toBeDefined();
   });
 });
@@ -1011,12 +1011,12 @@ describe("update_intent and delete_intent (Phase 3 index-scoping)", () => {
   });
 });
 
-describe("create_opportunities tool", () => {
-  test("returns a tool named create_opportunities with schema containing searchQuery, optional networkId, and optional intentId", async () => {
+describe("discover_opportunities tool", () => {
+  test("returns a tool named discover_opportunities with schema containing searchQuery, optional networkId, and optional intentId", async () => {
     const mockDb = createMockDatabase(async () => []);
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities");
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities");
     expect(tool).toBeDefined();
     const schema = (tool as { schema?: { shape?: Record<string, unknown> } }).schema;
     const shape = schema?.shape ?? (tool as { schema?: { schema?: { shape?: Record<string, unknown> } } }).schema?.schema?.shape;
@@ -1031,7 +1031,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as { invoke: (args: { searchQuery: string; networkId?: string }) => Promise<string> };
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as { invoke: (args: { searchQuery: string; networkId?: string }) => Promise<string> };
     const result = await tool.invoke({ searchQuery: "Find a co-founder" });
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
@@ -1043,7 +1043,7 @@ describe("create_opportunities tool", () => {
     const mockDb = createMockDatabase(async () => [], { isNetworkMember: async () => true });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: { partyUserIds?: string[]; entities?: unknown[] }) => Promise<string>;
     };
     const result = await tool.invoke({
@@ -1059,7 +1059,7 @@ describe("create_opportunities tool", () => {
     const mockDb = createMockDatabase(async () => [], { isNetworkMember: async () => true });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: { partyUserIds?: string[]; entities?: Array<{ userId: string; networkId?: string }> }) => Promise<string>;
     };
     const errorMessageRe = /networkId|shared index|required/i;
@@ -1100,7 +1100,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: {
         partyUserIds?: string[];
         entities?: Array<{ userId: string; profile?: Record<string, unknown>; networkId: string }>;
@@ -1142,7 +1142,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: {
         partyUserIds?: string[];
         entities?: Array<{ userId: string; profile?: Record<string, unknown>; networkId: string }>;
@@ -1190,7 +1190,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: {
         partyUserIds?: string[];
         entities?: Array<{ userId: string; profile?: Record<string, unknown>; networkId: string }>;
@@ -1236,7 +1236,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: {
         entities?: Array<{ userId: string; profile?: Record<string, unknown>; networkId: string }>;
       }) => Promise<string>;
@@ -1290,7 +1290,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: { searchQuery: string }) => Promise<string>;
     };
     const searchQuery = "looking for investors for my game project";
@@ -1330,7 +1330,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: { searchQuery?: string }) => Promise<string>;
     };
     const result = await tool.invoke({ searchQuery: "" });
@@ -1368,7 +1368,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: { searchQuery: string; introTargetUserId: string }) => Promise<string>;
     };
     const result = await tool.invoke({
@@ -1404,7 +1404,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: { searchQuery: string; introTargetUserId: string }) => Promise<string>;
     };
     const result = await tool.invoke({
@@ -1444,7 +1444,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: { searchQuery: string }) => Promise<string>;
     };
     const result = await tool.invoke({ searchQuery: "looking for co-founders" });
@@ -1488,7 +1488,7 @@ describe("create_opportunities tool", () => {
     });
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: { searchQuery: string }) => Promise<string>;
     };
     const result = await tool.invoke({ searchQuery: "looking for co-founders" });
@@ -1517,7 +1517,7 @@ describe("create_opportunities tool", () => {
     const mockDb = createMockDatabase(async () => [], {});
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: { continueFrom: string }) => Promise<string>;
     };
     const result = await tool.invoke({ continueFrom: "disc-continue-123" });
@@ -1549,7 +1549,7 @@ describe("create_opportunities tool", () => {
     const mockDb = createMockDatabase(async () => [], {});
     const context: ToolContext = { userId: testUserId, database: mockDb, embedder: mockEmbedder, scraper: mockScraper, ...mockProtocolDeps };
     const tools = await createChatTools(context);
-    const tool = tools.find((t: { name: string }) => t.name === "create_opportunities") as {
+    const tool = tools.find((t: { name: string }) => t.name === "discover_opportunities") as {
       invoke: (args: { continueFrom: string; introTargetUserId: string }) => Promise<string>;
     };
     const result = await tool.invoke({

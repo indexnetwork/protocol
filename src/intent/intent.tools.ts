@@ -158,7 +158,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       "and returns a proposal widget. The proposal is NOT yet persisted — the user must approve it first.\n\n" +
       "**Returns:** An intent_proposal code block that MUST be included verbatim in the response. The frontend renders it as an interactive " +
       "card the user can approve or skip. On approval, the intent is persisted, indexed, and discovery begins.\n\n" +
-      "**Next steps after approval:** The intent is automatically linked to relevant indexes. Call create_opportunities(searchQuery) to explicitly trigger discovery, " +
+      "**Next steps after approval:** The intent is automatically linked to relevant indexes. Call discover_opportunities(searchQuery) to explicitly trigger discovery, " +
       "or wait for background processing to find matches.\n\n" +
       "**Specificity gate.** Before calling this tool, judge whether the description is concrete enough to be " +
       "useful for matching. If the user says \"find a job\", \"meet people\", or \"learn something\", that's too " +
@@ -671,7 +671,7 @@ export function createIntentTools(defineTool: DefineTool, deps: ToolDeps) {
       "Text-searches the authenticated user's own active signals by description. Case-insensitive substring " +
       "match over the signal's payload and summary. Use when the user references a past signal they wrote " +
       '("find my signal about React mentorship") or wants to audit what they\'ve posted.\n\n' +
-      "For discovery of OTHER users' signals that match a query, use create_opportunities(searchQuery=...) " +
+      "For discovery of OTHER users' signals that match a query, use discover_opportunities(searchQuery=...) " +
       "instead — that runs semantic matching across the user's networks.\n\n" +
       "**Returns:** `intents: [{ id, payload, summary, createdAt }]`, most recent first, up to `limit` (default 25).",
     querySchema: z.object({

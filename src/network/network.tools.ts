@@ -12,7 +12,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
     name: "read_networks",
     description:
       "Lists the authenticated user's networks (communities), including ones they own and public communities they can join.\n\n" +
-      "**When to use:** To find network IDs for scoping other operations (read_intents, create_opportunities, read_network_memberships), " +
+      "**When to use:** To find network IDs for scoping other operations (read_intents, discover_opportunities, read_network_memberships), " +
       "or to show the user which communities they belong to.\n\n" +
       "**Returns:** Up to three lists — `memberOf` (networks the user joined), `owns` (networks the user created), and `publicNetworks` " +
       "(publicly joinable communities the user is not yet a member of). Entries in `memberOf` include `isPersonal` set to `true` for the user's " +
@@ -339,7 +339,7 @@ export function createNetworkTools(defineTool: DefineTool, deps: ToolDeps) {
       "(complementary matches) between members. The index's prompt guides what kinds of intents belong.\n\n" +
       "**When to use:** When the user wants to create a new community — e.g. a professional network, interest group, or project team.\n\n" +
       "**Returns:** The new index's networkId (UUID) and title. Use the networkId to add members (create_network_membership), " +
-      "link intents (create_intent_index), or run discovery (create_opportunities with networkId).",
+      "link intents (create_intent_index), or run discovery (discover_opportunities with networkId).",
     querySchema: z.object({
       title: z.string().describe("Display name of the index (e.g. 'AI Founders Berlin', 'Design Co-op'). Required."),
       prompt: z.string().optional().describe("Description of what this community is about (e.g. 'Early-stage AI/ML founders in Berlin looking for co-founders, advisors, and investors'). Used by the system to evaluate which intents belong in this index. Highly recommended for better auto-assignment."),

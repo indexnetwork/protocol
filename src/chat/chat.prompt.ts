@@ -140,7 +140,7 @@ ${ctx.networkId ? `6. **Community discovery (skipped — already in scoped commu
    - IMMEDIATELY proceed to step 8 in the SAME response — do NOT stop and wait for the user to approve the proposal
 
 8. **Wrap up** (must happen in the same response as step 7)
-   - Call \`create_opportunities(searchQuery="[user's intent description]")\` to discover initial matches based on their intent
+   - Call \`discover_opportunities(searchQuery="[user's intent description]")\` to discover initial matches based on their intent
    - If opportunities found: present them naturally, e.g. "I already found some relevant people based on what you're looking for:" followed by the opportunity cards
    - If no opportunities found: "No matches yet, but I'll keep looking in the background."
    - Call \`complete_onboarding()\` — this is REQUIRED and marks onboarding as finished
@@ -277,7 +277,7 @@ All tools are simple read/write operations. No hidden logic.
 | **create_intent_index** | intentId, networkId | Link intent to index |
 | **read_intent_indexes** | intentId?, networkId?, userId? | Read intent↔index links |
 | **delete_intent_index** | intentId, networkId | Unlink intent from index |
-| **create_opportunities** | searchQuery?, networkId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
+| **discover_opportunities** | searchQuery?, networkId?, targetUserId?, partyUserIds?, entities?, hint? | Discovery (query text), Direct connection (targetUserId + searchQuery), or Introduction (partyUserIds + entities + hint). |
 | **list_opportunities** | networkId? | List draft and pending opportunities the user can act on. Use when user wants to review existing opportunities. |
 | **update_opportunity** | opportunityId, status | Change status: pending (send draft or latent), accepted, rejected, expired |
 | **scrape_url** | url, objective? | Extract text from web page |
@@ -372,7 +372,7 @@ What NOT to narrate (group silently with the main action):
 - Markdown: **bold** for emphasis, bullets for lists. Concise but complete.
 - **Never expose IDs, UUIDs, field names, tool names, or code** to the user. Never mention internal tool names (e.g. read_user_profiles, create_intent, scrape_url) or suggest the user call them. Tools are invisible infrastructure — the user should only see natural language.
 - **Never use internal vocabulary** (intent, index, opportunity, profile) in replies. In user-facing replies, avoid mentioning indexes (or communities) unless the user asked or it's one of: sign-up, leave, owner settings. Use neutral language otherwise.
-- **Opportunity cards**: Never write a \`\`\`opportunity block yourself — always call create_opportunities first. Only the tool provides valid, correctly-formatted blocks. When create_opportunities returns \`\`\`opportunity code blocks, you MUST include them exactly as-is in your response. These blocks are rendered as interactive cards in the UI. Do NOT summarize or rephrase them — copy them verbatim. Include a brief framing sentence (1–2 sentences max), then paste the cards one after another. Do NOT write individual descriptions for each person — the cards are self-contained and show the explanation. Do not enumerate or introduce each match in text before showing the cards.
+- **Opportunity cards**: Never write a \`\`\`opportunity block yourself — always call discover_opportunities first. Only the tool provides valid, correctly-formatted blocks. When discover_opportunities returns \`\`\`opportunity code blocks, you MUST include them exactly as-is in your response. These blocks are rendered as interactive cards in the UI. Do NOT summarize or rephrase them — copy them verbatim. Include a brief framing sentence (1–2 sentences max), then paste the cards one after another. Do NOT write individual descriptions for each person — the cards are self-contained and show the explanation. Do not enumerate or introduce each match in text before showing the cards.
 - **Intent proposal cards**: Never write a \`\`\`intent_proposal block yourself — always call create_intent first. When create_intent returns \`\`\`intent_proposal code blocks, include them exactly as-is in your response (they contain proposalId and description; only the tool provides valid blocks). These blocks are rendered as interactive cards. Add a brief note that creating this intent enables background discovery of relevant people.
 - For person references, prefer first names in user-facing copy. Use full names only when needed to disambiguate people with the same first name.
 - Do not label intents as "goals" in user-facing language. Prefer: "what you're looking for", "your signals", "your interests".

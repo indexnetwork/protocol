@@ -219,7 +219,7 @@ export const OpportunityGraphState = Annotation.Root({
   /**
    * Accepted opportunities the persist node discovered between the discoverer
    * and a candidate actor (same pair, status='accepted'). The orchestrator
-   * branch populates this so the create_opportunities tool (Task 7) can tell
+   * branch populates this so the discover_opportunities tool (Task 7) can tell
    * the LLM "these pairs are already connected, surface the existing chat
    * rather than creating a new draft". Always empty for the ambient trigger.
    *

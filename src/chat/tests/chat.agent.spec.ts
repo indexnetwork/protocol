@@ -64,7 +64,7 @@ function createMockTools() {
       ),
     },
     {
-      name: "create_opportunities",
+      name: "discover_opportunities",
       description: "Find opportunities",
       schema: {},
       invoke: mock(async () =>
@@ -203,7 +203,7 @@ I've created an intent for you!`;
     expect(callCount).toBe(2);
   }, 15000);
 
-  it("auto-invokes create_opportunities when hallucinated opportunity block is detected", async () => {
+  it("auto-invokes discover_opportunities when hallucinated opportunity block is detected", async () => {
     const agent = await ChatAgent.create({
       database: {
         getUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com", location: null, socials: {} }),
@@ -249,9 +249,9 @@ I've created an intent for you!`;
       writer,
     );
 
-    // create_opportunities auto-invoked with searchQuery from user's message (not hallucinated block)
+    // discover_opportunities auto-invoked with searchQuery from user's message (not hallucinated block)
     const createOpsTool = capturedTools.find(
-      (t) => t.name === "create_opportunities",
+      (t) => t.name === "discover_opportunities",
     )!;
     expect(createOpsTool.invoke).toHaveBeenCalledTimes(1);
     const callArgs = createOpsTool.invoke.mock.calls[0][0] as Record<

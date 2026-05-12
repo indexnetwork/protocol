@@ -397,7 +397,7 @@ export class ChatAgent {
           let resultStr =
             typeof result === "string" ? result : JSON.stringify(result);
 
-          if (tc.name === "create_opportunities") {
+          if (tc.name === "discover_opportunities") {
             const newResult = await this.handleCreateIntentCallback(resultStr, tc.args);
             if (newResult !== null) {
               resultStr = newResult;
@@ -438,8 +438,8 @@ export class ChatAgent {
   }
 
   /**
-   * When create_opportunities returned createIntentSuggested, call create_intent then create_opportunities.
-   * Returns the new create_opportunities result string or null if no callback / create_intent failed.
+   * When discover_opportunities returned createIntentSuggested, call create_intent then discover_opportunities.
+   * Returns the new discover_opportunities result string or null if no callback / create_intent failed.
    */
   private async handleCreateIntentCallback(
     resultStr: string,
@@ -462,10 +462,10 @@ export class ChatAgent {
       return null;
     }
     const createIntentTool = this.toolsByName.get("create_intent");
-    const createOpportunitiesTool = this.toolsByName.get("create_opportunities");
-    if (!createIntentTool || !createOpportunitiesTool) return null;
+    const discoverOpportunitiesTool = this.toolsByName.get("discover_opportunities");
+    if (!createIntentTool || !discoverOpportunitiesTool) return null;
 
-    logger.verbose("Create-intent signal: auto-calling create_intent then create_opportunities");
+    logger.verbose("Create-intent signal: auto-calling create_intent then discover_opportunities");
     const createIntentResult = await createIntentTool.invoke({
       description: parsed.data.suggestedIntentDescription,
       networkId: (originalArgs as { networkId?: string }).networkId,
@@ -479,13 +479,13 @@ export class ChatAgent {
       createIntentParsed = {};
     }
     if (createIntentParsed.success === false) {
-      logger.warn("Create-intent failed; not re-running create_opportunities", {
+      logger.warn("Create-intent failed; not re-running discover_opportunities", {
         error: createIntentParsed.error,
       });
       return null;
     }
 
-    const newResult = await createOpportunitiesTool.invoke(originalArgs);
+    const newResult = await discoverOpportunitiesTool.invoke(originalArgs);
     return typeof newResult === "string" ? newResult : JSON.stringify(newResult);
   }
 
@@ -510,7 +510,7 @@ export class ChatAgent {
     );
     const hasSuccessfulCreateOpportunities = toolsUsed.some(
       (t) =>
-        t.name === "create_opportunities" &&
+        t.name === "discover_opportunities" &&
         t.success &&
         !t.resultSummary?.startsWith("Found 0") &&
         !t.resultSummary?.startsWith("No matches"),
@@ -531,7 +531,7 @@ export class ChatAgent {
       // nothing to do with the user's actual request, leading to wrong results and
       // the model re-calling the tool with the correct query (doubling negotiation cost).
       const description = userMessage?.trim() || "find connections";
-      return { type: "opportunity", tool: "create_opportunities", description };
+      return { type: "opportunity", tool: "discover_opportunities", description };
     }
 
     return null;
@@ -556,7 +556,7 @@ export class ChatAgent {
 
     const hasSuccessfulCreateOpportunities = toolsUsed.some(
       (t) =>
-        t.name === "create_opportunities" &&
+        t.name === "discover_opportunities" &&
         t.success &&
         !t.resultSummary?.startsWith("Found 0") &&
         !t.resultSummary?.startsWith("No matches"),
@@ -591,7 +591,7 @@ export class ChatAgent {
 
   /**
    * Post-process a tool result: strip _graphTimings, extract summary/debugSteps,
-   * and optionally run create_opportunities → create_intent callback.
+   * and optionally run discover_opportunities → create_intent callback.
    *
    * Returns the normalized result string and extracted debug metadata so both
    * the normal streaming tool loop and the hallucination-recovery branch
@@ -609,8 +609,8 @@ export class ChatAgent {
   }> {
     let normalized = resultStr;
 
-    // Run create_intent callback for create_opportunities results
-    if (toolName === "create_opportunities") {
+    // Run create_intent callback for discover_opportunities results
+    if (toolName === "discover_opportunities") {
       const callbackResult = await this.handleCreateIntentCallback(normalized, toolArgs);
       if (callbackResult !== null) {
         normalized = callbackResult;

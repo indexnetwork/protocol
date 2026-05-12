@@ -1,7 +1,7 @@
 /**
  * Unit tests for the `dedupAlreadyAccepted` state field introduced in Plan B
  * Task 6. The orchestrator branch of the persist node populates this so the
- * create_opportunities tool (Task 7) can tell the LLM when candidate pairs
+ * discover_opportunities tool (Task 7) can tell the LLM when candidate pairs
  * already have an accepted opportunity and should reuse the existing chat.
  */
 

@@ -115,7 +115,7 @@ function withUserTurn(
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("Multi-step: discovery flow", () => {
-  test("iteration 1 (no tools yet) → no modules; iteration 2 (after create_opportunities) → discovery module", () => {
+  test("iteration 1 (no tools yet) → no modules; iteration 2 (after discover_opportunities) → discovery module", () => {
     const ctx = makeCtx();
 
     // Iteration 1: user just sent the message, no tool calls yet
@@ -124,8 +124,8 @@ describe("Multi-step: discovery flow", () => {
     const iter1Result = resolveModules(iter1);
     expect(iter1Result).toBe("");
 
-    // Iteration 2: agent called create_opportunities
-    const iter2Messages = withToolCall(iter1Messages, "create_opportunities", {
+    // Iteration 2: agent called discover_opportunities
+    const iter2Messages = withToolCall(iter1Messages, "discover_opportunities", {
       searchQuery: "mentor in AI",
     });
     const iter2 = iterCtxFrom(iter2Messages, ctx);
@@ -138,9 +138,9 @@ describe("Multi-step: discovery flow", () => {
   test("discovery module persists across iterations within same turn", () => {
     const ctx = makeCtx();
 
-    // Iteration 2: agent called create_opportunities
+    // Iteration 2: agent called discover_opportunities
     let messages: BaseMessage[] = [new HumanMessage("find me a mentor")];
-    messages = withToolCall(messages, "create_opportunities", { searchQuery: "mentor" });
+    messages = withToolCall(messages, "discover_opportunities", { searchQuery: "mentor" });
 
     // Iteration 3: agent then called read_user_profiles (person-lookup joins)
     messages = withToolCall(messages, "read_user_profiles", { query: "Bob" });
@@ -160,7 +160,7 @@ describe("Multi-step: discovery → signal follow-up (multi-turn)", () => {
 
     // Turn 1: discovery
     let turn1: BaseMessage[] = [new HumanMessage("find me a mentor in AI")];
-    turn1 = withToolCall(turn1, "create_opportunities", { searchQuery: "mentor" });
+    turn1 = withToolCall(turn1, "discover_opportunities", { searchQuery: "mentor" });
 
     // Verify turn 1 has discovery module
     const turn1Ctx = iterCtxFrom(turn1, ctx);
@@ -181,14 +181,14 @@ describe("Multi-step: discovery → signal follow-up (multi-turn)", () => {
     const turn2PostTool = iterCtxFrom(turn2, ctx);
     const turn2Result = resolveModules(turn2PostTool);
 
-    // Intent-creation active, discovery gone (no create_opportunities in turn 2)
+    // Intent-creation active, discovery gone (no discover_opportunities in turn 2)
     expect(turn2Result).toContain("### 2. User explicitly wants to create or save an intent");
     expect(turn2Result).not.toContain("### 1. User wants to find connections");
   });
 });
 
 describe("Multi-step: person lookup → direct connection", () => {
-  test("@mention triggers mentions module, then read_user_profiles adds person-lookup, then create_opportunities adds discovery", () => {
+  test("@mention triggers mentions module, then read_user_profiles adds person-lookup, then discover_opportunities adds discovery", () => {
     const ctx = makeCtx();
 
     // Iteration 1: user mentions someone
@@ -209,8 +209,8 @@ describe("Multi-step: person lookup → direct connection", () => {
     expect(iter2Result).toContain("### 0. User asks about a specific person by name");
     expect(iter2Result).toContain("@[Display Name](userId)");
 
-    // Iteration 3: agent decides to connect → calls create_opportunities
-    messages = withToolCall(messages, "create_opportunities", {
+    // Iteration 3: agent decides to connect → calls discover_opportunities
+    messages = withToolCall(messages, "discover_opportunities", {
       targetUserId: "user-alice",
       searchQuery: "shared interest in AI",
     });
@@ -224,7 +224,7 @@ describe("Multi-step: person lookup → direct connection", () => {
 });
 
 describe("Multi-step: introduction flow with exclusion", () => {
-  test("gathering context activates person-lookup + shared-context; create_opportunities with partyUserIds activates introduction and excludes discovery", () => {
+  test("gathering context activates person-lookup + shared-context; discover_opportunities with partyUserIds activates introduction and excludes discovery", () => {
     const ctx = makeCtx();
 
     // Iteration 1: user asks to introduce two people
@@ -244,8 +244,8 @@ describe("Multi-step: introduction flow with exclusion", () => {
     expect(iter2Result).not.toContain("### 6. Introduce two people");
     expect(iter2Result).not.toContain("### 1. User wants to find connections");
 
-    // Iteration 3: agent calls create_opportunities with partyUserIds (introduction)
-    messages = withToolCall(messages, "create_opportunities", {
+    // Iteration 3: agent calls discover_opportunities with partyUserIds (introduction)
+    messages = withToolCall(messages, "discover_opportunities", {
       partyUserIds: ["user-a", "user-b"],
       entities: [],
     });
@@ -310,10 +310,10 @@ describe("Multi-step: buildSystemContent integration", () => {
     const iter1Prompt = buildSystemContent(ctx, iter1Ctx);
     expect(iter1Prompt).toBe(baseline);
 
-    // Iteration 2: after create_opportunities → modules injected
+    // Iteration 2: after discover_opportunities → modules injected
     const iter2Messages = withToolCall(
       iter1Messages,
-      "create_opportunities",
+      "discover_opportunities",
       { searchQuery: "AI" },
     );
     const iter2Ctx = iterCtxFrom(iter2Messages, ctx);
@@ -332,7 +332,7 @@ describe("Multi-step: buildSystemContent integration", () => {
 
     // Turn 1: discovery active
     let turn1: BaseMessage[] = [new HumanMessage("find mentors")];
-    turn1 = withToolCall(turn1, "create_opportunities", { searchQuery: "mentors" });
+    turn1 = withToolCall(turn1, "discover_opportunities", { searchQuery: "mentors" });
     const turn1Prompt = buildSystemContent(ctx, iterCtxFrom(turn1, ctx));
     expect(turn1Prompt).toContain("### 1. User wants to find connections");
 
@@ -345,10 +345,10 @@ describe("Multi-step: buildSystemContent integration", () => {
 });
 
 describe("Multi-step: disambiguation edge cases", () => {
-  test("create_opportunities with both searchQuery and partyUserIds → introduction wins (partyUserIds is the intro signal)", () => {
+  test("discover_opportunities with both searchQuery and partyUserIds → introduction wins (partyUserIds is the intro signal)", () => {
     const ctx = makeCtx();
     let messages: BaseMessage[] = [new HumanMessage("connect these two people")];
-    messages = withToolCall(messages, "create_opportunities", {
+    messages = withToolCall(messages, "discover_opportunities", {
       searchQuery: "AI collaboration",
       partyUserIds: ["user-a", "user-b"],
     });
@@ -359,12 +359,12 @@ describe("Multi-step: disambiguation edge cases", () => {
     expect(result).not.toContain("### 1. User wants to find connections or discover");
   });
 
-  test("create_opportunities with introTargetUserId (discover-for-person) → introduction wins", () => {
+  test("discover_opportunities with introTargetUserId (discover-for-person) → introduction wins", () => {
     const ctx = makeCtx();
     let messages: BaseMessage[] = [
       new HumanMessage("who should I introduce to @[Alice](user-a)?"),
     ];
-    messages = withToolCall(messages, "create_opportunities", {
+    messages = withToolCall(messages, "discover_opportunities", {
       introTargetUserId: "user-a",
     });
 
@@ -375,13 +375,13 @@ describe("Multi-step: disambiguation edge cases", () => {
     expect(result).not.toContain("### 1. User wants to find connections or discover");
   });
 
-  test("two create_opportunities calls — one discovery, one introduction — introduction excludes discovery", () => {
+  test("two discover_opportunities calls — one discovery, one introduction — introduction excludes discovery", () => {
     const ctx = makeCtx();
     let messages: BaseMessage[] = [new HumanMessage("help me connect")];
     // First call: discovery-style
-    messages = withToolCall(messages, "create_opportunities", { searchQuery: "AI" });
+    messages = withToolCall(messages, "discover_opportunities", { searchQuery: "AI" });
     // Second call: introduction-style
-    messages = withToolCall(messages, "create_opportunities", {
+    messages = withToolCall(messages, "discover_opportunities", {
       partyUserIds: ["user-a", "user-b"],
     });
 
@@ -517,7 +517,7 @@ describe("Chat Prompt Dynamic Modules", () => {
   });
 
   describe("Discovery routing (core rule, no module needed)", () => {
-    test("'find me a mentor in AI' calls create_opportunities, not create_intent", async () => {
+    test("'find me a mentor in AI' calls discover_opportunities, not create_intent", async () => {
       const compiledGraph = factory.createGraph();
 
       const output = await compiledGraph.invoke({
@@ -527,14 +527,14 @@ describe("Chat Prompt Dynamic Modules", () => {
 
       await assertLLM(
         output,
-        "Agent must have called create_opportunities tool (not create_intent). Response should present connections or state no matches found.",
+        "Agent must have called discover_opportunities tool (not create_intent). Response should present connections or state no matches found.",
       );
 
       expect(output.responseText).toBeDefined();
       expect(output.responseText!.length).toBeGreaterThan(0);
 
-      // Deterministic: agent must have called create_opportunities, not create_intent
-      expect(hasToolCall(output.messages ?? [], "create_opportunities")).toBe(true);
+      // Deterministic: agent must have called discover_opportunities, not create_intent
+      expect(hasToolCall(output.messages ?? [], "discover_opportunities")).toBe(true);
       expect(hasToolCall(output.messages ?? [], "create_intent")).toBe(false);
     }, 180000);
   });
@@ -605,7 +605,7 @@ describe("Chat Prompt Dynamic Modules", () => {
       });
 
       expect(turn1.responseText).toBeDefined();
-      expect(hasToolCall(turn1.messages, "create_opportunities")).toBe(true);
+      expect(hasToolCall(turn1.messages, "discover_opportunities")).toBe(true);
 
       // ── Turn 2: user asks to create a signal from the discovery ──
       const turn2Messages = [
@@ -670,7 +670,7 @@ describe("Chat Prompt Dynamic Modules", () => {
   // ─── Multi-turn: @mention → person lookup → direct connection ────────────
 
   describe("Multi-turn: @mention → person lookup → direct connection", () => {
-    test("turn 1: look up @mentioned person; turn 2: connect us → agent calls create_opportunities with targetUserId", async () => {
+    test("turn 1: look up @mentioned person; turn 2: connect us → agent calls discover_opportunities with targetUserId", async () => {
       const mentionDb = createChatGraphMockDb({
         getUser: (userId: string) => {
           if (userId === "user-alice")
@@ -721,10 +721,10 @@ describe("Chat Prompt Dynamic Modules", () => {
       expect(turn2.responseText).toBeDefined();
       expect(turn2.responseText!.length).toBeGreaterThan(0);
 
-      // Agent should have called create_opportunities for direct connection.
-      // Check full turn2 messages — turn1 didn't call create_opportunities,
+      // Agent should have called discover_opportunities for direct connection.
+      // Check full turn2 messages — turn1 didn't call discover_opportunities,
       // so any occurrence is from turn 2.
-      expect(hasToolCall(turn2.messages, "create_opportunities")).toBe(true);
+      expect(hasToolCall(turn2.messages, "discover_opportunities")).toBe(true);
     }, 300000);
   });
 
@@ -853,16 +853,16 @@ describe("Chat Prompt Dynamic Modules", () => {
       expect(turn2.responseText).toBeDefined();
       expect(turn2.responseText!.length).toBeGreaterThan(0);
 
-      // Agent should have called create_opportunities (discovery), not read_indexes
+      // Agent should have called discover_opportunities (discovery), not read_indexes
       const turn2NewMessages = turn2.messages.slice(turn1.messages.length + 1);
-      expect(hasToolCall(turn2NewMessages, "create_opportunities")).toBe(true);
+      expect(hasToolCall(turn2NewMessages, "discover_opportunities")).toBe(true);
     }, 300000);
   });
 
   // ─── Introduction: triggerFilter + excludes disambiguation ────────────────
 
   describe("Introduction between two mentioned people", () => {
-    test("'introduce @Alice and @Bob' → agent gathers context and calls create_opportunities with partyUserIds", async () => {
+    test("'introduce @Alice and @Bob' → agent gathers context and calls discover_opportunities with partyUserIds", async () => {
       const introDb = createChatGraphMockDb({
         getUser: (userId: string) => {
           if (userId === "user-alice")
@@ -919,11 +919,11 @@ describe("Chat Prompt Dynamic Modules", () => {
       expect(result.responseText).toBeDefined();
       expect(result.responseText!.length).toBeGreaterThan(0);
 
-      // Agent must have called create_opportunities with partyUserIds (introduction flow)
-      expect(hasToolCall(result.messages, "create_opportunities")).toBe(true);
+      // Agent must have called discover_opportunities with partyUserIds (introduction flow)
+      expect(hasToolCall(result.messages, "discover_opportunities")).toBe(true);
       const oppArgs = getToolCallArgs(
         result.messages,
-        "create_opportunities",
+        "discover_opportunities",
       );
       // partyUserIds or introTargetUserId should be present — this is an introduction, not a discovery
       const isIntroduction =

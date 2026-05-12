@@ -28,13 +28,13 @@ describe("extractRecentToolCalls", () => {
       new AIMessage({
         content: "",
         tool_calls: [
-          { id: "tc1", name: "create_opportunities", args: { searchQuery: "mentor" }, type: "tool_call" },
+          { id: "tc1", name: "discover_opportunities", args: { searchQuery: "mentor" }, type: "tool_call" },
         ],
       }),
-      new ToolMessage({ tool_call_id: "tc1", content: "results...", name: "create_opportunities" }),
+      new ToolMessage({ tool_call_id: "tc1", content: "results...", name: "discover_opportunities" }),
     ];
     const result = extractRecentToolCalls(messages);
-    expect(result).toEqual([{ name: "create_opportunities", args: { searchQuery: "mentor" } }]);
+    expect(result).toEqual([{ name: "discover_opportunities", args: { searchQuery: "mentor" } }]);
   });
 
   test("collects tool calls from ALL AI messages since last HumanMessage", () => {
@@ -50,14 +50,14 @@ describe("extractRecentToolCalls", () => {
       new AIMessage({
         content: "",
         tool_calls: [
-          { id: "tc2", name: "create_opportunities", args: { searchQuery: "mentor" }, type: "tool_call" },
+          { id: "tc2", name: "discover_opportunities", args: { searchQuery: "mentor" }, type: "tool_call" },
         ],
       }),
-      new ToolMessage({ tool_call_id: "tc2", content: "results...", name: "create_opportunities" }),
+      new ToolMessage({ tool_call_id: "tc2", content: "results...", name: "discover_opportunities" }),
     ];
     const result = extractRecentToolCalls(messages);
     expect(result).toHaveLength(2);
-    expect(result.map((t) => t.name)).toEqual(["read_user_profiles", "create_opportunities"]);
+    expect(result.map((t) => t.name)).toEqual(["read_user_profiles", "discover_opportunities"]);
   });
 
   test("resets scope on new HumanMessage", () => {
@@ -137,7 +137,7 @@ describe("resolveModules", () => {
 
   test("returns empty string when isOnboarding is true (modules skipped)", () => {
     const iterCtx: IterationContext = {
-      recentTools: [{ name: "create_opportunities", args: {} }],
+      recentTools: [{ name: "discover_opportunities", args: {} }],
       currentMessage: undefined,
       ctx: mockCtx({ isOnboarding: true }),
     };
@@ -145,9 +145,9 @@ describe("resolveModules", () => {
     expect(result).toBe("");
   });
 
-  test("activates discovery module on create_opportunities trigger", () => {
+  test("activates discovery module on discover_opportunities trigger", () => {
     const iterCtx: IterationContext = {
-      recentTools: [{ name: "create_opportunities", args: { searchQuery: "mentor" } }],
+      recentTools: [{ name: "discover_opportunities", args: { searchQuery: "mentor" } }],
       ctx: mockCtx(),
     };
     const result = resolveModules(iterCtx);
@@ -159,7 +159,7 @@ describe("resolveModules", () => {
 
   test("activates introduction module (excludes discovery) when partyUserIds present", () => {
     const iterCtx: IterationContext = {
-      recentTools: [{ name: "create_opportunities", args: { partyUserIds: ["a", "b"] } }],
+      recentTools: [{ name: "discover_opportunities", args: { partyUserIds: ["a", "b"] } }],
       ctx: mockCtx(),
     };
     const result = resolveModules(iterCtx);
@@ -171,7 +171,7 @@ describe("resolveModules", () => {
 
   test("activates introduction module when introTargetUserId present", () => {
     const iterCtx: IterationContext = {
-      recentTools: [{ name: "create_opportunities", args: { introTargetUserId: "user-x" } }],
+      recentTools: [{ name: "discover_opportunities", args: { introTargetUserId: "user-x" } }],
       ctx: mockCtx(),
     };
     const result = resolveModules(iterCtx);
@@ -277,7 +277,7 @@ describe("resolveModules", () => {
   test("multiple modules can activate simultaneously", () => {
     const iterCtx: IterationContext = {
       recentTools: [
-        { name: "create_opportunities", args: { searchQuery: "AI" } },
+        { name: "discover_opportunities", args: { searchQuery: "AI" } },
         { name: "read_user_profiles", args: { query: "Bob" } },
       ],
       ctx: mockCtx(),
@@ -499,7 +499,7 @@ describe("buildSystemContent snapshot identity", () => {
     // so use discovery-style args to get discovery + skip introduction)
     const iterCtx: IterationContext = {
       recentTools: [
-        { name: "create_opportunities", args: { searchQuery: "AI" } }, // discovery
+        { name: "discover_opportunities", args: { searchQuery: "AI" } }, // discovery
         { name: "update_opportunity", args: {} },
         { name: "create_intent", args: {} },                          // intent-creation
         { name: "update_intent", args: {} },                          // intent-management
@@ -519,7 +519,7 @@ describe("buildSystemContent snapshot identity", () => {
   test("with iterCtx containing discovery tools, output includes discovery patterns", () => {
     const ctx = makeCtx();
     const iterCtx: IterationContext = {
-      recentTools: [{ name: "create_opportunities", args: { searchQuery: "AI" } }],
+      recentTools: [{ name: "discover_opportunities", args: { searchQuery: "AI" } }],
       ctx,
     };
     const output = buildSystemContent(ctx, iterCtx);
