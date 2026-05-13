@@ -84,7 +84,7 @@ export async function createChatTools(
   }) {
     return tool(
       async (query: z.infer<T>) => {
-        logger.verbose(`Tool: ${opts.name}`, {
+        logger.info(`Tool: ${opts.name}`, {
           context: { userId: resolvedContext.userId, networkId: resolvedContext.networkId },
           query,
         });

@@ -112,6 +112,13 @@ export async function attachActionableLinks(
     viewerRole: card.viewerRole,
     viewerApproved: opts.viewerApproved,
   });
+  logger.info("Opportunity actionability decision", {
+    opportunityId: card.opportunityId,
+    status: card.status,
+    viewerRole: card.viewerRole,
+    viewerApproved: opts.viewerApproved,
+    kind: kind ?? "none",
+  });
   if (kind === null) return;
 
   try {
