@@ -21,7 +21,7 @@ import {
   type ToolDeps,
   resolveChatContext,
 } from "./tool.helpers.js";
-import { error } from "./tool.helpers.js";
+import { error, redactSensitiveFields } from "./tool.helpers.js";
 import { createProfileTools } from "../../profile/profile.tools.js";
 import { createIntentTools } from "../../intent/intent.tools.js";
 import { createNetworkTools } from "../../network/network.tools.js";
@@ -86,7 +86,7 @@ export async function createChatTools(
       async (query: z.infer<T>) => {
         logger.info(`Tool: ${opts.name}`, {
           context: { userId: resolvedContext.userId, networkId: resolvedContext.networkId },
-          query,
+          query: redactSensitiveFields(query),
         });
         try {
           return await opts.handler({ context: resolvedContext, query });
