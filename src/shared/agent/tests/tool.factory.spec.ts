@@ -2041,9 +2041,9 @@ describe("createChatTools — MCP connect-link wiring", () => {
     // The MCP output (prose, not JSON) embeds the minted URL as acceptUrl.
     expect(parsed.data.message).toContain(`acceptUrl: ${FAKE_URL}`);
 
-    // profileUrl falls back to ${frontendUrl}/u/<id> when the counterpart has
-    // no Telegram handle. Catches frontendUrl-forwarding regressions.
-    expect(parsed.data.message).toContain(`profileUrl: ${FRONTEND_URL}/u/${COUNTERPART_ID}`);
+    // profileUrl is always ${frontendUrl}/u/<id>?link_preview=false (IND-289).
+    // Catches frontendUrl-forwarding regressions.
+    expect(parsed.data.message).toContain(`profileUrl: ${FRONTEND_URL}/u/${COUNTERPART_ID}?link_preview=false`);
   });
 
   test("skips minting silently when deps.mintConnectLink is not provided", async () => {

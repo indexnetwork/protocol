@@ -13,7 +13,6 @@ import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import type { Opportunity, OpportunityStatus } from "../shared/interfaces/database.interface.js";
 import type { ConnectLinkKind } from "../shared/interfaces/connect-link.interface.js";
 import { selectByComposition } from "./opportunity.utils.js";
-import { normalizeTelegramHandle } from "../shared/utils/telegram-handle.js";
 
 const logger = protocolLogger("ChatTools:Opportunity");
 
@@ -59,35 +58,27 @@ export function resolveActionableLinkKind(input: {
 }
 
 /**
- * Build the agent-facing profile link for a counterpart. Telegram DM if a
- * public handle is on file, otherwise the web profile URL. Returns `undefined`
- * only if no fallback is possible (no Telegram AND no frontendUrl configured).
+ * Build the agent-facing profile link for a counterpart — always the Index web
+ * profile URL with `?link_preview=false`. Returns `undefined` only if
+ * `frontendUrl` is not configured.
  *
- * Telegram handles are validated via `normalizeTelegramHandle` — values that
- * look like URLs (e.g. `"t.me/alice?evil=1"`), contain special characters, or
- * are shorter than 5 chars are treated as invalid and fall through to the web
- * profile URL rather than producing a malformed `t.me` link.
+ * The `?link_preview=false` hint is honored by chat-gateway runtimes (e.g.
+ * OpenClaw's Telegram delivery) that strip link previews when present in the
+ * URL; consistent placement matters more than Telegram's own handling.
  *
  * Trailing slashes on frontendUrl are stripped before concatenation.
  */
 export function buildProfileUrl(
-  counterpartUser:
+  _counterpartUser:
     | { socials?: Array<{ label?: string | null; value?: string | null }> | null }
     | null
     | undefined,
   counterpartUserId: string,
   frontendUrl: string | undefined,
 ): string | undefined {
-  const telegramSocial = counterpartUser?.socials?.find(
-    (s) => s.label?.toLowerCase() === "telegram",
-  );
-  const telegramHandle = normalizeTelegramHandle(telegramSocial?.value);
-  if (telegramHandle) return `https://t.me/${telegramHandle}`;
-  if (frontendUrl) {
-    const base = frontendUrl.replace(/\/+$/, "");
-    return `${base}/u/${counterpartUserId}?link_preview=false`;
-  }
-  return undefined;
+  if (!frontendUrl) return undefined;
+  const base = frontendUrl.replace(/\/+$/, "");
+  return `${base}/u/${counterpartUserId}?link_preview=false`;
 }
 
 /**
