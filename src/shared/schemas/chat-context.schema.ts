@@ -5,15 +5,19 @@
  */
 import { z } from "zod";
 
+/** Per-entry character cap. Mirrors the summarizer prompt's "≤140 chars" rule. */
+const ENTRY_MAX_CHARS = 140;
+const entry = z.string().max(ENTRY_MAX_CHARS);
+
 export const ChatContextDigestSchema = z.object({
   /** Facts the user volunteered (stage, location, role, timing, scope, …). */
-  statedFacts: z.array(z.string()).max(20),
+  statedFacts: z.array(entry).max(20),
   /** Questions the assistant asked that the user has not yet answered. */
-  openQuestions: z.array(z.string()).max(10),
+  openQuestions: z.array(entry).max(10),
   /** User pushback / negative signals on prior cards. */
-  rejectionReasons: z.array(z.string()).max(10),
+  rejectionReasons: z.array(entry).max(10),
   /** Facts the assistant has already surfaced from prior negotiation turns. */
-  surfacedFindings: z.array(z.string()).max(20),
+  surfacedFindings: z.array(entry).max(20),
 });
 
 export type ChatContextDigest = z.infer<typeof ChatContextDigestSchema>;

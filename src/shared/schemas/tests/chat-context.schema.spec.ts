@@ -74,6 +74,29 @@ describe("ChatContextDigestSchema", () => {
     ).toThrow();
   });
 
+  it("rejects entries longer than 140 chars", () => {
+    const tooLong = "x".repeat(141);
+    expect(() =>
+      ChatContextDigestSchema.parse({
+        statedFacts: [tooLong],
+        openQuestions: [],
+        rejectionReasons: [],
+        surfacedFindings: [],
+      }),
+    ).toThrow();
+  });
+
+  it("accepts entries at exactly 140 chars", () => {
+    const atLimit = "x".repeat(140);
+    const parsed = ChatContextDigestSchema.parse({
+      statedFacts: [atLimit],
+      openQuestions: [],
+      rejectionReasons: [],
+      surfacedFindings: [],
+    });
+    expect(parsed.statedFacts[0]).toHaveLength(140);
+  });
+
   it("rejects missing fields", () => {
     expect(() =>
       ChatContextDigestSchema.parse({
