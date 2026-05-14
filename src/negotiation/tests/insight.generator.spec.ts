@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config({ path: '.env.test' });
 
 import { describe, it, expect } from "bun:test";
-import { NegotiationInsightsGenerator } from "../negotiation.insights.generator.js";
+import { NegotiationInsightsGenerator } from "../insight.generator.js";
 import { assertLLM } from "../../shared/agent/tests/llm-assert.js";
 
 describe('NegotiationInsightsGenerator', () => {
