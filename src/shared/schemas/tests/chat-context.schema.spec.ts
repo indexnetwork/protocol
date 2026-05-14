@@ -50,6 +50,30 @@ describe("ChatContextDigestSchema", () => {
     ).toThrow();
   });
 
+  it("rejects rejectionReasons longer than 10 entries", () => {
+    const oversized = Array.from({ length: 11 }, (_, i) => `r-${i}`);
+    expect(() =>
+      ChatContextDigestSchema.parse({
+        statedFacts: [],
+        openQuestions: [],
+        rejectionReasons: oversized,
+        surfacedFindings: [],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects surfacedFindings longer than 20 entries", () => {
+    const oversized = Array.from({ length: 21 }, (_, i) => `f-${i}`);
+    expect(() =>
+      ChatContextDigestSchema.parse({
+        statedFacts: [],
+        openQuestions: [],
+        rejectionReasons: [],
+        surfacedFindings: oversized,
+      }),
+    ).toThrow();
+  });
+
   it("rejects missing fields", () => {
     expect(() =>
       ChatContextDigestSchema.parse({
