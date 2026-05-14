@@ -20,6 +20,7 @@ export { ChatContextAccessError, resolveChatContext } from "./shared/agent/tool.
 export type * from "./shared/interfaces/auth.interface.js";
 export type * from "./shared/interfaces/cache.interface.js";
 export type * from "./shared/interfaces/chat-session.interface.js";
+export type { ChatSummaryReader } from "./shared/interfaces/chat-summary.interface.js";
 export type * from "./shared/interfaces/contact.interface.js";
 export type * from "./shared/interfaces/database.interface.js";
 export type * from "./shared/interfaces/embedder.interface.js";
