@@ -44,6 +44,13 @@ export type {
 } from './shared/interfaces/agent.interface.js';
 export { SYSTEM_AGENT_IDS } from './shared/interfaces/agent.interface.js';
 
+// ─── Shared schemas ───────────────────────────────────────────────────────────
+
+export {
+  ChatContextDigestSchema,
+  type ChatContextDigest,
+} from "./shared/schemas/chat-context.schema.js";
+
 // ─── Graph factories ──────────────────────────────────────────────────────────
 
 export { ChatGraphFactory } from "./chat/chat.graph.js";
