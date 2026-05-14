@@ -73,6 +73,8 @@ export { ProfileGraphFactory } from "./profile/profile.graph.js";
 // ─── Agents ───────────────────────────────────────────────────────────────────
 
 export { ChatTitleGenerator } from "./chat/chat.title.generator.js";
+export { ChatSummarizer } from "./chat/chat.summarizer.js";
+export type { ChatSummarizerInput, ChatSummarizerMessage } from "./chat/chat.summarizer.js";
 export { HydeGenerator } from "./shared/hyde/hyde.generator.js";
 export { SuggestionGenerator } from "./chat/chat.suggester.js";
 export type { SuggestionGeneratorInput } from "./chat/chat.suggester.js";
