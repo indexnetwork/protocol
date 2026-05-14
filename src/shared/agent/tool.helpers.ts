@@ -17,6 +17,7 @@ import type { ContactServiceAdapter } from "../interfaces/contact.interface.js";
 import type { ProfileEnricher } from "../interfaces/enrichment.interface.js";
 import type { IntentGraphQueue } from "../interfaces/queue.interface.js";
 import type { ChatSessionReader } from "../interfaces/chat-session.interface.js";
+import type { ChatSummaryReader } from "../interfaces/chat-summary.interface.js";
 import type { Embedder } from "../interfaces/embedder.interface.js";
 import type { AgentDatabase } from "../interfaces/agent.interface.js";
 import type { NegotiationTimeoutQueue } from "../interfaces/negotiation-events.interface.js";
@@ -111,6 +112,8 @@ export interface ToolContext {
   contactService: ContactServiceAdapter;
   /** Chat session reader for loading conversation history. */
   chatSession: ChatSessionReader;
+  /** Read-through chat-session digest. Optional; consumers fall back to undefined `chatContext`. */
+  chatSummary?: ChatSummaryReader;
   /** Profile enrichment from external data sources. */
   enricher: ProfileEnricher;
   /** Database adapter for negotiation/conversation operations. */
