@@ -11,7 +11,8 @@
 
 import type { Opportunity, ChatGraphCompositeDatabase, UserRecord } from "../shared/interfaces/database.interface.js";
 import type { Cache } from "../shared/interfaces/cache.interface.js";
-import type { OpportunityGraphOptions, CandidateMatch } from "./opportunity.state.js";
+import type { OpportunityGraphOptions, CandidateMatch, SourceProfileData } from "./opportunity.state.js";
+import type { DiscoveryNegotiation, DiscoverySummary } from "./question.prompt.js";
 import {
   OpportunityPresenter,
   gatherPresenterContext,
@@ -883,9 +884,9 @@ export async function runDiscoverFromQuery(
 // ─────────────────────────────────────────────────────────────────────────────
 
 type GraphResultLike = {
-  sourceProfile?: import("./opportunity.state.js").SourceProfileData | null;
-  discoveryNegotiations?: import("./question.prompt.js").DiscoveryNegotiation[];
-  discoverySummary?: import("./question.prompt.js").DiscoverySummary | null;
+  sourceProfile?: SourceProfileData | null;
+  discoveryNegotiations?: DiscoveryNegotiation[];
+  discoverySummary?: DiscoverySummary | null;
 };
 
 interface MaybeBuildQuestionsInput {
@@ -930,7 +931,8 @@ async function maybeBuildQuestions(args: MaybeBuildQuestionsInput): Promise<{
     emitWide(createChatSummarizerEndEvent("", {
       newMessageCount: chatContext ? (chatContext.statedFacts.length + chatContext.openQuestions.length) : 0,
       model: "deferred",
-      fromCached: chatContext == null,
+      // `getDigest` does not currently expose a cache-hit signal; report false.
+      fromCached: false,
       durationMs: Date.now() - summarizerStart,
     }) as unknown as Record<string, unknown>);
   }
