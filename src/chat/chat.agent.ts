@@ -133,9 +133,9 @@ export type AgentStreamEvent =
     }
   | { type: "decision_questions"; questions: Question[] }
   | { type: "chat_summarizer_start"; payload: { sessionId: string } }
-  | { type: "chat_summarizer_end"; payload: { newMessageCount: number; model: string; fromCached: boolean; durationMs: number } }
+  | { type: "chat_summarizer_end"; payload: { durationMs: number } }
   | { type: "question_generator_start"; payload: { inputMode: "transcripts" | "insights"; negotiationCount: number; hasChatContext: boolean; truncated?: { originalCount: number; keptCount: number } } }
-  | { type: "question_generator_end"; payload: { finalCount: number; droppedCount: number; strategies: QuestionStrategy[]; durationMs: number; inputMode: "transcripts" | "insights" } };
+  | { type: "question_generator_end"; payload: { finalCount: number; strategies: QuestionStrategy[]; durationMs: number; inputMode: "transcripts" | "insights" } };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION

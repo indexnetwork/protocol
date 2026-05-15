@@ -28,7 +28,7 @@ describe("decision-question stream types", () => {
     expect(start.type).toBe("chat_summarizer_start");
     expect(start.sessionId).toBe("s-1");
     expect(start.payload).toEqual({ sessionId: "c-1" });
-    const end = createChatSummarizerEndEvent("s-1", { newMessageCount: 4, model: "x", fromCached: false, durationMs: 12 });
+    const end = createChatSummarizerEndEvent("s-1", { durationMs: 12 });
     expect(end.type).toBe("chat_summarizer_end");
     expect(end.payload.durationMs).toBe(12);
   });
@@ -37,7 +37,7 @@ describe("decision-question stream types", () => {
     const start = createQuestionGeneratorStartEvent("s-1", { inputMode: "transcripts", negotiationCount: 3, hasChatContext: true });
     expect(start.type).toBe("question_generator_start");
     expect(start.payload.inputMode).toBe("transcripts");
-    const end = createQuestionGeneratorEndEvent("s-1", { finalCount: 2, droppedCount: 1, strategies, durationMs: 250, inputMode: "transcripts" });
+    const end = createQuestionGeneratorEndEvent("s-1", { finalCount: 2, strategies, durationMs: 250, inputMode: "transcripts" });
     expect(end.type).toBe("question_generator_end");
     expect(end.payload.finalCount).toBe(2);
   });
@@ -53,7 +53,6 @@ describe("decision-question stream types", () => {
     const dq: DebugMetaDiscoveryQuestions = {
       inputMode: "transcripts",
       finalCount: 1,
-      droppedCount: 0,
       strategies,
       durationMs: 100,
     };

@@ -209,7 +209,6 @@ export interface DiscoverResult {
   discoveryQuestionsDebug?: {
     inputMode: "transcripts" | "insights";
     finalCount: number;
-    droppedCount: number;
     strategies: QuestionStrategy[];
     durationMs: number;
   };
@@ -940,10 +939,6 @@ async function maybeBuildQuestions(args: MaybeBuildQuestionsInput): Promise<{
       chatContext = undefined;
     }
     emitWide(createChatSummarizerEndEvent("", {
-      newMessageCount: chatContext ? (chatContext.statedFacts.length + chatContext.openQuestions.length) : 0,
-      model: "deferred",
-      // `getDigest` does not currently expose a cache-hit signal; report false.
-      fromCached: false,
       durationMs: Date.now() - summarizerStart,
     }) as unknown as Record<string, unknown>);
   }
@@ -986,11 +981,9 @@ async function maybeBuildQuestions(args: MaybeBuildQuestionsInput): Promise<{
 
   const finalCount = genResult?.questions?.length ?? 0;
   const strategies: QuestionStrategy[] = genResult?.strategies ?? [];
-  const droppedCount = 0;
 
   emitWide(createQuestionGeneratorEndEvent("", {
     finalCount,
-    droppedCount,
     strategies,
     durationMs,
     inputMode,
@@ -1001,7 +994,6 @@ async function maybeBuildQuestions(args: MaybeBuildQuestionsInput): Promise<{
     debug: {
       inputMode,
       finalCount,
-      droppedCount,
       strategies,
       durationMs,
     },
