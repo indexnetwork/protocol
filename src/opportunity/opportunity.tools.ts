@@ -884,6 +884,9 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         ...(context.isMcp ? { negotiateTimeoutMs: 20_000 } : {}),
         ...(context.sessionId ? { chatSessionId: context.sessionId } : {}),
         ...(runDiscoveryOrchestrator && { trigger: 'orchestrator' as const }),
+        ...(deps.chatSummary && { chatSummary: deps.chatSummary }),
+        ...(deps.questionGenerator && { questionGenerator: deps.questionGenerator }),
+        enableQuestions: process.env.ENABLE_DISCOVERY_QUESTIONS === "true",
       });
       const _discoverGraphMs = Date.now() - _discoverGraphStart;
       _discoverTraceEmitter?.({ type: "graph_end", name: "opportunity", durationMs: _discoverGraphMs });
@@ -1131,6 +1134,8 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
               suggestedIntentDescription: searchQuery,
             }
           : {}),
+        ...(result.questions && result.questions.length > 0 ? { questions: result.questions } : {}),
+        ...(result.discoveryQuestionsDebug ? { _discoveryQuestionsDebug: result.discoveryQuestionsDebug } : {}),
         _graphTimings: _allGraphTimings,
       });
     },

@@ -355,6 +355,10 @@ export interface ToolDeps {
   negotiationDatabase: NegotiationDatabase;
   /** Chat session reader for exposing the caller's past conversations as MCP tools. */
   chatSession?: ChatSessionReader;
+  /** Read-through chat-session digest. Optional; consumers fall back to undefined `chatContext`. */
+  chatSummary?: ChatSummaryReader;
+  /** Decision-question generator. Optional; consumers fall back to no `questions`. */
+  questionGenerator?: QuestionGeneratorReader;
   /** Manages negotiation timeout jobs (optional — enables AI fallback on external agent timeout). */
   negotiationTimeoutQueue?: NegotiationTimeoutQueue;
   /** Agent registry database adapter (optional — absent when host does not support agents). */
