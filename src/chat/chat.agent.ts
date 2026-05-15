@@ -20,7 +20,8 @@ import {
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import { createModel } from "../shared/agent/model.config.js";
 import { sanitizeForDebugMeta } from "../shared/observability/debug-meta.sanitizer.js";
-import type { DebugMetaToolCall, DebugMetaLlm, DebugMetaOrchestratorNegotiations } from "./chat-streaming.types.js";
+import type { DebugMetaToolCall, DebugMetaLlm, DebugMetaOrchestratorNegotiations, DebugMetaDiscoveryQuestions } from "./chat-streaming.types.js";
+import type { Question } from "../shared/schemas/question.schema.js";
 import type { Opportunity } from "../shared/interfaces/database.interface.js";
 import { Timed } from "../shared/observability/performance.js";
 import { requestContext } from "../shared/observability/request-context.js";
@@ -130,7 +131,7 @@ export type AgentStreamEvent =
       reasoning?: string;
       agreedRoles?: { ownUser?: string; otherUser?: string };
     }
-  | { type: "decision_questions"; questions: import("../shared/schemas/question.schema.js").Question[] };
+  | { type: "decision_questions"; questions: Question[] };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -607,8 +608,8 @@ export class ChatAgent {
     summary: string;
     debugSteps?: Array<{ step: string; detail?: string; data?: Record<string, unknown> }>;
     graphTimings?: Array<{ name: string; durationMs: number; agents: Array<{ name: string; durationMs: number }> }>;
-    decisionQuestions?: import("../shared/schemas/question.schema.js").Question[];
-    discoveryQuestionsDebug?: import("./chat-streaming.types.js").DebugMetaDiscoveryQuestions;
+    decisionQuestions?: Question[];
+    discoveryQuestionsDebug?: DebugMetaDiscoveryQuestions;
   }> {
     let normalized = resultStr;
 
@@ -627,8 +628,8 @@ export class ChatAgent {
     let summary = "Done";
     let debugSteps: DebugStep[] | undefined;
     let graphTimings: GraphTiming[] | undefined;
-    let decisionQuestions: import("../shared/schemas/question.schema.js").Question[] | undefined;
-    let discoveryQuestionsDebug: import("./chat-streaming.types.js").DebugMetaDiscoveryQuestions | undefined;
+    let decisionQuestions: Question[] | undefined;
+    let discoveryQuestionsDebug: DebugMetaDiscoveryQuestions | undefined;
 
     try {
       const parsed = JSON.parse(normalized) as {
@@ -675,10 +676,10 @@ export class ChatAgent {
       const rawQuestionDebug = (payload as { _discoveryQuestionsDebug?: unknown })._discoveryQuestionsDebug
         ?? (parsed as { _discoveryQuestionsDebug?: unknown })._discoveryQuestionsDebug;
       if (Array.isArray(rawQuestions)) {
-        decisionQuestions = rawQuestions as import("../shared/schemas/question.schema.js").Question[];
+        decisionQuestions = rawQuestions as Question[];
       }
       if (rawQuestionDebug && typeof rawQuestionDebug === "object") {
-        discoveryQuestionsDebug = rawQuestionDebug as import("./chat-streaming.types.js").DebugMetaDiscoveryQuestions;
+        discoveryQuestionsDebug = rawQuestionDebug as DebugMetaDiscoveryQuestions;
       }
       // Strip both from the LLM-facing string the same way _graphTimings is stripped.
       if (decisionQuestions !== undefined || discoveryQuestionsDebug !== undefined) {
@@ -790,13 +791,13 @@ export class ChatAgent {
     responseText: string;
     messages: BaseMessage[];
     iterationCount: number;
-    debugMeta: { graph: string; iterations: number; tools: DebugMetaToolCall[]; llm: DebugMetaLlm; orchestratorNegotiations?: DebugMetaOrchestratorNegotiations; discoveryQuestions?: import("./chat-streaming.types.js").DebugMetaDiscoveryQuestions };
+    debugMeta: { graph: string; iterations: number; tools: DebugMetaToolCall[]; llm: DebugMetaLlm; orchestratorNegotiations?: DebugMetaOrchestratorNegotiations; discoveryQuestions?: DebugMetaDiscoveryQuestions };
   }> {
     const llm: DebugMetaLlm = { calls: 0, totalDurationMs: 0, resets: [], hallucinations: [] };
     const orchestratorNegotiationIds = new Set<string>();
     let lastLlmStart = 0;
-    let latestDecisionQuestions: import("../shared/schemas/question.schema.js").Question[] | undefined;
-    let latestDiscoveryQuestionsDebug: import("./chat-streaming.types.js").DebugMetaDiscoveryQuestions | undefined;
+    let latestDecisionQuestions: Question[] | undefined;
+    let latestDiscoveryQuestionsDebug: DebugMetaDiscoveryQuestions | undefined;
 
     const emit = (event: AgentStreamEvent) => {
       if (event.type === "llm_start") {
