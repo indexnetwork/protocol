@@ -1220,6 +1220,30 @@ export interface Database {
   ): Promise<boolean>;
 
   /**
+   * Find opportunities whose actors contain all the given user IDs.
+   *
+   * Replaces the legacy trio (getOpportunityBetweenActors, findOverlappingOpportunities,
+   * getAcceptedOpportunitiesBetweenActors). The `includeIntroducers` flag bridges the
+   * SQL-level difference between the legacy readers: when false (default), actor matching
+   * is restricted to non-introducer roles (was findOverlappingOpportunities); when true,
+   * any role in `actors` counts (was actorPairCondition behavior).
+   *
+   * Index-agnostic. Ordered by updatedAt desc.
+   *
+   * @param actorIds - User IDs that must all appear in each returned opportunity's actors
+   * @param options - includeIntroducers (default false), statuses (include filter), excludeStatuses (exclude filter)
+   * @returns Matching opportunities, newest first
+   */
+  findOpportunitiesByActors(
+    actorIds: string[],
+    options?: {
+      includeIntroducers?: boolean;
+      statuses?: OpportunityStatus[];
+      excludeStatuses?: OpportunityStatus[];
+    }
+  ): Promise<Opportunity[]>;
+
+  /**
    * Return one non-expired opportunity between the given actors in the index, if any.
    * Used to avoid creating a duplicate and to surface existing opportunity id/status.
    *
@@ -1664,6 +1688,12 @@ export interface SystemDatabase {
   /** Check if opportunity exists between actors in an index. */
   opportunityExistsBetweenActors(actorIds: string[], networkId: string): Promise<boolean>;
 
+  /** Find opportunities by actor IDs with optional include/exclude status filters. */
+  findOpportunitiesByActors(
+    actorIds: string[],
+    options?: { includeIntroducers?: boolean; statuses?: OpportunityStatus[]; excludeStatuses?: OpportunityStatus[] }
+  ): Promise<Opportunity[]>;
+
   /** Return one opportunity between actors in the index (id + status), or null. */
   getOpportunityBetweenActors(actorIds: string[], networkId: string): Promise<{ id: Id<'opportunities'>; status: OpportunityStatus } | null>;
 
@@ -1763,6 +1793,7 @@ export type ChatGraphCompositeDatabase = Pick<
   | 'getOpportunity'
   | 'getOpportunitiesByIds'
   | 'opportunityExistsBetweenActors'
+  | 'findOpportunitiesByActors'
   | 'getOpportunityBetweenActors'
   | 'findOverlappingOpportunities'
   | 'getAcceptedOpportunitiesBetweenActors'
@@ -1826,6 +1857,7 @@ export type OpportunityGraphDatabase = Pick<
   | 'getProfile'
   | 'createOpportunity'
   | 'opportunityExistsBetweenActors'
+  | 'findOpportunitiesByActors'
   | 'getOpportunityBetweenActors'
   | 'findOverlappingOpportunities'
   | 'getAcceptedOpportunitiesBetweenActors'
@@ -2018,6 +2050,7 @@ export type OpportunityControllerDatabase = Pick<
   | 'createOpportunity'
   | 'createOpportunityAndExpireIds'
   | 'opportunityExistsBetweenActors'
+  | 'findOpportunitiesByActors'
   | 'findOverlappingOpportunities'
   | 'getAcceptedOpportunitiesBetweenActors'
   | 'acceptSiblingOpportunities'
