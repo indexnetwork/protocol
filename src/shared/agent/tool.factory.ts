@@ -173,6 +173,8 @@ export async function createChatTools(
     mintConnectLink: deps.mintConnectLink,
     frontendUrl: deps.frontendUrl,
     apiBaseUrl: deps.apiBaseUrl,
+    ...(deps.chatSummary && { chatSummary: deps.chatSummary }),
+    ...(deps.questionGenerator && { questionGenerator: deps.questionGenerator }),
     graphs: {
       profile: profileGraph,
       intent: intentGraph,
