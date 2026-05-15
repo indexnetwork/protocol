@@ -8,7 +8,7 @@ import type { NegotiationGraphLike } from "../negotiation.state.js";
 
 const sourceUser = {
   id: "source-1",
-  intentDescription: "looking for design partner",
+  intents: [],
   profile: { name: "Source", bio: "founder", interests: [] },
 };
 
@@ -19,7 +19,7 @@ const candidate: NegotiationCandidate = {
   networkId: "net-1",
   candidateUser: {
     id: "cand-1",
-    intentDescription: "looking for technical co-founder",
+    intents: [],
     profile: { name: "Cand", bio: "designer", interests: [] },
   },
 };
