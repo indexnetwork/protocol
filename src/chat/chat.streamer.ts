@@ -3,6 +3,7 @@ import { BaseCheckpointSaver } from "@langchain/langgraph";
 import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import type {
   ChatStreamEvent,
+  DebugMetaDiscoveryQuestions,
   DebugMetaToolCall,
   DebugMetaLlm,
   DebugMetaOrchestratorNegotiations,
@@ -11,6 +12,7 @@ import {
   createAgentEndEvent,
   createAgentStartEvent,
   createDebugMetaEvent,
+  createDecisionQuestionsEvent,
   createErrorEvent,
   createGraphEndEvent,
   createGraphStartEvent,
@@ -253,6 +255,10 @@ export class ChatStreamer {
           if (event.type === "agent_end") {
             yield createAgentEndEvent(sessionId, event.name, event.durationMs, event.summary);
           }
+
+          if (event.type === "decision_questions") {
+            yield createDecisionQuestionsEvent(sessionId, { questions: event.questions });
+          }
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -282,7 +288,7 @@ export class ChatStreamer {
           yield createResponseCompleteEvent(sessionId, responseText);
 
           const debugMeta = agentOutput?.debugMeta as
-            | { graph: string; iterations: number; tools?: DebugMetaToolCall[]; llm?: DebugMetaLlm; orchestratorNegotiations?: DebugMetaOrchestratorNegotiations }
+            | { graph: string; iterations: number; tools?: DebugMetaToolCall[]; llm?: DebugMetaLlm; orchestratorNegotiations?: DebugMetaOrchestratorNegotiations; discoveryQuestions?: DebugMetaDiscoveryQuestions }
             | undefined;
           if (
             debugMeta?.graph != null &&
@@ -296,6 +302,7 @@ export class ChatStreamer {
               Array.isArray(debugMeta.tools) ? debugMeta.tools : [],
               debugMeta.llm ?? llmFallback,
               debugMeta.orchestratorNegotiations,
+              debugMeta.discoveryQuestions,
             );
           }
 

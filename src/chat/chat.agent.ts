@@ -129,7 +129,8 @@ export type AgentStreamEvent =
       turnCount: number;
       reasoning?: string;
       agreedRoles?: { ownUser?: string; otherUser?: string };
-    };
+    }
+  | { type: "decision_questions"; questions: import("../shared/schemas/question.schema.js").Question[] };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -606,6 +607,8 @@ export class ChatAgent {
     summary: string;
     debugSteps?: Array<{ step: string; detail?: string; data?: Record<string, unknown> }>;
     graphTimings?: Array<{ name: string; durationMs: number; agents: Array<{ name: string; durationMs: number }> }>;
+    decisionQuestions?: import("../shared/schemas/question.schema.js").Question[];
+    discoveryQuestionsDebug?: import("./chat-streaming.types.js").DebugMetaDiscoveryQuestions;
   }> {
     let normalized = resultStr;
 
@@ -624,6 +627,8 @@ export class ChatAgent {
     let summary = "Done";
     let debugSteps: DebugStep[] | undefined;
     let graphTimings: GraphTiming[] | undefined;
+    let decisionQuestions: import("../shared/schemas/question.schema.js").Question[] | undefined;
+    let discoveryQuestionsDebug: import("./chat-streaming.types.js").DebugMetaDiscoveryQuestions | undefined;
 
     try {
       const parsed = JSON.parse(normalized) as {
@@ -665,11 +670,43 @@ export class ChatAgent {
           normalized = JSON.stringify(cleanedResult);
         } catch { /* keep original if can't clean */ }
       }
+
+      const rawQuestions = (payload as { questions?: unknown }).questions ?? (parsed as { questions?: unknown }).questions;
+      const rawQuestionDebug = (payload as { _discoveryQuestionsDebug?: unknown })._discoveryQuestionsDebug
+        ?? (parsed as { _discoveryQuestionsDebug?: unknown })._discoveryQuestionsDebug;
+      if (Array.isArray(rawQuestions)) {
+        decisionQuestions = rawQuestions as import("../shared/schemas/question.schema.js").Question[];
+      }
+      if (rawQuestionDebug && typeof rawQuestionDebug === "object") {
+        discoveryQuestionsDebug = rawQuestionDebug as import("./chat-streaming.types.js").DebugMetaDiscoveryQuestions;
+      }
+      // Strip both from the LLM-facing string the same way _graphTimings is stripped.
+      if (decisionQuestions !== undefined || discoveryQuestionsDebug !== undefined) {
+        try {
+          const cleaned = JSON.parse(normalized) as Record<string, unknown>;
+          const stripFrom = (obj: Record<string, unknown>) => {
+            delete obj.questions;
+            delete obj._discoveryQuestionsDebug;
+          };
+          stripFrom(cleaned);
+          if (cleaned.data && typeof cleaned.data === "object") {
+            stripFrom(cleaned.data as Record<string, unknown>);
+          }
+          normalized = JSON.stringify(cleaned);
+        } catch { /* keep original */ }
+      }
     } catch {
       /* not JSON, keep default */
     }
 
-    return { resultStr: normalized, summary, debugSteps, graphTimings };
+    return {
+      resultStr: normalized,
+      summary,
+      debugSteps,
+      graphTimings,
+      ...(decisionQuestions !== undefined ? { decisionQuestions } : {}),
+      ...(discoveryQuestionsDebug !== undefined ? { discoveryQuestionsDebug } : {}),
+    };
   }
 
   /**
@@ -753,11 +790,13 @@ export class ChatAgent {
     responseText: string;
     messages: BaseMessage[];
     iterationCount: number;
-    debugMeta: { graph: string; iterations: number; tools: DebugMetaToolCall[]; llm: DebugMetaLlm; orchestratorNegotiations?: DebugMetaOrchestratorNegotiations };
+    debugMeta: { graph: string; iterations: number; tools: DebugMetaToolCall[]; llm: DebugMetaLlm; orchestratorNegotiations?: DebugMetaOrchestratorNegotiations; discoveryQuestions?: import("./chat-streaming.types.js").DebugMetaDiscoveryQuestions };
   }> {
     const llm: DebugMetaLlm = { calls: 0, totalDurationMs: 0, resets: [], hallucinations: [] };
     const orchestratorNegotiationIds = new Set<string>();
     let lastLlmStart = 0;
+    let latestDecisionQuestions: import("../shared/schemas/question.schema.js").Question[] | undefined;
+    let latestDiscoveryQuestionsDebug: import("./chat-streaming.types.js").DebugMetaDiscoveryQuestions | undefined;
 
     const emit = (event: AgentStreamEvent) => {
       if (event.type === "llm_start") {
@@ -932,8 +971,14 @@ export class ChatAgent {
               typeof result === "string" ? result : JSON.stringify(result);
 
             const normalized = await this.normalizeToolResult(tc.name, resultStr, tc.args);
+            if (normalized.decisionQuestions) latestDecisionQuestions = normalized.decisionQuestions;
+            if (normalized.discoveryQuestionsDebug) latestDiscoveryQuestionsDebug = normalized.discoveryQuestionsDebug;
             resultStr = normalized.resultStr;
             result = resultStr;
+
+            if (latestDecisionQuestions && latestDecisionQuestions.length > 0) {
+              emit({ type: "decision_questions", questions: latestDecisionQuestions });
+            }
 
             logger.verbose("Streaming: tool completed", {
               name: tc.name,
@@ -1186,6 +1231,7 @@ export class ChatAgent {
           ...(orchestratorNegotiationIds.size > 0 && {
             orchestratorNegotiations: { opportunityIds: [...orchestratorNegotiationIds] },
           }),
+          ...(latestDiscoveryQuestionsDebug && { discoveryQuestions: latestDiscoveryQuestionsDebug }),
         },
       };
     }
@@ -1204,6 +1250,7 @@ export class ChatAgent {
           ...(orchestratorNegotiationIds.size > 0 && {
             orchestratorNegotiations: { opportunityIds: [...orchestratorNegotiationIds] },
           }),
+          ...(latestDiscoveryQuestionsDebug && { discoveryQuestions: latestDiscoveryQuestionsDebug }),
         },
       };
     }
@@ -1247,6 +1294,7 @@ export class ChatAgent {
         ...(orchestratorNegotiationIds.size > 0 && {
           orchestratorNegotiations: { opportunityIds: [...orchestratorNegotiationIds] },
         }),
+        ...(latestDiscoveryQuestionsDebug && { discoveryQuestions: latestDiscoveryQuestionsDebug }),
       },
     };
   }
