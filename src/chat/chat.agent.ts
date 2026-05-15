@@ -801,7 +801,6 @@ export class ChatAgent {
     const llm: DebugMetaLlm = { calls: 0, totalDurationMs: 0, resets: [], hallucinations: [] };
     const orchestratorNegotiationIds = new Set<string>();
     let lastLlmStart = 0;
-    let latestDecisionQuestions: Question[] | undefined;
     let latestDiscoveryQuestionsDebug: DebugMetaDiscoveryQuestions | undefined;
 
     const emit = (event: AgentStreamEvent) => {
@@ -977,7 +976,6 @@ export class ChatAgent {
               typeof result === "string" ? result : JSON.stringify(result);
 
             const normalized = await this.normalizeToolResult(tc.name, resultStr, tc.args);
-            if (normalized.decisionQuestions) latestDecisionQuestions = normalized.decisionQuestions;
             if (normalized.discoveryQuestionsDebug) latestDiscoveryQuestionsDebug = normalized.discoveryQuestionsDebug;
             resultStr = normalized.resultStr;
             result = resultStr;
