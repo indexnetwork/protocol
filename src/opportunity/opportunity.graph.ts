@@ -68,6 +68,11 @@ import { persistOpportunities } from './opportunity.persist.js';
 import { INTRODUCER_DISCOVERY_SOURCE } from './opportunity.introducer.js';
 import { negotiateCandidates, type NegotiationCandidate, type OnNegotiationResolved } from "../negotiation/negotiation.graph.js";
 import { AMBIENT_PARK_WINDOW_MS } from "../negotiation/negotiation.tools.js";
+import {
+  buildDiscoverySummary,
+  toDiscoveryNegotiation,
+  type NegotiationResolution,
+} from "./negotiation-summary.builder.js";
 import type { NegotiationGraphLike } from "../negotiation/negotiation.state.js";
 import type { AgentDispatcher } from "../shared/interfaces/agent-dispatcher.interface.js";
 import { protocolLogger, withCallLogging } from '../shared/observability/protocol.logger.js';
@@ -1834,49 +1839,64 @@ export class OpportunityGraphFactory {
           candidateCount: candidates.length,
         });
 
-        // Orchestrator-only: per-candidate streaming hook. Each accepted
-        // negotiation flips the opp from 'pending' (negotiation finalize's
-        // default) to 'draft' (chat-only surface) and pushes an
+        // Per-candidate hook — always-on. Accumulates negotiation resolutions
+        // for discovery question generation. Additionally, for the orchestrator
+        // trigger: flips the opp from 'pending' to 'draft' and pushes an
         // `opportunity_draft_ready` event so the frontend can render it
         // inline as soon as it resolves, rather than waiting for the full
         // fan-out. Abort (e.g. user closed the chat) suppresses both the
         // status flip and the event — the in-flight negotiation finishes
         // naturally but its card never reaches the user.
-        const onCandidateResolved: OnNegotiationResolved | undefined = isOrchestrator
-          ? async ({ candidate, accepted }) => {
-              const abortSignal = requestContext.getStore()?.abortSignal;
-              if (abortSignal?.aborted) return;
-              if (!accepted || !candidate.opportunityId) return;
+        const resolutions: NegotiationResolution[] = [];
 
-              // Only emit after a successful status flip — the frontend keys
-              // cards off `opportunity.status === 'draft'`, so emitting a row
-              // with its pre-flip status would render inconsistently. If the
-              // flip fails we log and drop the event; the negotiation result
-              // is still captured in acceptedResults for the final summary.
-              const updated = await this.database
-                .updateOpportunityStatus(candidate.opportunityId, 'draft')
-                .catch((err) => {
-                  logger.warn('[Graph:Negotiate] failed to flip opp to draft; suppressing draft-ready event', {
-                    opportunityId: candidate.opportunityId,
-                    error: err,
-                  });
-                  return null;
-                });
-              if (!updated || abortSignal?.aborted) return;
+        const onCandidateResolved: OnNegotiationResolved = async ({ candidate, accepted, turns, outcome }) => {
+          resolutions.push({
+            candidateUserId: candidate.userId,
+            counterpartyHint:
+              candidate.candidateUser.profile?.bio
+              ?? (candidate.candidateUser.profile?.interests ?? []).join(", ")
+              ?? "",
+            indexContext: candidate.networkId
+              ? indexContextMap.get(candidate.networkId) ?? ""
+              : "",
+            turns,
+            outcome,
+          });
 
-              traceEmitter?.({
-                type: 'opportunity_draft_ready',
+          if (state.trigger !== 'orchestrator') return;
+          // ─── orchestrator streaming body ───
+          const abortSignal = requestContext.getStore()?.abortSignal;
+          if (abortSignal?.aborted) return;
+          if (!accepted || !candidate.opportunityId) return;
+
+          // Only emit after a successful status flip — the frontend keys
+          // cards off `opportunity.status === 'draft'`, so emitting a row
+          // with its pre-flip status would render inconsistently. If the
+          // flip fails we log and drop the event; the negotiation result
+          // is still captured in acceptedResults for the final summary.
+          const updated = await this.database
+            .updateOpportunityStatus(candidate.opportunityId, 'draft')
+            .catch((err) => {
+              logger.warn('[Graph:Negotiate] failed to flip opp to draft; suppressing draft-ready event', {
                 opportunityId: candidate.opportunityId,
-                opportunity: updated,
-                counterparty: {
-                  userId: candidate.candidateUser.id,
-                  ...(candidate.candidateUser.profile?.name
-                    ? { name: candidate.candidateUser.profile.name }
-                    : {}),
-                },
+                error: err,
               });
-            }
-          : undefined;
+              return null;
+            });
+          if (!updated || abortSignal?.aborted) return;
+
+          traceEmitter?.({
+            type: 'opportunity_draft_ready',
+            opportunityId: candidate.opportunityId,
+            opportunity: updated,
+            counterparty: {
+              userId: candidate.candidateUser.id,
+              ...(candidate.candidateUser.profile?.name
+                ? { name: candidate.candidateUser.profile.name }
+                : {}),
+            },
+          });
+        };
 
         const negotiationWork = negotiateCandidates(
           this.negotiationGraph, sourceUser, candidates,
@@ -1885,7 +1905,7 @@ export class OpportunityGraphFactory {
             indexContextOverrides: indexContextMap,
             timeoutMs,
             trigger: state.trigger === 'orchestrator' ? 'orchestrator' : 'ambient',
-            ...(onCandidateResolved && { onCandidateResolved }) },
+            onCandidateResolved },
         );
 
         // MCP-only: race the whole negotiate phase against a budget. When the
@@ -1925,6 +1945,8 @@ export class OpportunityGraphFactory {
               negotiateTimeoutMs: budgetMs,
             });
             traceEmitter?.({ type: "graph_end", name: "Negotiation graph", durationMs: Date.now() - graphStart });
+            const discoveryNegotiationsPartial = resolutions.map(toDiscoveryNegotiation);
+            const discoverySummaryPartial = buildDiscoverySummary(resolutions);
             return {
               trace: [{
                 node: 'negotiate',
@@ -1935,6 +1957,8 @@ export class OpportunityGraphFactory {
                   durationMs: Date.now() - graphStart,
                 },
               }],
+              discoveryNegotiations: discoveryNegotiationsPartial,
+              discoverySummary: discoverySummaryPartial,
             };
           }
           acceptedResults = raced;
@@ -1983,7 +2007,13 @@ export class OpportunityGraphFactory {
         ];
 
         traceEmitter?.({ type: "graph_end", name: "Negotiation graph", durationMs: Date.now() - graphStart });
-        return { trace: negotiateTrace };
+        const discoveryNegotiations = resolutions.map(toDiscoveryNegotiation);
+        const discoverySummary = buildDiscoverySummary(resolutions);
+        return {
+          trace: negotiateTrace,
+          discoveryNegotiations,
+          discoverySummary,
+        };
       } catch (err) {
         logger.error("[Graph:Negotiate] Negotiation stage failed", { error: err });
         traceEmitter?.({ type: "graph_end", name: "Negotiation graph", durationMs: Date.now() - graphStart });
@@ -1993,6 +2023,8 @@ export class OpportunityGraphFactory {
             detail: 'Negotiation failed',
             data: { durationMs: Date.now() - graphStart, error: true },
           }],
+          discoveryNegotiations: [],
+          discoverySummary: buildDiscoverySummary([]),
         };
       }
     };
