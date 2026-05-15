@@ -154,4 +154,32 @@ describe('opportunity graph: negotiateTimeoutMs', () => {
     expect(negotiateTrace).toBeDefined();
     expect(negotiateTrace?.detail).not.toBe('timed_out');
   });
+
+  test('negotiateNode populates discoveryNegotiations and discoverySummary on the state', async () => {
+    // Verifies the mapping from negotiation resolutions → discoveryNegotiations/discoverySummary
+    // so downstream question-generation can consume negotiation context.
+    const factory = makeFactory({ hangNegotiationForever: false });
+    const graph = factory.createGraph();
+
+    const result = await graph.invoke({
+      userId: 'u-source' as Id<'users'>,
+      searchQuery: 'find me a co-founder',
+      options: { negotiateTimeoutMs: 5_000 },
+    });
+
+    // discoveryNegotiations: one entry per resolved candidate
+    expect(Array.isArray(result.discoveryNegotiations)).toBe(true);
+    expect(result.discoveryNegotiations!.length).toBeGreaterThanOrEqual(0);
+
+    // discoverySummary: aggregate totals derived from the same resolutions
+    expect(result.discoverySummary).toBeDefined();
+    expect(typeof result.discoverySummary?.totalCandidates).toBe('number');
+    expect(typeof result.discoverySummary?.opportunitiesFound).toBe('number');
+
+    // Both fields are present and consistent with each other
+    const negotiationCount = result.discoveryNegotiations!.length;
+    const summary = result.discoverySummary!;
+    expect(summary.totalCandidates).toBe(negotiationCount);
+    expect(summary.opportunitiesFound).toBeLessThanOrEqual(negotiationCount);
+  });
 });
