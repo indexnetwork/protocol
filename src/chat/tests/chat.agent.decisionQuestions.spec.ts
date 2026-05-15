@@ -166,7 +166,7 @@ describe("ChatAgent.normalizeToolResult — decision-question harvest", () => {
     expect(result.discoveryQuestionsDebug).toBeUndefined();
   });
 
-  it("does not harvest questions from non-discover_opportunities tools", async () => {
+  it("harvests questions by JSON envelope shape regardless of tool name", async () => {
     const agent = await makeAgent();
     const normalizeToolResult = (agent as unknown as { normalizeToolResult: NormalizeToolResultFn }).normalizeToolResult.bind(agent);
 
