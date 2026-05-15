@@ -1222,11 +1222,8 @@ export interface Database {
   /**
    * Find opportunities whose actors contain all the given user IDs.
    *
-   * Replaces the legacy trio (getOpportunityBetweenActors, findOverlappingOpportunities,
-   * getAcceptedOpportunitiesBetweenActors). The `includeIntroducers` flag bridges the
-   * SQL-level difference between the legacy readers: when false (default), actor matching
-   * is restricted to non-introducer roles (was findOverlappingOpportunities); when true,
-   * any role in `actors` counts (was actorPairCondition behavior).
+   * The `includeIntroducers` flag controls actor matching: when false (default), matching
+   * is restricted to non-introducer roles; when true, any role in `actors` counts.
    *
    * Index-agnostic. Ordered by updatedAt desc.
    *
@@ -1241,34 +1238,6 @@ export interface Database {
       statuses?: OpportunityStatus[];
       excludeStatuses?: OpportunityStatus[];
     }
-  ): Promise<Opportunity[]>;
-
-  /**
-   * Return one non-expired opportunity between the given actors in the index, if any.
-   * Used to avoid creating a duplicate and to surface existing opportunity id/status.
-   *
-   * @param actorIds - Array of user IDs that would be actors
-   * @param networkId - Index ID
-   * @returns The first matching opportunity's id and status, or null
-   */
-  getOpportunityBetweenActors(
-    actorIds: string[],
-    networkId: string
-  ): Promise<{ id: Id<'opportunities'>; status: OpportunityStatus } | null>;
-
-  /**
-   * Find opportunities whose non-introducer actor set exactly matches the given user IDs.
-   * Overlap semantics: exact actor-set equality — an opportunity is returned only if its set of
-   * non-introducer actor userIds (ignoring introducers) equals the set of actorUserIds. Index-agnostic;
-   * opportunities are not scoped to a single index.
-   *
-   * @param actorUserIds - Typed user IDs of non-introducer actors (order-independent; compared as sets)
-   * @param options - Optional excludeStatuses (no default). Uses OpportunityStatus.
-   * @returns Promise of opportunities matching the exact actor set, excluding specified statuses
-   */
-  findOverlappingOpportunities(
-    actorUserIds: Id<'users'>[],
-    options?: { excludeStatuses?: OpportunityStatus[] }
   ): Promise<Opportunity[]>;
 
   /**
@@ -1297,19 +1266,6 @@ export interface Database {
    * @returns Number of opportunities updated to expired
    */
   expireStaleOpportunities(): Promise<number>;
-
-  /**
-   * Get accepted opportunities between two actors (same actor pair, status accepted).
-   * Used when building accepted-opportunities meta after accept (e.g. for chat channel).
-   *
-   * @param userId - First actor user ID
-   * @param counterpartUserId - Second actor user ID
-   * @returns Accepted opportunities between these two users, newest first
-   */
-  getAcceptedOpportunitiesBetweenActors(
-    userId: string,
-    counterpartUserId: string
-  ): Promise<Opportunity[]>;
 
   /**
    * Accept all sibling opportunities between the same actor pair in one transaction.
@@ -1554,9 +1510,6 @@ export interface UserDatabase {
   /** Update an opportunity's status (if user is an actor). acceptedBy is derived from the auth context. */
   updateOpportunityStatus(id: string, status: OpportunityStatus): Promise<Opportunity | null>;
 
-  /** Get accepted opportunities between the authenticated user and another actor. */
-  getAcceptedOpportunitiesBetweenActors(counterpartUserId: string): Promise<Opportunity[]>;
-
   /** Accept sibling opportunities between the authenticated user and another actor. */
   acceptSiblingOpportunities(counterpartUserId: string, excludeOpportunityId: string): Promise<string[]>;
 
@@ -1694,12 +1647,6 @@ export interface SystemDatabase {
     options?: { includeIntroducers?: boolean; statuses?: OpportunityStatus[]; excludeStatuses?: OpportunityStatus[] }
   ): Promise<Opportunity[]>;
 
-  /** Return one opportunity between actors in the index (id + status), or null. */
-  getOpportunityBetweenActors(actorIds: string[], networkId: string): Promise<{ id: Id<'opportunities'>; status: OpportunityStatus } | null>;
-
-  /** Find overlapping opportunities by actor set. */
-  findOverlappingOpportunities(actorUserIds: Id<'users'>[], options?: { excludeStatuses?: OpportunityStatus[] }): Promise<Opportunity[]>;
-
   /** Expire opportunities referencing an intent. */
   expireOpportunitiesByIntent(intentId: string): Promise<number>;
 
@@ -1794,9 +1741,6 @@ export type ChatGraphCompositeDatabase = Pick<
   | 'getOpportunitiesByIds'
   | 'opportunityExistsBetweenActors'
   | 'findOpportunitiesByActors'
-  | 'getOpportunityBetweenActors'
-  | 'findOverlappingOpportunities'
-  | 'getAcceptedOpportunitiesBetweenActors'
   | 'getOpportunitiesForUser'
   | 'updateOpportunityStatus'
   | 'updateOpportunityActorApproval'
@@ -1858,9 +1802,6 @@ export type OpportunityGraphDatabase = Pick<
   | 'createOpportunity'
   | 'opportunityExistsBetweenActors'
   | 'findOpportunitiesByActors'
-  | 'getOpportunityBetweenActors'
-  | 'findOverlappingOpportunities'
-  | 'getAcceptedOpportunitiesBetweenActors'
   | 'getUserIndexIds'
   | 'getNetworkMemberships'
   | 'getActiveIntents'
@@ -2051,8 +1992,6 @@ export type OpportunityControllerDatabase = Pick<
   | 'createOpportunityAndExpireIds'
   | 'opportunityExistsBetweenActors'
   | 'findOpportunitiesByActors'
-  | 'findOverlappingOpportunities'
-  | 'getAcceptedOpportunitiesBetweenActors'
   | 'acceptSiblingOpportunities'
   | 'isIndexOwner'
   | 'isNetworkMember'

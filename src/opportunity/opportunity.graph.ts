@@ -2556,7 +2556,7 @@ export class OpportunityGraphFactory {
                     { excludeStatuses: DEDUP_SKIP_STATUSES },
                   )
                 : [];
-              logger.verbose('[Graph:Persist:Dedup] findOverlappingOpportunities result', {
+              logger.verbose('[Graph:Persist:Dedup] findOpportunitiesByActors result', {
                 count: overlapping.length,
                 results: overlapping.map(o => ({ id: o.id, status: o.status, actors: o.actors?.map((a: OpportunityActor) => ({ userId: a.userId, role: a.role })) })),
               });
