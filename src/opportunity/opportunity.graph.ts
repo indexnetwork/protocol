@@ -2323,14 +2323,14 @@ export class OpportunityGraphFactory {
             const lookups = await Promise.all(
               [...uniqueCounterparts].map(async (counterpartyUserId) => {
                 const accepted = await this.database
-                  .getAcceptedOpportunitiesBetweenActors(dedupUserId, counterpartyUserId)
+                  .findOpportunitiesByActors([dedupUserId, counterpartyUserId], { includeIntroducers: true, statuses: ['accepted'] })
                   .catch((err: unknown) => {
-                    logger.warn('[Graph:Persist] getAcceptedOpportunitiesBetweenActors failed', {
+                    logger.warn('[Graph:Persist] findOpportunitiesByActors (sibling-accept) failed', {
                       userId: dedupUserId,
                       counterpartyUserId,
                       error: err,
                     });
-                    return [] as Awaited<ReturnType<typeof this.database.getAcceptedOpportunitiesBetweenActors>>;
+                    return [] as Awaited<ReturnType<typeof this.database.findOpportunitiesByActors>>;
                   });
                 return accepted.map((opp: { id: string }) => ({ opportunityId: opp.id, counterpartyUserId }));
               }),
@@ -2424,7 +2424,7 @@ export class OpportunityGraphFactory {
 
               const candidateUserId = evaluated.actors.find((a) => a.userId !== state.onBehalfOfUserId)?.userId;
               const overlapping = candidateUserId
-                ? await this.database.findOverlappingOpportunities(
+                ? await this.database.findOpportunitiesByActors(
                     [state.onBehalfOfUserId as Id<'users'>, candidateUserId as Id<'users'>],
                     { excludeStatuses: DEDUP_SKIP_STATUSES },
                   )
@@ -2551,7 +2551,7 @@ export class OpportunityGraphFactory {
                 evaluatedActors: evaluated.actors.map(a => ({ userId: a.userId, role: a.role })),
               });
               const overlapping = candidateUserId
-                ? await this.database.findOverlappingOpportunities(
+                ? await this.database.findOpportunitiesByActors(
                     [state.userId as Id<'users'>, candidateUserId as Id<'users'>],
                     { excludeStatuses: DEDUP_SKIP_STATUSES },
                   )
