@@ -981,8 +981,8 @@ export class ChatAgent {
             resultStr = normalized.resultStr;
             result = resultStr;
 
-            if (latestDecisionQuestions && latestDecisionQuestions.length > 0) {
-              emit({ type: "decision_questions", questions: latestDecisionQuestions });
+            if (normalized.decisionQuestions && normalized.decisionQuestions.length > 0) {
+              emit({ type: "decision_questions", questions: normalized.decisionQuestions });
             }
 
             logger.verbose("Streaming: tool completed", {
