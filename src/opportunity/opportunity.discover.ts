@@ -704,6 +704,19 @@ export async function runDiscoverFromQuery(
         }
       }
 
+      // Build decision questions early so they can be attached to all return paths
+      // (including the "no opportunities found" cases — questions are especially
+      // useful when the user gets zero results and needs to refine their query).
+      const questionPayload = await maybeBuildQuestions({
+        trigger,
+        enableQuestions: input.enableQuestions ?? false,
+        chatSummary: input.chatSummary,
+        questionGenerator: input.questionGenerator,
+        chatSessionId,
+        graphResult: result,
+        query: queryOrEmpty,
+      });
+
       if (result.createIntentSuggested && result.suggestedIntentDescription) {
         if (chatSessionId) {
           return {
@@ -711,6 +724,8 @@ export async function runDiscoverFromQuery(
             count: 0,
             message: "No matching opportunities found. Try a different query.",
             pagination,
+            ...(questionPayload.questions !== undefined ? { questions: questionPayload.questions } : {}),
+            ...(questionPayload.debug !== undefined ? { discoveryQuestionsDebug: questionPayload.debug } : {}),
           };
         }
         return {
@@ -722,6 +737,8 @@ export async function runDiscoverFromQuery(
             "No matching opportunities; add an intent with the suggested description to improve discovery.",
           debugSteps,
           pagination,
+          ...(questionPayload.questions !== undefined ? { questions: questionPayload.questions } : {}),
+          ...(questionPayload.debug !== undefined ? { discoveryQuestionsDebug: questionPayload.debug } : {}),
         };
       }
 
@@ -797,19 +814,6 @@ export async function runDiscoverFromQuery(
       debugSteps.push({
         step: "opportunity_graph",
         detail: `${opportunities.length} opportunity(ies)${existingConnections.length > 0 ? `, ${existingConnections.length} existing` : ""}`,
-      });
-
-      // Build decision questions early so they can be attached to all return paths
-      // (including the "no opportunities found" cases — questions are especially
-      // useful when the user gets zero results and needs to refine their query).
-      const questionPayload = await maybeBuildQuestions({
-        trigger,
-        enableQuestions: input.enableQuestions ?? false,
-        chatSummary: input.chatSummary,
-        questionGenerator: input.questionGenerator,
-        chatSessionId,
-        graphResult: result,
-        query: queryOrEmpty,
       });
 
       if (opportunities.length === 0) {
@@ -913,7 +917,14 @@ async function maybeBuildQuestions(args: MaybeBuildQuestionsInput): Promise<{
   const emitWide = (event: Record<string, unknown>) =>
     (rawEmitter as ((e: Record<string, unknown>) => void) | undefined)?.(event);
 
-  const inputMode = (process.env.DISCOVERY_QUESTIONS_INPUT_MODE === "insights" ? "insights" : "transcripts") as "transcripts" | "insights";
+  // Slice 3 supports only the `transcripts` input mode; `insights` is planned
+  // for a later slice. We hardcode here so the trace event accurately reflects
+  // what was used. If the env var is set to "insights", log a warning so
+  // operators aren't surprised when reporting still says "transcripts".
+  if (process.env.DISCOVERY_QUESTIONS_INPUT_MODE === "insights") {
+    logger.warn("DISCOVERY_QUESTIONS_INPUT_MODE=insights is not yet implemented; falling back to transcripts");
+  }
+  const inputMode: "transcripts" | "insights" = "transcripts";
 
   let chatContext: ChatContextDigest | undefined;
   if (args.chatSummary && args.chatSessionId) {
