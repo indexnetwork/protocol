@@ -685,12 +685,13 @@ export class ChatAgent {
       if (rawQuestionDebug && typeof rawQuestionDebug === "object") {
         discoveryQuestionsDebug = rawQuestionDebug as DebugMetaDiscoveryQuestions;
       }
-      // Strip both from the LLM-facing string the same way _graphTimings is stripped.
-      if (decisionQuestions !== undefined || discoveryQuestionsDebug !== undefined) {
+      // `_discoveryQuestionsDebug` is internal trace data — strip from the LLM-facing
+      // tool result. `questions` is intentionally kept visible so the agent can
+      // follow the prompt addendum and reference the decision prompts in its reply.
+      if (discoveryQuestionsDebug !== undefined) {
         try {
           const cleaned = JSON.parse(normalized) as Record<string, unknown>;
           const stripFrom = (obj: Record<string, unknown>) => {
-            delete obj.questions;
             delete obj._discoveryQuestionsDebug;
           };
           stripFrom(cleaned);
