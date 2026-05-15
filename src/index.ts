@@ -51,6 +51,19 @@ export {
   ChatContextDigestSchema,
   type ChatContextDigest,
 } from "./shared/schemas/chat-context.schema.js";
+export {
+  QuestionOptionSchema,
+  QuestionSchema,
+  QuestionStrategySchema,
+  QuestionWithStrategySchema,
+  QuestionGeneratorResponseSchema,
+  type Question,
+  type QuestionOption,
+  type QuestionStrategy,
+  type QuestionWithStrategy,
+  type QuestionGeneratorResponse,
+  type QuestionGenerationResult,
+} from "./shared/schemas/question.schema.js";
 
 // ─── Graph factories ──────────────────────────────────────────────────────────
 
@@ -94,6 +107,16 @@ export type {
 } from "./opportunity/opportunity.evaluator.js";
 export { OpportunityPresenter, gatherPresenterContext } from "./opportunity/opportunity.presenter.js";
 export type { PresenterDatabase } from "./opportunity/opportunity.presenter.js";
+export { QuestionGenerator } from "./opportunity/question.generator.js";
+export type {
+  DiscoveryQuestionInput,
+  DiscoveryNegotiation,
+  DiscoveryOutcome,
+  DiscoveryTurn,
+  DiscoverySummary,
+  DiscoverySourceProfile,
+  NegotiationRole,
+} from "./opportunity/question.prompt.js";
 
 // ─── Support utilities ────────────────────────────────────────────────────────
 
