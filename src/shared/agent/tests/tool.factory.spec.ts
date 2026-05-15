@@ -179,7 +179,7 @@ const testUserId = "test-user-id-for-tools";
 
 type MockOverrides = Partial<Pick<
   ChatGraphCompositeDatabase,
-  "getUser" | "getNetwork" | "getOwnedIndexes" | "isIndexOwner" | "isNetworkMember" | "getNetworkMembersForOwner" | "getNetworkMembersForMember" | "getNetworkIntentsForOwner" | "getNetworkMemberships" | "getNetworkMembership" | "getNetworkIntentsForMember" | "getNetworkWithPermissions" | "getOpportunity" | "updateOpportunityStatus" | "getActiveIntents" | "getIntentsInIndexForMember" | "getNetworkIdsForIntent" | "opportunityExistsBetweenActors" | "findOverlappingOpportunities" | "createOpportunity"
+  "getUser" | "getNetwork" | "getOwnedIndexes" | "isIndexOwner" | "isNetworkMember" | "getNetworkMembersForOwner" | "getNetworkMembersForMember" | "getNetworkIntentsForOwner" | "getNetworkMemberships" | "getNetworkMembership" | "getNetworkIntentsForMember" | "getNetworkWithPermissions" | "getOpportunity" | "updateOpportunityStatus" | "getActiveIntents" | "getIntentsInIndexForMember" | "getNetworkIdsForIntent" | "opportunityExistsBetweenActors" | "findOpportunitiesByActors" | "createOpportunity"
 >>;
 
 /**
@@ -304,7 +304,6 @@ const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | '
     unassignIntentFromIndex: db.unassignIntentFromIndex ?? (async () => {}),
     getNetworkIdsForIntent: db.getNetworkIdsForIntent ?? (async () => []),
     isIntentAssignedToIndex: db.isIntentAssignedToIndex ?? (async () => false),
-    getAcceptedOpportunitiesBetweenActors: db.getAcceptedOpportunitiesBetweenActors ?? (async () => []),
     acceptSiblingOpportunities: db.acceptSiblingOpportunities ?? (async () => {}),
     getHydeDocument: db.getHydeDocument ?? (async () => null),
     getHydeDocumentsForSource: db.getHydeDocumentsForSource ?? (async () => []),
@@ -333,8 +332,7 @@ const mockProtocolDeps: Omit<ToolContext, 'userId' | 'database' | 'embedder' | '
     getOpportunitiesForIndex: async () => [],
     updateOpportunityStatus: db.updateOpportunityStatus ?? (async () => null),
     opportunityExistsBetweenActors: db.opportunityExistsBetweenActors ?? (async () => false),
-    getOpportunityBetweenActors: db.getOpportunityBetweenActors ?? (async () => null),
-    findOverlappingOpportunities: db.findOverlappingOpportunities ?? (async () => []),
+    findOpportunitiesByActors: db.findOpportunitiesByActors ?? (async () => []),
     expireOpportunitiesByIntent: async () => {},
     expireOpportunitiesForRemovedMember: async () => {},
     expireStaleOpportunities: async () => {},
@@ -1083,7 +1081,7 @@ describe("discover_opportunities tool", () => {
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
       opportunityExistsBetweenActors: async () => false,
-      findOverlappingOpportunities: async () => [],
+      findOpportunitiesByActors: async () => [],
       createOpportunity: async (data) =>
         ({
           id: "opp-success-1",
@@ -1125,7 +1123,7 @@ describe("discover_opportunities tool", () => {
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
       opportunityExistsBetweenActors: async () => false,
-      findOverlappingOpportunities: async () => [],
+      findOpportunitiesByActors: async () => [],
       createOpportunity: async (data) =>
         ({
           id: "opp-intro-1",
@@ -1173,7 +1171,7 @@ describe("discover_opportunities tool", () => {
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
       opportunityExistsBetweenActors: async () => false,
-      findOverlappingOpportunities: async () => [],
+      findOpportunitiesByActors: async () => [],
       createOpportunity: async (data) =>
         ({
           id: "opp-party-1",
@@ -1219,7 +1217,7 @@ describe("discover_opportunities tool", () => {
     const mockDb = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
       opportunityExistsBetweenActors: async () => false,
-      findOverlappingOpportunities: async () => [],
+      findOpportunitiesByActors: async () => [],
       createOpportunity: async (data) =>
         ({
           id: "opp-from-entities-only",
@@ -2292,7 +2290,7 @@ describe("createChatTools — MCP connect-link wiring", () => {
     const introDb: ChatGraphCompositeDatabase = createMockDatabase(async () => [], {
       isNetworkMember: async () => true,
       opportunityExistsBetweenActors: async () => false,
-      findOverlappingOpportunities: async () => [],
+      findOpportunitiesByActors: async () => [],
       createOpportunity: async (data: { actors?: Array<{ userId: string; role: string; approved?: boolean }>; interpretation?: Record<string, unknown>; detection?: Record<string, unknown>; context?: Record<string, unknown>; confidence?: unknown; status?: string }) =>
         ({
           id: "opp-intro-1",

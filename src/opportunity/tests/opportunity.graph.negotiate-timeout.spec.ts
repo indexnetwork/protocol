@@ -38,9 +38,7 @@ function makeFactory(opts: { hangNegotiationForever: boolean }) {
     getProfile: async () => null,
     createOpportunity: async () => persistedOpp,
     opportunityExistsBetweenActors: async () => false,
-    getAcceptedOpportunitiesBetweenActors: async () => [],
-    getOpportunityBetweenActors: async () => null,
-    findOverlappingOpportunities: async () => [],
+    findOpportunitiesByActors: async () => [],
     getUserIndexIds: async () => (['idx-1'] as Id<'networks'>[]),
     getNetworkMemberships: async () => [{
       networkId: 'idx-1' as Id<'networks'>,

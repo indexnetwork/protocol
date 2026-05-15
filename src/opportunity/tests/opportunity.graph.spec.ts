@@ -68,9 +68,7 @@ function createMockGraph(deps?: {
         expiresAt: null,
       }),
     opportunityExistsBetweenActors: () => Promise.resolve(false),
-    getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
-    getOpportunityBetweenActors: () => Promise.resolve(null),
-    findOverlappingOpportunities: () => Promise.resolve([]),
+    findOpportunitiesByActors: () => Promise.resolve([]),
     getUserIndexIds: deps?.getUserIndexIds ?? (() => Promise.resolve(['idx-1'] as Id<'networks'>[])),
     getNetworkMemberships: deps?.getNetworkMemberships ?? (async () => {
       const ids = deps?.getUserIndexIds ? await deps.getUserIndexIds() : ['idx-1'] as Id<'networks'>[];
@@ -162,9 +160,7 @@ function createMockGraphWithFnOverrides(deps?: {
         expiresAt: null,
       }),
     opportunityExistsBetweenActors: () => Promise.resolve(false),
-    getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
-    getOpportunityBetweenActors: () => Promise.resolve(null),
-    findOverlappingOpportunities: () => Promise.resolve([]),
+    findOpportunitiesByActors: () => Promise.resolve([]),
     getUserIndexIds: deps?.getUserIndexIds ?? (() => Promise.resolve(['idx-1'] as Id<'networks'>[])),
     getNetworkMemberships: deps?.getNetworkMemberships ?? (async () => {
       const ids = deps?.getUserIndexIds ? await deps.getUserIndexIds() : ['idx-1'] as Id<'networks'>[];
@@ -894,7 +890,7 @@ describe('Opportunity Graph', () => {
     });
   });
 
-  describe('Persist node: dedup via findOverlappingOpportunities', () => {
+  describe('Persist node: dedup via findOpportunitiesByActors', () => {
     test('when pending opportunity exists between actors, skips creation and adds to existingBetweenActors', async () => {
       const existingOpp: Opportunity = {
         id: 'opp-existing-pending',
@@ -914,7 +910,7 @@ describe('Opportunity Graph', () => {
 
       const { compiledGraph, mockDb, mockEmbedder } = createMockGraph();
       const createSpy = spyOn(mockDb, 'createOpportunity');
-      spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([existingOpp]);
+      spyOn(mockDb, 'findOpportunitiesByActors').mockResolvedValue([existingOpp]);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
         { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
@@ -952,7 +948,7 @@ describe('Opportunity Graph', () => {
 
       const { compiledGraph, mockDb, mockEmbedder } = createMockGraph();
       const createSpy = spyOn(mockDb, 'createOpportunity');
-      spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([expiredOpp]);
+      spyOn(mockDb, 'findOpportunitiesByActors').mockResolvedValue([expiredOpp]);
       spyOn(mockDb, 'updateOpportunityStatus').mockResolvedValue(reactivatedOpp);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
         { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
@@ -991,7 +987,7 @@ describe('Opportunity Graph', () => {
 
       const { compiledGraph, mockDb, mockEmbedder } = createMockGraph();
       const createSpy = spyOn(mockDb, 'createOpportunity');
-      spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([threeActorOpp]);
+      spyOn(mockDb, 'findOpportunitiesByActors').mockResolvedValue([threeActorOpp]);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
         { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
@@ -1012,7 +1008,7 @@ describe('Opportunity Graph', () => {
     test('when no overlapping opportunity exists, creates new opportunity normally', async () => {
       const { compiledGraph, mockDb, mockEmbedder } = createMockGraph();
       const createSpy = spyOn(mockDb, 'createOpportunity');
-      spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([]);
+      spyOn(mockDb, 'findOpportunitiesByActors').mockResolvedValue([]);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
         { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
@@ -1047,7 +1043,7 @@ describe('Opportunity Graph', () => {
 
       const { compiledGraph, mockDb, mockEmbedder } = createMockGraph();
       const createSpy = spyOn(mockDb, 'createOpportunity');
-      spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([latentOpp]);
+      spyOn(mockDb, 'findOpportunitiesByActors').mockResolvedValue([latentOpp]);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
         { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
@@ -1085,7 +1081,7 @@ describe('Opportunity Graph', () => {
 
       const { compiledGraph, mockDb, mockEmbedder } = createMockGraph();
       const createSpy = spyOn(mockDb, 'createOpportunity');
-      spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([latentOpp]);
+      spyOn(mockDb, 'findOpportunitiesByActors').mockResolvedValue([latentOpp]);
       const updateSpy = spyOn(mockDb, 'updateOpportunityStatus').mockResolvedValue(upgradedOpp);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
         { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
@@ -1106,10 +1102,10 @@ describe('Opportunity Graph', () => {
 
     test('when existing draft opportunity exists between actors, allows creation (does not dedup)', async () => {
       // Draft opportunities are excluded via excludeStatuses in the DB query,
-      // so findOverlappingOpportunities returns [] when only drafts exist.
+      // so findOpportunitiesByActors returns [] when only drafts exist.
       const { compiledGraph, mockDb, mockEmbedder } = createMockGraph();
       const createSpy = spyOn(mockDb, 'createOpportunity');
-      const findOverlappingSpy = spyOn(mockDb, 'findOverlappingOpportunities').mockResolvedValue([]);
+      const findByActorsSpy = spyOn(mockDb, 'findOpportunitiesByActors').mockResolvedValue([]);
       spyOn(mockEmbedder, 'searchWithHydeEmbeddings').mockResolvedValue([
         { type: 'intent' as const, id: 'intent-bob', userId: 'b0000000-0000-4000-8000-000000000002', score: 0.9, matchedVia: 'mirror' as const, networkId: 'idx-1' },
       ]);
@@ -1120,7 +1116,7 @@ describe('Opportunity Graph', () => {
         options: { minScore: 70 },
       } as OpportunityGraphInvokeInput)) as OpportunityGraphInvokeResult;
 
-      expect(findOverlappingSpy).toHaveBeenCalledWith(
+      expect(findByActorsSpy).toHaveBeenCalledWith(
         expect.arrayContaining(['a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002']),
         { excludeStatuses: ['draft'] },
       );
@@ -1430,9 +1426,7 @@ describe('Opportunity Graph', () => {
             expiresAt: null,
           }),
         opportunityExistsBetweenActors: () => Promise.resolve(false),
-        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
-        getOpportunityBetweenActors: () => Promise.resolve(null),
-        findOverlappingOpportunities: () => Promise.resolve([]),
+        findOpportunitiesByActors: () => Promise.resolve([]),
         getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
         getNetworkMemberships: async () => [{ networkId: 'idx-1', networkTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() }],
         getActiveIntents: async (userId: string) => {
@@ -1838,9 +1832,7 @@ describe('Opportunity Graph', () => {
           createdAt: new Date(), updatedAt: new Date(), expiresAt: null,
         }),
         opportunityExistsBetweenActors: () => Promise.resolve(false),
-        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
-        getOpportunityBetweenActors: () => Promise.resolve(null),
-        findOverlappingOpportunities: () => Promise.resolve([]),
+        findOpportunitiesByActors: () => Promise.resolve([]),
         getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
         getNetworkMemberships: (userId: string) => {
           // Discoverer is in idx-1, target is in idx-999 — no overlap
@@ -1946,9 +1938,7 @@ describe('Opportunity Graph', () => {
             expiresAt: null,
           }),
         opportunityExistsBetweenActors: () => Promise.resolve(false),
-        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
-        getOpportunityBetweenActors: () => Promise.resolve(null),
-        findOverlappingOpportunities: () => Promise.resolve([]),
+        findOpportunitiesByActors: () => Promise.resolve([]),
         getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
         getNetworkMemberships: () =>
           Promise.resolve([
@@ -2069,9 +2059,7 @@ describe('Opportunity Graph', () => {
             expiresAt: null,
           }),
         opportunityExistsBetweenActors: () => Promise.resolve(false),
-        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
-        getOpportunityBetweenActors: () => Promise.resolve(null),
-        findOverlappingOpportunities: () => Promise.resolve([]),
+        findOpportunitiesByActors: () => Promise.resolve([]),
         getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
         getNetworkMemberships: () =>
           Promise.resolve([
@@ -2231,9 +2219,7 @@ describe('Opportunity Graph', () => {
             expiresAt: null,
           }),
         opportunityExistsBetweenActors: () => Promise.resolve(false),
-        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
-        getOpportunityBetweenActors: () => Promise.resolve(null),
-        findOverlappingOpportunities: () => Promise.resolve([]),
+        findOpportunitiesByActors: () => Promise.resolve([]),
         getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
         getNetworkMemberships: () => Promise.resolve([{
           networkId: 'idx-1',
@@ -2344,9 +2330,7 @@ describe('Opportunity Graph', () => {
         getProfile: () => Promise.resolve(null),
         createOpportunity: (data) => Promise.resolve({ id: 'opp-new', ...data, status: data.status ?? 'latent', createdAt: new Date(), updatedAt: new Date(), expiresAt: null }),
         opportunityExistsBetweenActors: () => Promise.resolve(false),
-        getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
-        getOpportunityBetweenActors: () => Promise.resolve(null),
-        findOverlappingOpportunities: () => Promise.resolve([]),
+        findOpportunitiesByActors: () => Promise.resolve([]),
         getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
         getNetworkMemberships: async () => [],
         getActiveIntents: () => Promise.resolve([]),
@@ -2589,9 +2573,7 @@ function createTraceMockGraph() {
         expiresAt: null,
       }),
     opportunityExistsBetweenActors: () => Promise.resolve(false),
-    getAcceptedOpportunitiesBetweenActors: () => Promise.resolve([]),
-    getOpportunityBetweenActors: () => Promise.resolve(null),
-    findOverlappingOpportunities: () => Promise.resolve([]),
+    findOpportunitiesByActors: () => Promise.resolve([]),
     getUserIndexIds: () => Promise.resolve(['idx-1'] as Id<'networks'>[]),
     getNetworkMemberships: async () => [
       { networkId: 'idx-1', networkTitle: 'Test Index', indexPrompt: null, permissions: ['member'], memberPrompt: null, autoAssign: true, isPersonal: false, joinedAt: new Date() },
