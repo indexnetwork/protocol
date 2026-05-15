@@ -7,8 +7,8 @@
 import { config } from "dotenv";
 config({ path: '.env.test' });
 
-import { describe, test, expect, spyOn } from 'bun:test';
-import { OpportunityGraphFactory, type OpportunityEvaluatorLike } from '../opportunity.graph.js';
+import { describe, test, it, expect, spyOn } from 'bun:test';
+import { OpportunityGraphFactory, type OpportunityEvaluatorLike, buildDiscovererContext } from '../opportunity.graph.js';
 import type { Id } from '../../types/common.types.js';
 import type {
   OpportunityGraphDatabase,
@@ -16,8 +16,12 @@ import type {
   Opportunity,
 } from '../../shared/interfaces/database.interface.js';
 import type { Embedder } from '../../shared/interfaces/embedder.interface.js';
+import type { SourceProfileData } from '../opportunity.state.js';
+import { OpportunityEvaluator, type EvaluatorInput, type EvaluatorEntity } from '../opportunity.evaluator.js';
 import type { EvaluatedOpportunityWithActors } from '../opportunity.evaluator.js';
 import type { ProfileDocument } from '../../profile/profile.generator.js';
+import { assertLLM } from '../../shared/agent/tests/llm-assert.js';
+import { requestContext } from '../../shared/observability/request-context.js';
 
 type OpportunityGraphInvokeInput = Parameters<ReturnType<OpportunityGraphFactory['createGraph']>['invoke']>[0];
 type OpportunityGraphInvokeResult = Awaited<ReturnType<ReturnType<OpportunityGraphFactory['createGraph']>['invoke']>>;
@@ -2384,13 +2388,6 @@ describe('Opportunity Graph', () => {
 
 // ─── buildDiscovererContext tests ───────────────────────────────────────────
 
-
-import { describe, expect, it } from "bun:test";
-
-import type { SourceProfileData } from "../opportunity.state.js";
-
-import { buildDiscovererContext } from "../opportunity.graph.js";
-
 describe('buildDiscovererContext', () => {
   it('includes location when present in profile identity', () => {
     const profile: SourceProfileData = {
@@ -2424,16 +2421,6 @@ describe('buildDiscovererContext', () => {
 });
 
 // ─── Direct-connection evaluator tests ──────────────────────────────────────
-
-
-import { describe, it } from "bun:test";
-import {
-  OpportunityEvaluator,
-  type EvaluatorInput,
-  type EvaluatorEntity,
-} from "../opportunity.evaluator.js";
-
-import { assertLLM } from "../../shared/agent/tests/llm-assert.js";
 
 const DISCOVERER_ID = 'user-yanki';
 const TARGET_ID = 'user-sam';
@@ -2526,14 +2513,6 @@ describe('OpportunityEvaluator: direct-connection candidates', () => {
 });
 
 // ─── Trace events tests ──────────────────────────────────────────────────────
-
-import { describe, test, expect } from 'bun:test';
-import { OpportunityGraphFactory, type OpportunityEvaluatorLike } from '../opportunity.graph.js';
-import type { Id } from '../../types/common.types.js';
-import type { OpportunityGraphDatabase } from '../../shared/interfaces/database.interface.js';
-import type { Embedder } from '../../shared/interfaces/embedder.interface.js';
-import type { EvaluatedOpportunityWithActors } from '../opportunity.evaluator.js';
-import { requestContext } from '../../shared/observability/request-context.js';
 
 const dummyTraceEmbedding = new Array(2000).fill(0.1);
 
