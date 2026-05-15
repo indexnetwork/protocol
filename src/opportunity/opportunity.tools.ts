@@ -886,7 +886,9 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         ...(runDiscoveryOrchestrator && { trigger: 'orchestrator' as const }),
         ...(deps.chatSummary && { chatSummary: deps.chatSummary }),
         ...(deps.questionGenerator && { questionGenerator: deps.questionGenerator }),
-        enableQuestions: process.env.ENABLE_DISCOVERY_QUESTIONS === "true",
+        // Decision questions add an uncapped LLM call after the negotiation phase.
+        // For MCP we'd blow the 20s budget documented above. Restrict to chat.
+        enableQuestions: process.env.ENABLE_DISCOVERY_QUESTIONS === "true" && !!context.sessionId,
       });
       const _discoverGraphMs = Date.now() - _discoverGraphStart;
       _discoverTraceEmitter?.({ type: "graph_end", name: "opportunity", durationMs: _discoverGraphMs });
