@@ -478,8 +478,11 @@ export const OpportunityGraphState = Annotation.Root({
   /**
    * Per-candidate negotiation records captured by `negotiateNode`. Populated
    * regardless of accept/reject so the question generator sees a complete
-   * picture. Empty when the negotiate node was skipped (no opportunities to
-   * negotiate) or when the orchestrator path didn't run.
+   * picture. Populated for ALL triggers (ambient + orchestrator) since the
+   * negotiate node's `onCandidateResolved` hook is unconditional; only the
+   * orchestrator streaming side-effects (opportunity_draft_ready emission)
+   * are trigger-gated. Empty when the negotiate node was skipped (no
+   * opportunities to negotiate).
    */
   discoveryNegotiations: Annotation<DiscoveryNegotiation[]>({
     reducer: (curr, next) => [...curr, ...(next || [])],
