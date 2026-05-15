@@ -925,6 +925,8 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           ...(result.pagination ? { pagination: result.pagination } : {}),
           debugSteps: allDebugSteps,
           _graphTimings: _allGraphTimings,
+          ...(result.questions && result.questions.length > 0 ? { questions: result.questions } : {}),
+          ...(result.discoveryQuestionsDebug ? { _discoveryQuestionsDebug: result.discoveryQuestionsDebug } : {}),
         });
       }
 
@@ -937,6 +939,8 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           ...(result.pagination ? { pagination: result.pagination } : {}),
           debugSteps: allDebugSteps,
           _graphTimings: _allGraphTimings,
+          ...(result.questions && result.questions.length > 0 ? { questions: result.questions } : {}),
+          ...(result.discoveryQuestionsDebug ? { _discoveryQuestionsDebug: result.discoveryQuestionsDebug } : {}),
         });
       }
 
@@ -955,6 +959,8 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
           summary: "No new matches (existing connections only)",
           debugSteps: allDebugSteps,
           _graphTimings: _allGraphTimings,
+          ...(result.questions && result.questions.length > 0 ? { questions: result.questions } : {}),
+          ...(result.discoveryQuestionsDebug ? { _discoveryQuestionsDebug: result.discoveryQuestionsDebug } : {}),
         });
       }
 
