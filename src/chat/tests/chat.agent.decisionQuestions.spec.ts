@@ -16,7 +16,7 @@ process.env.NODE_ENV = "test";
 import { mock, describe, it, expect } from "bun:test";
 
 // ─── Mock model.config so no real API key is needed ──────────────────────────
-mock.module("../shared/agent/model.config", () => ({
+mock.module("../../shared/agent/model.config", () => ({
   createModel: () => ({
     bindTools: function (this: object) { return this; },
     stream: async function* () { /* never used */ },
@@ -24,12 +24,12 @@ mock.module("../shared/agent/model.config", () => ({
 }));
 
 // ─── Mock tool.factory so create() doesn't hit the DB ────────────────────────
-mock.module("../shared/agent/tool.factory", () => ({
+mock.module("../../shared/agent/tool.factory", () => ({
   createChatTools: async () => [],
   resolveChatContext: async (_ctx: unknown) => ({ userId: "u-test", networkId: undefined, sessionId: undefined, personal: null, memberships: [] }),
 }));
 
-mock.module("../shared/agent/tool.helpers", () => ({
+mock.module("../../shared/agent/tool.helpers", () => ({
   resolveChatContext: async (_ctx: unknown) => ({ userId: "u-test", networkId: undefined, sessionId: undefined, personal: null, memberships: [] }),
 }));
 
