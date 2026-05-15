@@ -1121,6 +1121,15 @@ export class ChatAgent {
               ...(normalized.debugSteps?.length ? { steps: normalized.debugSteps } : {}),
               ...(normalized.graphTimings?.length ? { graphs: normalized.graphTimings } : {}),
             });
+            // Mirror the main tool loop's handling: forward decision questions
+            // and capture debug metadata even when the discovery tool was invoked
+            // via the hallucination-recovery path.
+            if (normalized.discoveryQuestionsDebug) {
+              latestDiscoveryQuestionsDebug = normalized.discoveryQuestionsDebug;
+            }
+            if (normalized.decisionQuestions && normalized.decisionQuestions.length > 0) {
+              emit({ type: "decision_questions", questions: normalized.decisionQuestions });
+            }
             emit({
               type: "tool_activity",
               phase: "end",
