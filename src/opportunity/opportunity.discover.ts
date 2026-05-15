@@ -962,7 +962,15 @@ async function maybeBuildQuestions(args: MaybeBuildQuestionsInput): Promise<{
     now: new Date().toISOString(),
   });
 
-  const genResult = await args.questionGenerator.generate(input);
+  let genResult: Awaited<ReturnType<typeof args.questionGenerator.generate>> = null;
+  try {
+    genResult = await args.questionGenerator.generate(input);
+  } catch (err) {
+    logger.warn("questionGenerator.generate threw — suppressing questions, recording debug duration only", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    genResult = null;
+  }
   const durationMs = Date.now() - generatorStart;
 
   const finalCount = genResult?.questions?.length ?? 0;
