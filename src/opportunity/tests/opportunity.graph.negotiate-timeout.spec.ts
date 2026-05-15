@@ -190,6 +190,11 @@ describe('opportunity graph: negotiateTimeoutMs', () => {
   test('negotiateNode populates discoveryNegotiations and discoverySummary on the state', async () => {
     // Verifies the mapping from negotiation resolutions → discoveryNegotiations/discoverySummary
     // so downstream question-generation can consume negotiation context.
+    //
+    // Determinism guarantee: resolutions are accumulated via an async per-candidate hook that
+    // fires in completion order (non-deterministic across runs). The negotiate node sorts them
+    // by their original candidate-list index before building discoveryNegotiations, so the LLM
+    // always sees negotiations in a stable, candidate-order sequence regardless of timing.
     const factory = makeFactory({ hangNegotiationForever: false });
     const graph = factory.createGraph();
 
@@ -206,6 +211,9 @@ describe('opportunity graph: negotiateTimeoutMs', () => {
     // Verify the captured record carries through correctly.
     const first = negs[0];
     expect(first.counterpartyId).toBeDefined();
+    // counterpartyId must match u-candidate (the only candidate in the fixture),
+    // confirming candidate-list order is preserved.
+    expect(first.counterpartyId).toBe('u-candidate');
     expect(first.outcome.hasOpportunity).toBe(true);
     expect(first.outcome.reasoning).toBe('test outcome');
     expect(first.turns.length).toBeGreaterThanOrEqual(1);

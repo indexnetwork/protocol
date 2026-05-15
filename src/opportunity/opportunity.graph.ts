@@ -1847,10 +1847,18 @@ export class OpportunityGraphFactory {
         // fan-out. Abort (e.g. user closed the chat) suppresses both the
         // status flip and the event — the in-flight negotiation finishes
         // naturally but its card never reaches the user.
-        const resolutions: NegotiationResolution[] = [];
+        // Build a stable order index so that resolutions accumulated via the
+        // per-candidate async hook can be re-sorted to candidate-list order
+        // before being handed to buildQuestionPrompt. Without this the LLM
+        // sees negotiations in completion-time order (non-deterministic).
+        const candidateOrderById = new Map<string, number>();
+        candidates.forEach((c, i) => candidateOrderById.set(c.userId, i));
+
+        const resolutions: Array<NegotiationResolution & { __order: number }> = [];
 
         const onCandidateResolved: OnNegotiationResolved = async ({ candidate, accepted, turns, outcome }) => {
           resolutions.push({
+            __order: candidateOrderById.get(candidate.userId) ?? Number.MAX_SAFE_INTEGER,
             candidateUserId: candidate.userId,
             counterpartyHint: (() => {
               const bio = candidate.candidateUser.profile?.bio?.trim();
@@ -1946,8 +1954,11 @@ export class OpportunityGraphFactory {
               negotiateTimeoutMs: budgetMs,
             });
             traceEmitter?.({ type: "graph_end", name: "Negotiation graph", durationMs: Date.now() - graphStart });
-            const discoveryNegotiationsPartial = resolutions.map(toDiscoveryNegotiation);
-            const discoverySummaryPartial = buildDiscoverySummary(resolutions);
+            const orderedResolutionsPartial = [...resolutions]
+              .sort((a, b) => a.__order - b.__order)
+              .map(({ __order: _o, ...r }) => r as NegotiationResolution);
+            const discoveryNegotiationsPartial = orderedResolutionsPartial.map(toDiscoveryNegotiation);
+            const discoverySummaryPartial = buildDiscoverySummary(orderedResolutionsPartial);
             return {
               trace: [{
                 node: 'negotiate',
@@ -2008,8 +2019,11 @@ export class OpportunityGraphFactory {
         ];
 
         traceEmitter?.({ type: "graph_end", name: "Negotiation graph", durationMs: Date.now() - graphStart });
-        const discoveryNegotiations = resolutions.map(toDiscoveryNegotiation);
-        const discoverySummary = buildDiscoverySummary(resolutions);
+        const orderedResolutions = [...resolutions]
+          .sort((a, b) => a.__order - b.__order)
+          .map(({ __order: _o, ...r }) => r as NegotiationResolution);
+        const discoveryNegotiations = orderedResolutions.map(toDiscoveryNegotiation);
+        const discoverySummary = buildDiscoverySummary(orderedResolutions);
         return {
           trace: negotiateTrace,
           discoveryNegotiations,
