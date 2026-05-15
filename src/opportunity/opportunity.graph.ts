@@ -1852,10 +1852,11 @@ export class OpportunityGraphFactory {
         const onCandidateResolved: OnNegotiationResolved = async ({ candidate, accepted, turns, outcome }) => {
           resolutions.push({
             candidateUserId: candidate.userId,
-            counterpartyHint:
-              candidate.candidateUser.profile?.bio
-              ?? (candidate.candidateUser.profile?.interests ?? []).join(", ")
-              ?? "",
+            counterpartyHint: (() => {
+              const bio = candidate.candidateUser.profile?.bio?.trim();
+              if (bio) return bio;
+              return (candidate.candidateUser.profile?.interests ?? []).join(", ");
+            })(),
             indexContext: candidate.networkId
               ? indexContextMap.get(candidate.networkId) ?? ""
               : "",
