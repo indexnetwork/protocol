@@ -25,6 +25,10 @@ import {
   createStatusEvent,
   createTokenEvent,
   createToolActivityEvent,
+  createChatSummarizerStartEvent,
+  createChatSummarizerEndEvent,
+  createQuestionGeneratorStartEvent,
+  createQuestionGeneratorEndEvent,
 } from "./chat-streaming.types.js";
 import type { AgentStreamEvent } from "./chat.agent.js";
 
@@ -258,6 +262,22 @@ export class ChatStreamer {
 
           if (event.type === "decision_questions") {
             yield createDecisionQuestionsEvent(sessionId, { questions: event.questions });
+          }
+
+          if (event.type === "chat_summarizer_start") {
+            yield createChatSummarizerStartEvent(sessionId, event.payload);
+          }
+
+          if (event.type === "chat_summarizer_end") {
+            yield createChatSummarizerEndEvent(sessionId, event.payload);
+          }
+
+          if (event.type === "question_generator_start") {
+            yield createQuestionGeneratorStartEvent(sessionId, event.payload);
+          }
+
+          if (event.type === "question_generator_end") {
+            yield createQuestionGeneratorEndEvent(sessionId, event.payload);
           }
         }
 

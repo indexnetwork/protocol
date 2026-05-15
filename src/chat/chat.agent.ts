@@ -21,7 +21,7 @@ import { protocolLogger } from "../shared/observability/protocol.logger.js";
 import { createModel } from "../shared/agent/model.config.js";
 import { sanitizeForDebugMeta } from "../shared/observability/debug-meta.sanitizer.js";
 import type { DebugMetaToolCall, DebugMetaLlm, DebugMetaOrchestratorNegotiations, DebugMetaDiscoveryQuestions } from "./chat-streaming.types.js";
-import type { Question } from "../shared/schemas/question.schema.js";
+import type { Question, QuestionStrategy } from "../shared/schemas/question.schema.js";
 import type { Opportunity } from "../shared/interfaces/database.interface.js";
 import { Timed } from "../shared/observability/performance.js";
 import { requestContext } from "../shared/observability/request-context.js";
@@ -131,7 +131,11 @@ export type AgentStreamEvent =
       reasoning?: string;
       agreedRoles?: { ownUser?: string; otherUser?: string };
     }
-  | { type: "decision_questions"; questions: Question[] };
+  | { type: "decision_questions"; questions: Question[] }
+  | { type: "chat_summarizer_start"; payload: { sessionId: string } }
+  | { type: "chat_summarizer_end"; payload: { newMessageCount: number; model: string; fromCached: boolean; durationMs: number } }
+  | { type: "question_generator_start"; payload: { inputMode: "transcripts" | "insights"; negotiationCount: number; hasChatContext: boolean; truncated?: { originalCount: number; keptCount: number } } }
+  | { type: "question_generator_end"; payload: { finalCount: number; droppedCount: number; strategies: QuestionStrategy[]; durationMs: number; inputMode: "transcripts" | "insights" } };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
