@@ -87,4 +87,10 @@ describe("flattenChoice", () => {
     ).toBe("Priority (Which traits matter most?): Technical depth");
     expect(flattenChoice(priorityQ, ["not-a-real-option", 42])).toBeNull();
   });
+
+  it("returns null when a single-select question receives an array (non-conformant client)", () => {
+    expect(
+      flattenChoice(stageQ, ["Pre-revenue (Recommended)", "Post-revenue"]),
+    ).toBeNull();
+  });
 });

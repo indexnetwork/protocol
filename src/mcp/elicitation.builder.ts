@@ -81,6 +81,10 @@ export function flattenChoice(q: Question, choice: unknown): string | null {
   const allowedLabels = new Set(q.options.map((o) => o.label));
 
   if (Array.isArray(choice)) {
+    // Only multi-select questions accept arrays. A single-select question
+    // receiving an array means a non-conformant client — reject the response
+    // rather than recording an impossible multi-answer.
+    if (!q.multiSelect) return null;
     const validItems = choice.filter(
       (c): c is string => typeof c === "string" && allowedLabels.has(c),
     );
