@@ -169,6 +169,8 @@ export { normalizeTelegramHandle } from './shared/utils/telegram-handle.js';
 export { createMcpServer, computeAgentIndexScope } from "./mcp/mcp.server.js";
 export type { ScopedDepsFactory } from "./mcp/mcp.server.js";
 export { buildElicitationCreate, flattenChoice } from "./mcp/elicitation.builder.js";
+export { dispatchElicitations } from "./mcp/elicitation.dispatcher.js";
+export type { ElicitResultLike, ElicitInputFn, DispatchElicitationsParams } from "./mcp/elicitation.dispatcher.js";
 
 // ─── States (for advanced graph consumers) ────────────────────────────────────
 
