@@ -414,14 +414,19 @@ export function createMcpServer(
               const supportsElicitation =
                 !!server.server.getClientCapabilities()?.elicitation;
 
-              if (supportsElicitation && ctx.mcpReq?.elicitInput) {
+              // Capture into a local const so TS preserves the narrowing
+              // inside the callback below. Optional chains don't survive
+              // across closure boundaries under strict mode.
+              const elicitInput = ctx.mcpReq?.elicitInput;
+
+              if (supportsElicitation && elicitInput) {
                 // Sequential — never parallel (day-one rule). We await the loop
                 // before returning the tool result so test harnesses can observe
                 // the dispatched calls deterministically.
                 await dispatchElicitations({
                   userId,
                   questions,
-                  elicitInput: (params) => ctx.mcpReq.elicitInput(params),
+                  elicitInput: (params) => elicitInput(params),
                   chatMessageWriter: deps.chatMessageWriter,
                 });
               }
