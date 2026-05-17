@@ -18,7 +18,19 @@ export interface DispatchElicitationsParams {
   userId: string;
   questions: Question[];
   elicitInput: ElicitInputFn;
-  chatMessageWriter: ChatMessageWriter | undefined;
+  /**
+   * Optional. When absent, elicitations still dispatch (so users aren't
+   * left mid-flow on a misconfiguration), but accepted answers are dropped
+   * with a one-shot warn. See dispatcher body.
+   */
+  chatMessageWriter?: ChatMessageWriter;
+}
+
+/** Narrowing guard for elicitation replies received from MCP clients. */
+function isElicitResult(value: unknown): value is ElicitResultLike {
+  if (typeof value !== "object" || value === null) return false;
+  const action = (value as { action?: unknown }).action;
+  return action === "accept" || action === "decline" || action === "cancel";
 }
 
 /**
@@ -51,9 +63,9 @@ export async function dispatchElicitations({
 
   for (const question of questions) {
     const elicitation = buildElicitationCreate(question);
-    let reply: ElicitResultLike;
+    let rawReply: unknown;
     try {
-      reply = await elicitInput(elicitation);
+      rawReply = await elicitInput(elicitation);
     } catch (err) {
       logger.warn("elicitation_failed", {
         title: question.title,
@@ -62,8 +74,20 @@ export async function dispatchElicitations({
       break;
     }
 
+    // The reply is runtime data from the MCP client — validate the shape
+    // before branching. A malformed reply (null, missing action, unknown
+    // action) is treated as a no-op so we don't persist anything unsafe.
+    if (!isElicitResult(rawReply)) {
+      logger.warn("elicitation_response_malformed", { title: question.title });
+      continue;
+    }
+    const reply = rawReply;
+
     if (reply.action === "cancel") break;
-    if (reply.action === "decline") continue;
+    // Require an explicit `accept` — `decline` and any future / unknown
+    // action both fall through to no-op rather than being treated as
+    // accepted responses.
+    if (reply.action !== "accept") continue;
 
     const flat = flattenChoice(question, reply.content?.choice);
     if (flat === null) continue;

@@ -171,10 +171,63 @@ describe("dispatchElicitations", () => {
       userId: "u-1",
       questions: [q1],
       elicitInput,
-      chatMessageWriter: undefined,
+      // chatMessageWriter omitted entirely — should compile against the
+      // optional-typed param and run the absent-writer warn path.
     });
 
     expect(elicitInput).toHaveBeenCalledTimes(1);
+  });
+
+  it("malformed elicit reply (null / unknown shape) is treated as no-op and loop continues", async () => {
+    const replies: unknown[] = [
+      null,
+      { action: "accept", content: { choice: "In the next month" } },
+    ];
+    let i = 0;
+    // Cast to ElicitInputFn — runtime returns deliberately bogus shapes
+    // to exercise the validation guard.
+    const elicitInput = mock(async (_params: unknown) => replies[i++]) as unknown as Parameters<
+      typeof dispatchElicitations
+    >[0]["elicitInput"];
+    const writer = makeWriter();
+
+    await dispatchElicitations({
+      userId: "u-1",
+      questions: [q1, q2],
+      elicitInput,
+      chatMessageWriter: writer,
+    });
+
+    // Both elicitations dispatched; null reply continues without writing,
+    // second valid accept writes once.
+    expect(i).toBe(2);
+    expect(writer.calls).toHaveLength(1);
+    expect(writer.calls[0].content).toBe(
+      "Timing (When do you need a co-founder in place?): In the next month",
+    );
+  });
+
+  it("unknown action (not accept/decline/cancel) is treated as no-op, not as accept", async () => {
+    // Even with a valid-looking `content.choice`, an unknown action must
+    // not write anything. Guards against forwards-incompatible MCP servers
+    // and against non-conformant clients trying to spoof acceptance.
+    const replies: unknown[] = [
+      { action: "maybe-later", content: { choice: "Pre-revenue (Recommended)" } },
+    ];
+    let i = 0;
+    const elicitInput = mock(async (_params: unknown) => replies[i++]) as unknown as Parameters<
+      typeof dispatchElicitations
+    >[0]["elicitInput"];
+    const writer = makeWriter();
+
+    await dispatchElicitations({
+      userId: "u-1",
+      questions: [q1],
+      elicitInput,
+      chatMessageWriter: writer,
+    });
+
+    expect(writer.calls).toHaveLength(0);
   });
 
   it("addUserMessage returning null does not halt subsequent elicitations", async () => {
