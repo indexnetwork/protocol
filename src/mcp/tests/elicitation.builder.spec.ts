@@ -76,4 +76,15 @@ describe("flattenChoice", () => {
   it("returns null for an undefined/missing choice", () => {
     expect(flattenChoice(stageQ, undefined)).toBeNull();
   });
+
+  it("returns null when a single-select string is not in q.options", () => {
+    expect(flattenChoice(stageQ, "Unknown option")).toBeNull();
+  });
+
+  it("drops invalid items from a multi-select array; returns null if none remain", () => {
+    expect(
+      flattenChoice(priorityQ, ["Technical depth", "not-a-real-option", 42, null]),
+    ).toBe("Priority (Which traits matter most?): Technical depth");
+    expect(flattenChoice(priorityQ, ["not-a-real-option", 42])).toBeNull();
+  });
 });

@@ -65,20 +65,29 @@ export function buildElicitationCreate(q: Question): {
 /**
  * Flattens an accepted elicitation `choice` value into the user-message
  * format Slice 4 produces. Returns `null` when the choice is missing,
- * undefined, or an empty array (treat as unanswered — do not post).
+ * empty, or contains no values that match `q.options` — MCP clients can
+ * be buggy or non-conformant, so values are validated against the
+ * declared enum before being persisted as a user message.
+ *
+ * For multi-select questions, items that are not strings or not in the
+ * options list are dropped silently; if no items remain, returns null.
  *
  * @param q - The question the choice answers.
  * @param choice - The raw value from the elicitation response.
- * @returns A formatted string or `null` if the choice is absent/empty.
+ * @returns A formatted string or `null` if no valid choice remains.
  */
 export function flattenChoice(q: Question, choice: unknown): string | null {
   const prefix = `${q.title} (${q.prompt})`;
+  const allowedLabels = new Set(q.options.map((o) => o.label));
 
   if (Array.isArray(choice)) {
-    if (choice.length === 0) return null;
-    return `${prefix}: ${choice.join(", ")}`;
+    const validItems = choice.filter(
+      (c): c is string => typeof c === "string" && allowedLabels.has(c),
+    );
+    if (validItems.length === 0) return null;
+    return `${prefix}: ${validItems.join(", ")}`;
   }
-  if (typeof choice === "string" && choice.length > 0) {
+  if (typeof choice === "string" && allowedLabels.has(choice)) {
     return `${prefix}: ${choice}`;
   }
   return null;

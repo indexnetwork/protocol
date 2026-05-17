@@ -39,9 +39,16 @@ function makeWriter(): ChatMessageWriter & {
 describe("dispatchElicitations", () => {
   it("dispatches one elicitInput per question sequentially and posts accepts", async () => {
     const elicitations: unknown[] = [];
+    // Reply with a label valid for whichever question is being asked, so
+    // flattenChoice's enum validation accepts both.
+    const replies = [
+      { action: "accept" as const, content: { choice: "Pre-revenue (Recommended)" } },
+      { action: "accept" as const, content: { choice: "In the next month" } },
+    ];
+    let i = 0;
     const elicitInput = mock(async (params: unknown) => {
       elicitations.push(params);
-      return { action: "accept" as const, content: { choice: "Pre-revenue (Recommended)" } };
+      return replies[i++];
     });
     const writer = makeWriter();
 
@@ -62,6 +69,9 @@ describe("dispatchElicitations", () => {
     expect(writer.calls).toHaveLength(2);
     expect(writer.calls[0].content).toBe(
       "Stage (Are you pre- or post-revenue?): Pre-revenue (Recommended)",
+    );
+    expect(writer.calls[1].content).toBe(
+      "Timing (When do you need a co-founder in place?): In the next month",
     );
   });
 

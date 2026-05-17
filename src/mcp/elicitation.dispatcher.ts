@@ -60,7 +60,17 @@ export async function dispatchElicitations({
     if (!chatMessageWriter) continue;
 
     try {
-      await chatMessageWriter.addUserMessage(userId, flat);
+      const writeResult = await chatMessageWriter.addUserMessage(userId, flat);
+      if (writeResult === null) {
+        // User has no chat session — the accepted answer is dropped here.
+        // Day-one behavior: log and continue. Future iterations may surface
+        // the answer back through the tool result envelope for clients to
+        // resurface, but that's out of scope for this slice.
+        logger.warn("chat_message_write_skipped_no_session", {
+          userId,
+          title: question.title,
+        });
+      }
     } catch (err) {
       logger.warn("chat_message_write_failed", {
         title: question.title,

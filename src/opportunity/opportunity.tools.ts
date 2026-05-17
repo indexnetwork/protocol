@@ -887,7 +887,11 @@ export function createOpportunityTools(defineTool: DefineTool, deps: ToolDeps) {
         ...(deps.chatSummary && { chatSummary: deps.chatSummary }),
         ...(deps.questionGenerator && { questionGenerator: deps.questionGenerator }),
         // Decision questions add an uncapped LLM call after the negotiation phase.
-        // For MCP we'd blow the 20s budget documented above. Restrict to chat.
+        // For chat sessions, they're rendered by the frontend via streamed events
+        // (Slice 4). For MCP, they drive a sequential elicitation/create flow
+        // (Slice 5) and can exceed the 20s budget documented above — the MCP
+        // tool handler awaits the elicitations before returning the tool result.
+        // Master switch remains ENABLE_DISCOVERY_QUESTIONS.
         enableQuestions:
           process.env.ENABLE_DISCOVERY_QUESTIONS === "true" &&
           (!!context.sessionId || !!context.isMcp),
