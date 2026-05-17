@@ -12,6 +12,8 @@ import type { ServerContext, JsonSchemaType } from '@modelcontextprotocol/server
 import type { McpAuthResolver } from '../shared/interfaces/auth.interface.js';
 import type { ToolDeps, ResolvedToolContext } from '../shared/agent/tool.helpers.js';
 import { resolveChatContext } from '../shared/agent/tool.helpers.js';
+import type { Question } from '../shared/schemas/question.schema.js';
+import { dispatchElicitations } from './elicitation.dispatcher.js';
 import { createToolRegistry } from '../shared/agent/tool.registry.js';
 import { protocolLogger } from '../shared/observability/protocol.logger.js';
 
@@ -119,6 +121,32 @@ export function sanitizeMcpResult(text: string): { text: string; isError: boolea
   } catch {
     return { text, isError: false };
   }
+}
+
+/**
+ * Extracts decision questions from a parsed tool-result text, if present.
+ * Returns null when the text isn't JSON, doesn't have data.questions, or the
+ * array is empty.
+ */
+export function extractDecisionQuestions(text: string): Question[] | null {
+  try {
+    const parsed = JSON.parse(text);
+    const qs = parsed?.data?.questions;
+    if (Array.isArray(qs) && qs.length > 0) return qs as Question[];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Renders the JSON-envelope text block appended to the tool result content
+ * when decision questions are present. The leading sentinel string lets the
+ * LLM client recognize and surface the questions in prose for clients
+ * without elicitation support.
+ */
+export function renderQuestionsEnvelope(questions: Question[]): string {
+  return `Decision questions (structured): ${JSON.stringify({ questions })}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -356,6 +384,41 @@ export function createMcpServer(
           const result = await requestTool.handler({ context, query: validatedArgs });
 
           const { text: sanitizedText, isError: toolIsError } = sanitizeMcpResult(result);
+
+          // Slice 5: decision questions post-processing for discover_opportunities only.
+          if (toolName === "discover_opportunities" && !toolIsError) {
+            const questions = extractDecisionQuestions(sanitizedText);
+            if (questions) {
+              const envelopeBlock = {
+                type: "text" as const,
+                text: renderQuestionsEnvelope(questions),
+              };
+
+              const supportsElicitation =
+                !!server.server.getClientCapabilities()?.elicitation;
+
+              if (supportsElicitation && ctx.mcpReq?.elicitInput) {
+                // Sequential — never parallel (day-one rule). We await the loop
+                // before returning the tool result so test harnesses can observe
+                // the dispatched calls deterministically.
+                await dispatchElicitations({
+                  userId,
+                  questions,
+                  elicitInput: (params) => ctx.mcpReq.elicitInput(params),
+                  chatMessageWriter: deps.chatMessageWriter,
+                });
+              }
+
+              return {
+                content: [
+                  { type: "text" as const, text: sanitizedText },
+                  envelopeBlock,
+                ],
+                ...(toolIsError ? { isError: true } : {}),
+              };
+            }
+          }
+
           return {
             content: [{ type: 'text' as const, text: sanitizedText }],
             ...(toolIsError ? { isError: true } : {}),
