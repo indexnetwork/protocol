@@ -13,6 +13,7 @@ import type { McpAuthResolver } from '../shared/interfaces/auth.interface.js';
 import type { ToolDeps, ResolvedToolContext } from '../shared/agent/tool.helpers.js';
 import { resolveChatContext } from '../shared/agent/tool.helpers.js';
 import type { Question } from '../shared/schemas/question.schema.js';
+import { QuestionSchema } from '../shared/schemas/question.schema.js';
 import { dispatchElicitations } from './elicitation.dispatcher.js';
 import { createToolRegistry } from '../shared/agent/tool.registry.js';
 import { protocolLogger } from '../shared/observability/protocol.logger.js';
@@ -123,20 +124,36 @@ export function sanitizeMcpResult(text: string): { text: string; isError: boolea
   }
 }
 
+/** Spec cap on the number of decision questions surfaced per turn. */
+const MAX_DECISION_QUESTIONS = 3;
+
 /**
  * Extracts decision questions from a parsed tool-result text, if present.
- * Returns null when the text isn't JSON, doesn't have data.questions, or the
- * array is empty.
+ * Validates each entry against `QuestionSchema` and drops malformed items;
+ * caps the array at `MAX_DECISION_QUESTIONS` (defense-in-depth — Slice 2's
+ * generator already caps at 3, but we don't trust the cast here).
+ *
+ * Returns null when the text isn't JSON, has no `data.questions`, or
+ * contains zero valid questions after validation.
  */
 export function extractDecisionQuestions(text: string): Question[] | null {
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(text);
-    const qs = parsed?.data?.questions;
-    if (Array.isArray(qs) && qs.length > 0) return qs as Question[];
-    return null;
+    parsed = JSON.parse(text);
   } catch {
     return null;
   }
+
+  const rawQs = (parsed as { data?: { questions?: unknown } } | null)?.data?.questions;
+  if (!Array.isArray(rawQs) || rawQs.length === 0) return null;
+
+  const valid: Question[] = [];
+  for (const raw of rawQs) {
+    const result = QuestionSchema.safeParse(raw);
+    if (result.success) valid.push(result.data);
+    if (valid.length === MAX_DECISION_QUESTIONS) break;
+  }
+  return valid.length > 0 ? valid : null;
 }
 
 /**

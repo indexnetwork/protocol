@@ -39,6 +39,16 @@ export async function dispatchElicitations({
 }: DispatchElicitationsParams): Promise<void> {
   if (questions.length === 0) return;
 
+  if (!chatMessageWriter) {
+    // Misconfiguration: composition root forgot to wire the writer. We still
+    // proceed with elicitations so the user isn't silently left hanging, but
+    // surface the gap once at loop start so it's visible in protocol logs.
+    logger.warn("chat_message_writer_absent_responses_will_drop", {
+      userId,
+      questionCount: questions.length,
+    });
+  }
+
   for (const question of questions) {
     const elicitation = buildElicitationCreate(question);
     let reply: ElicitResultLike;

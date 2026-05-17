@@ -40,6 +40,30 @@ describe("mcp.server post-result helpers", () => {
     expect(extractDecisionQuestions(text)).toEqual([sampleQ]);
   });
 
+  it("extractDecisionQuestions drops malformed entries and keeps the valid ones", () => {
+    const malformed = { title: "X", prompt: "no question mark" }; // missing options + multiSelect
+    const text = JSON.stringify({
+      data: { questions: [malformed, sampleQ, "not-an-object"] },
+    });
+    expect(extractDecisionQuestions(text)).toEqual([sampleQ]);
+  });
+
+  it("extractDecisionQuestions returns null when every entry is malformed", () => {
+    const text = JSON.stringify({
+      data: { questions: [{}, "string", 42] },
+    });
+    expect(extractDecisionQuestions(text)).toBeNull();
+  });
+
+  it("extractDecisionQuestions caps at 3 questions (Slice 2 generator cap)", () => {
+    // Build 5 valid copies of sampleQ. Only the first 3 should survive.
+    const five = [sampleQ, sampleQ, sampleQ, sampleQ, sampleQ];
+    const text = JSON.stringify({ data: { questions: five } });
+    const result = extractDecisionQuestions(text);
+    expect(result).not.toBeNull();
+    expect(result!).toHaveLength(3);
+  });
+
   it("renderQuestionsEnvelope prefixes a sentinel string before JSON", () => {
     const out = renderQuestionsEnvelope([sampleQ]);
     expect(out.startsWith("Decision questions (structured): ")).toBe(true);
