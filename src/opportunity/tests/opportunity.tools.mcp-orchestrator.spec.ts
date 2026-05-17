@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 config({ path: '.env.development', override: true });
 process.env.OPENROUTER_API_KEY ??= 'test';
 
-import { describe, test, expect, mock, beforeEach } from 'bun:test';
+import { describe, test, expect, mock, beforeEach, afterEach, afterAll } from 'bun:test';
 
 // Capture every call to runDiscoverFromQuery.
 // mock.module is hoisted by Bun, so this runs before any static import of the mocked module.
@@ -99,6 +99,20 @@ describe('discover_opportunities — enableQuestions gating', () => {
     discoverCalls = [];
   });
 
+  // Restore the env between tests so a failing/skipped test in this block
+  // cannot leak state into siblings or the rest of the file.
+  afterEach(() => {
+    if (prevFlag === undefined) delete process.env.ENABLE_DISCOVERY_QUESTIONS;
+    else process.env.ENABLE_DISCOVERY_QUESTIONS = prevFlag;
+  });
+
+  // Belt-and-suspenders: also restore after the whole describe in case
+  // a future test forgets afterEach for any reason.
+  afterAll(() => {
+    if (prevFlag === undefined) delete process.env.ENABLE_DISCOVERY_QUESTIONS;
+    else process.env.ENABLE_DISCOVERY_QUESTIONS = prevFlag;
+  });
+
   test('MCP context with flag on → enableQuestions=true', async () => {
     process.env.ENABLE_DISCOVERY_QUESTIONS = 'true';
     const tool = captureDiscoverTool(makeDeps());
@@ -129,14 +143,5 @@ describe('discover_opportunities — enableQuestions gating', () => {
     await tool.handler({ context: makeContext({}), query: {} });
 
     expect(discoverCalls[0].enableQuestions).toBe(false);
-  });
-
-  // Restore env after the suite so it doesn't leak into siblings.
-  // (bun:test has no afterAll-at-describe granularity; rely on each test
-  //  setting/clearing explicitly.)
-  test('cleanup — restore env', () => {
-    if (prevFlag === undefined) delete process.env.ENABLE_DISCOVERY_QUESTIONS;
-    else process.env.ENABLE_DISCOVERY_QUESTIONS = prevFlag;
-    expect(true).toBe(true);
   });
 });

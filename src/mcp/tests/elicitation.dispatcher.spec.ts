@@ -176,4 +176,61 @@ describe("dispatchElicitations", () => {
 
     expect(elicitInput).toHaveBeenCalledTimes(1);
   });
+
+  it("addUserMessage returning null does not halt subsequent elicitations", async () => {
+    const replies = [
+      { action: "accept" as const, content: { choice: "Pre-revenue (Recommended)" } },
+      { action: "accept" as const, content: { choice: "In the next month" } },
+    ];
+    let i = 0;
+    const elicitInput = mock(async (_params: unknown) => replies[i++]);
+    const writeCalls: Array<{ userId: string; content: string }> = [];
+    // Writer that always returns null — user has no chat session.
+    const writer: ChatMessageWriter = {
+      async addUserMessage(userId, content) {
+        writeCalls.push({ userId, content });
+        return null;
+      },
+    };
+
+    await dispatchElicitations({
+      userId: "u-1",
+      questions: [q1, q2],
+      elicitInput,
+      chatMessageWriter: writer,
+    });
+
+    // Both elicitations dispatched, both writes attempted, but null returns
+    // don't break the loop.
+    expect(elicitInput).toHaveBeenCalledTimes(2);
+    expect(writeCalls).toHaveLength(2);
+  });
+
+  it("addUserMessage throwing does not halt subsequent elicitations", async () => {
+    const replies = [
+      { action: "accept" as const, content: { choice: "Pre-revenue (Recommended)" } },
+      { action: "accept" as const, content: { choice: "In the next month" } },
+    ];
+    let i = 0;
+    const elicitInput = mock(async (_params: unknown) => replies[i++]);
+    let writeAttempts = 0;
+    const writer: ChatMessageWriter = {
+      async addUserMessage(_userId, _content) {
+        writeAttempts += 1;
+        throw new Error("db-down");
+      },
+    };
+
+    await dispatchElicitations({
+      userId: "u-1",
+      questions: [q1, q2],
+      elicitInput,
+      chatMessageWriter: writer,
+    });
+
+    // Both writes attempted even though the first one threw — the catch
+    // logs and continues rather than aborting.
+    expect(elicitInput).toHaveBeenCalledTimes(2);
+    expect(writeAttempts).toBe(2);
+  });
 });

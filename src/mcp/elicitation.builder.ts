@@ -92,6 +92,9 @@ export function flattenChoice(q: Question, choice: unknown): string | null {
     return `${prefix}: ${validItems.join(", ")}`;
   }
   if (typeof choice === "string" && allowedLabels.has(choice)) {
+    // Symmetric guard: multi-select questions must receive arrays. A bare
+    // string here means a non-conformant client; reject for the same reason.
+    if (q.multiSelect) return null;
     return `${prefix}: ${choice}`;
   }
   return null;

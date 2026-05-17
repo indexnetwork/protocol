@@ -93,4 +93,10 @@ describe("flattenChoice", () => {
       flattenChoice(stageQ, ["Pre-revenue (Recommended)", "Post-revenue"]),
     ).toBeNull();
   });
+
+  it("returns null when a multi-select question receives a bare string (non-conformant client)", () => {
+    // The schema for multi-select declares an array of enum; a string would
+    // be a shape violation even when the label itself is valid.
+    expect(flattenChoice(priorityQ, "Technical depth")).toBeNull();
+  });
 });
